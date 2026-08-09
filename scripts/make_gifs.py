@@ -1,8 +1,10 @@
 """Render one GIF per registered environment into docs/assets/, for the docs.
 
-Each clip is driven by the repo's own scripted controller (`goto_ball_policy`) with the
-dribbler running, so the documentation shows a robot doing the task rather than a robot
-twitching at random.
+Each clip is scripted rather than random, so the documentation shows a robot doing the
+task. Reaching the ball is the repo's own `goto_ball_policy`; the tasks that also need the
+ball to go somewhere get the crude striker in `_demo_action`, which lines up on a per-env
+target and kicks. Without it every clip is `GoToBall-v0` on a different scene -- the robot
+arrives at the ball and sits there, and a shot or a pass never happens.
 
     MUJOCO_GL=egl uv run --group dev python scripts/make_gifs.py
 
@@ -22,33 +24,84 @@ os.environ.setdefault("MUJOCO_GL", "egl")
 import argparse
 from pathlib import Path
 
+import gymnasium as gym
+import mujoco
 import numpy as np
 from PIL import Image
 
-import gymnasium as gym
-import mujoco
-
 import mjsoccer
+from mjsoccer import scene as S
 from mjsoccer.tasks import goto_ball_policy
 
+# What each clip has to show beyond driving at the ball. `goto_ball_policy` only ever
+# closes on the ball, so a shooting or passing task rendered with it is indistinguishable
+# from GoToBall-v0 -- the robot arrives and then sits there for the rest of the clip.
+# Each entry is (where the ball should end up, whether to kick it there).
+DEMOS = {
+    "GoToBallShoot-v0": (lambda env: np.array([S.FIELD_HALF_X, 0.0]), True),
+    "StaticDefenders-v0": (lambda env: np.array([S.FIELD_HALF_X, 0.0]), True),
+    "PassEndurance-v0": (lambda env: env.data.xpos[env.robots[1].body][:2].copy(), True),
+    # Dribbling must carry the ball to the waypoint, so this one never fires the kicker.
+    "Dribbling-v0": (lambda env: env._target.copy(), False),
+}
 
-def _aim(cam: mujoco.MjvCamera, env, alpha: float = 1.0) -> None:
-    """Point a free camera at the agent and the ball, framed to hold both.
+
+def _demo_action(env, obs: np.ndarray, target, kick: bool) -> np.ndarray:
+    """Drive at the ball, or push it at `target` and kick when lined up.
+
+    A deliberately crude striker: approach the point one ball-radius behind the ball on the
+    target line, face the target, and fire once both are true. Good enough to make a clip
+    show its task, and not something to mistake for a policy -- it has no notion of the
+    defenders in StaticDefenders-v0 and will happily shoot into one.
+    """
+    a = np.zeros(env.action_space.shape, dtype=np.float32)
+    a[-1] = 1.0  # dribbler on; a spinning bar is what holds the ball on the way in
+    # goto_ball_policy and the aiming below are both tier-0 (vx, vy, omega) commands; on
+    # tier 1 the drive slice is wheel speeds and neither applies.
+    if target is None or env.drive_dim != 3:
+        a[: min(3, env.drive_dim)] = goto_ball_policy(obs)[: min(3, env.drive_dim)]
+        return a
+
+    ball = env.ball.pos(env.data)[:2]
+    x, y, th = env.robots[0].pose(env.data)
+    to_target = target - ball
+    behind = ball - to_target / max(float(np.linalg.norm(to_target)), 1e-9) * 0.09
+    err = behind - np.array([x, y])
+    c, s = np.cos(th), np.sin(th)
+    # Actions are body-frame (see base._drive_robot), so rotate the world error into it.
+    a[0], a[1] = np.clip(2.0 * np.array([c * err[0] + s * err[1], -s * err[0] + c * err[1]]), -1, 1)
+    face = (np.arctan2(target[1] - y, target[0] - x) - th + np.pi) % (2 * np.pi) - np.pi
+    a[2] = float(np.clip(1.5 * face, -1.0, 1.0))
+    # Fire only with the ball actually in the mouth and squarely lined up. Kicking on
+    # proximity alone punts whatever the robot happens to be facing, and a clip of a robot
+    # booting the ball off the pitch documents the task worse than one that never shoots.
+    if kick and env.holds(0) and abs(face) < 0.06:
+        a[env.drive_dim] = 1.0  # the kick channel sits directly after the drive slice
+    return a
+
+
+def _aim(cam: mujoco.MjvCamera, env, alpha: float = 1.0, target=None) -> None:
+    """Point a free camera at the agent and whatever it is currently working towards.
 
     The model's `overview` camera takes in the whole 12 x 9 m field, which puts a 180 mm
     robot at about five pixels in a GIF small enough to commit -- the clip renders a field
     and nothing legible on it. So chase the action instead. `alpha` is an exponential
-    smoother: a hard cut every frame reads as jitter, since the midpoint jumps whenever the
+    smoother: a hard cut every frame reads as jitter, since the focus jumps whenever the
     ball is struck.
+
+    The second subject is the ball while the robot is chasing it, and the task's target
+    once the robot has it. Framing robot and ball throughout looks right until the ball is
+    in the mouth, at which point the two are 90 mm apart, the shot collapses to its closest
+    distance, and the goal, the defenders and the team-mate all leave the frame -- the clip
+    stops showing the task at exactly the moment the task starts.
     """
     robot = env.data.xpos[env.robots[0].body][:2]
-    ball = env.ball.pos(env.data)[:2]
-    # Far enough back to hold both plus a margin, never so close that a seated ball fills
-    # the frame -- and capped, because the two can start a field apart and framing both at
-    # 12 m is the unreadable overview shot again. Past the cap the robot wins and the ball
-    # is allowed off-screen: the robot is what the clip is showing.
-    want = min(6.0, max(2.5, float(np.linalg.norm(robot - ball)) * 1.3 + 1.5))
-    cam.lookat[:2] += alpha * (robot * 0.6 + ball * 0.4 - cam.lookat[:2])
+    focus = target if target is not None and env.holds(0) else env.ball.pos(env.data)[:2]
+    # Far enough back to hold both plus a margin, floored so a seated ball cannot fill the
+    # frame, and capped because subject and target can be a field apart and framing both at
+    # 12 m is the unreadable overview shot again. Past the cap the robot wins.
+    want = min(7.0, max(3.0, float(np.linalg.norm(robot - focus)) * 1.25 + 1.5))
+    cam.lookat[:2] += alpha * (robot * 0.55 + focus * 0.45 - cam.lookat[:2])
     cam.lookat[2] += alpha * (0.0 - cam.lookat[2])
     cam.distance += alpha * (want - cam.distance)
 
@@ -61,6 +114,7 @@ def _grab_frames(
     seed: int,
     max_steps: int,
     smoothing: float,
+    demo,
 ) -> list[np.ndarray]:
     """Step `env` until `n_frames` frames are captured, resetting on episode end.
 
@@ -73,15 +127,15 @@ def _grab_frames(
     cam = mujoco.MjvCamera()
     cam.type = mujoco.mjtCamera.mjCAMERA_FREE
     cam.azimuth, cam.elevation = -90.0, -40.0
-    _aim(cam, env)  # snap to the opening pose; smooth from there
+    target_of, kick = demo
+    aim_at = lambda: None if target_of is None else target_of(env)
+    _aim(cam, env, target=aim_at())  # snap to the opening pose; smooth from there
     episode = 0
     for step in range(max_steps):
-        action = np.zeros(env.action_space.shape, dtype=np.float32)
-        action[: env.drive_dim] = goto_ball_policy(obs)[: env.drive_dim]
-        action[-1] = 1.0  # dribbler on; kick and chip (the two before it) stay at rest
-        obs, _, terminated, truncated, _ = env.step(action)
+        target = aim_at()
+        obs, _, terminated, truncated, _ = env.step(_demo_action(env, obs, target, kick))
         if step % every == 0:
-            _aim(cam, env, smoothing)
+            _aim(cam, env, smoothing, target)
             renderer.update_scene(env.data, camera=cam)
             frames.append(renderer.render().copy())
             if len(frames) >= n_frames:
@@ -89,14 +143,18 @@ def _grab_frames(
         if terminated or truncated:
             episode += 1
             obs, _ = env.reset(seed=seed + episode)
-            _aim(cam, env)  # a reset teleports everything, so cut rather than pan
+            # A reset teleports everything, so cut rather than pan.
+            _aim(cam, env, target=aim_at())
     return frames
 
 
 def _write_gif(raw: list[np.ndarray], path: Path, fps: int) -> None:
     # 128 colours is plenty for a green field plus two robot colours, and roughly halves
     # the file next to the default 256.
-    frames = [Image.fromarray(f).quantize(colors=128, method=Image.Quantize.MEDIANCUT) for f in raw]
+    frames = [
+        Image.fromarray(f).quantize(colors=128, method=Image.Quantize.MEDIANCUT)
+        for f in raw
+    ]
     frames[0].save(
         path,
         save_all=True,
@@ -144,6 +202,7 @@ def main(argv=None) -> int:
                 args.seed,
                 max_steps=n_frames * every * 4,
                 smoothing=args.smoothing,
+                demo=DEMOS.get(env_id, (None, False)),
             )
         finally:
             renderer.close()
@@ -154,7 +213,9 @@ def main(argv=None) -> int:
             continue
         path = out / f"{env_id.removesuffix('-v0')}.gif"
         _write_gif(frames, path, args.fps)
-        print(f"{env_id}: {len(frames)} frames -> {path} ({path.stat().st_size / 1024:.0f} KB)")
+        print(
+            f"{env_id}: {len(frames)} frames -> {path} ({path.stat().st_size / 1024:.0f} KB)"
+        )
 
     return 0
 
