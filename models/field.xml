@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mujoco model="field">
+  <compiler angle="radian" meshdir="assets" autolimits="true" />
+  <asset>
+    <mesh name="f_v_goalpost" file="visual/goalpost.stl" />
+    <mesh name="f_c_goalpost_00" file="collision/goalpost_h00.stl" maxhullvert="32" />
+    <mesh name="f_c_goalpost_01" file="collision/goalpost_h01.stl" maxhullvert="32" />
+    <mesh name="f_c_goalpost_02" file="collision/goalpost_h02.stl" maxhullvert="32" />
+    <mesh name="f_c_goalpost_03" file="collision/goalpost_h03.stl" maxhullvert="32" />
+    <mesh name="f_c_goalpost_04" file="collision/goalpost_h04.stl" maxhullvert="32" />
+    <mesh name="f_c_goalpost_05" file="collision/goalpost_h05.stl" maxhullvert="32" />
+    <mesh name="f_c_goalpost_06" file="collision/goalpost_h06.stl" maxhullvert="32" />
+    <mesh name="f_c_goalpost_07" file="collision/goalpost_h07.stl" maxhullvert="32" />
+    <mesh name="f_v_ground" file="visual/ground.stl" />
+    <mesh name="f_v_lines" file="visual/lines.stl" />
+    <mesh name="f_v_walls" file="visual/walls.stl" />
+    <mesh name="f_c_walls_00" file="collision/walls_h00.stl" maxhullvert="32" />
+    <mesh name="f_c_walls_01" file="collision/walls_h01.stl" maxhullvert="32" />
+    <mesh name="f_c_walls_02" file="collision/walls_h02.stl" maxhullvert="32" />
+    <mesh name="f_c_walls_03" file="collision/walls_h03.stl" maxhullvert="32" />
+    <mesh name="f_c_walls_04" file="collision/walls_h04.stl" maxhullvert="32" />
+    <mesh name="f_c_walls_05" file="collision/walls_h05.stl" maxhullvert="32" />
+    <mesh name="f_c_walls_06" file="collision/walls_h06.stl" maxhullvert="32" />
+    <mesh name="f_c_walls_07" file="collision/walls_h07.stl" maxhullvert="32" />
+    <mesh name="f_c_walls_08" file="collision/walls_h08.stl" maxhullvert="32" />
+    <mesh name="f_c_walls_09" file="collision/walls_h09.stl" maxhullvert="32" />
+    <mesh name="f_c_walls_10" file="collision/walls_h10.stl" maxhullvert="32" />
+    <mesh name="f_c_walls_11" file="collision/walls_h11.stl" maxhullvert="32" />
+    <material name="f_mat_chassis" rgba="0.16 0.17 0.20 1" specular="0.2" shininess="0.3" />
+    <material name="f_mat_metal" rgba="0.55 0.57 0.60 1" specular="0.2" shininess="0.3" />
+    <material name="f_mat_rubber" rgba="0.10 0.10 0.11 1" specular="0.2" shininess="0.3" />
+    <material name="f_mat_gear" rgba="0.85 0.72 0.30 1" specular="0.2" shininess="0.3" />
+    <material name="f_mat_tag" rgba="0.90 0.90 0.90 1" specular="0.2" shininess="0.3" />
+    <material name="f_mat_carpet" rgba="0.15 0.42 0.20 1" specular="0.2" shininess="0.3" />
+    <material name="f_mat_line" rgba="0.95 0.95 0.95 1" specular="0.2" shininess="0.3" />
+    <material name="f_mat_wall" rgba="0.30 0.32 0.36 1" specular="0.2" shininess="0.3" />
+    <material name="f_mat_goal" rgba="0.85 0.85 0.88 1" specular="0.2" shininess="0.3" />
+    <material name="f_mat_ball" rgba="1.0 0.45 0.05 1" specular="0.2" shininess="0.3" />
+    <texture name="tex_sky" type="skybox" builtin="gradient" rgb1="0.35 0.42 0.55" rgb2="0.05 0.06 0.09" width="256" height="256" />
+  </asset>
+  <worldbody>
+    <geom name="floor" type="plane" pos="0 0 0.02" size="6.7 5.2 0.05" material="f_mat_carpet" contype="4" conaffinity="4" condim="3" friction="0.8 0.005 0.0001" group="0" />
+    <geom name="vis_f_walls_1" type="mesh" mesh="f_v_walls" pos="5.68434e-15 5.68434e-15 0.02" quat="1 0 0 0" material="f_mat_wall" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="col_f_walls_1_c00" type="mesh" mesh="f_c_walls_00" pos="5.68434e-15 5.68434e-15 0.02" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_walls_1_c01" type="mesh" mesh="f_c_walls_01" pos="5.68434e-15 5.68434e-15 0.02" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_walls_1_c02" type="mesh" mesh="f_c_walls_02" pos="5.68434e-15 5.68434e-15 0.02" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_walls_1_c03" type="mesh" mesh="f_c_walls_03" pos="5.68434e-15 5.68434e-15 0.02" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_walls_1_c04" type="mesh" mesh="f_c_walls_04" pos="5.68434e-15 5.68434e-15 0.02" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_walls_1_c05" type="mesh" mesh="f_c_walls_05" pos="5.68434e-15 5.68434e-15 0.02" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_walls_1_c06" type="mesh" mesh="f_c_walls_06" pos="5.68434e-15 5.68434e-15 0.02" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_walls_1_c07" type="mesh" mesh="f_c_walls_07" pos="5.68434e-15 5.68434e-15 0.02" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_walls_1_c08" type="mesh" mesh="f_c_walls_08" pos="5.68434e-15 5.68434e-15 0.02" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_walls_1_c09" type="mesh" mesh="f_c_walls_09" pos="5.68434e-15 5.68434e-15 0.02" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_walls_1_c10" type="mesh" mesh="f_c_walls_10" pos="5.68434e-15 5.68434e-15 0.02" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_walls_1_c11" type="mesh" mesh="f_c_walls_11" pos="5.68434e-15 5.68434e-15 0.02" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="vis_f_lines_1" type="mesh" mesh="f_v_lines" pos="3.56692e-14 -1.66978e-14 0.0205" quat="1 2.58797e-34 3.60822e-16 6.50521e-19" material="f_mat_line" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="vis_f_goalpost_1" type="mesh" mesh="f_v_goalpost" pos="6.2 3.28626e-15 0.17" quat="0 -4.44089e-16 1 0" material="f_mat_goal" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="col_f_goalpost_1_c00" type="mesh" mesh="f_c_goalpost_00" pos="6.2 3.28626e-15 0.17" quat="0 -4.44089e-16 1 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_goalpost_1_c01" type="mesh" mesh="f_c_goalpost_01" pos="6.2 3.28626e-15 0.17" quat="0 -4.44089e-16 1 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_goalpost_1_c02" type="mesh" mesh="f_c_goalpost_02" pos="6.2 3.28626e-15 0.17" quat="0 -4.44089e-16 1 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_goalpost_1_c03" type="mesh" mesh="f_c_goalpost_03" pos="6.2 3.28626e-15 0.17" quat="0 -4.44089e-16 1 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_goalpost_1_c04" type="mesh" mesh="f_c_goalpost_04" pos="6.2 3.28626e-15 0.17" quat="0 -4.44089e-16 1 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_goalpost_1_c05" type="mesh" mesh="f_c_goalpost_05" pos="6.2 3.28626e-15 0.17" quat="0 -4.44089e-16 1 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_goalpost_1_c06" type="mesh" mesh="f_c_goalpost_06" pos="6.2 3.28626e-15 0.17" quat="0 -4.44089e-16 1 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_goalpost_1_c07" type="mesh" mesh="f_c_goalpost_07" pos="6.2 3.28626e-15 0.17" quat="0 -4.44089e-16 1 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="vis_f_goalpost_2" type="mesh" mesh="f_v_goalpost" pos="-6.2 -2.27374e-15 0.17" quat="0 1 0 0" material="f_mat_goal" contype="0" conaffinity="0" group="2" density="0" />
+    <geom name="col_f_goalpost_2_c00" type="mesh" mesh="f_c_goalpost_00" pos="-6.2 -2.27374e-15 0.17" quat="0 1 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_goalpost_2_c01" type="mesh" mesh="f_c_goalpost_01" pos="-6.2 -2.27374e-15 0.17" quat="0 1 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_goalpost_2_c02" type="mesh" mesh="f_c_goalpost_02" pos="-6.2 -2.27374e-15 0.17" quat="0 1 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_goalpost_2_c03" type="mesh" mesh="f_c_goalpost_03" pos="-6.2 -2.27374e-15 0.17" quat="0 1 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_goalpost_2_c04" type="mesh" mesh="f_c_goalpost_04" pos="-6.2 -2.27374e-15 0.17" quat="0 1 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_goalpost_2_c05" type="mesh" mesh="f_c_goalpost_05" pos="-6.2 -2.27374e-15 0.17" quat="0 1 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_goalpost_2_c06" type="mesh" mesh="f_c_goalpost_06" pos="-6.2 -2.27374e-15 0.17" quat="0 1 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+    <geom name="col_f_goalpost_2_c07" type="mesh" mesh="f_c_goalpost_07" pos="-6.2 -2.27374e-15 0.17" quat="0 1 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+  </worldbody>
+</mujoco>

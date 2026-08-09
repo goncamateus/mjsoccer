@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mujoco model="ball">
+  <compiler angle="radian" meshdir="assets" autolimits="true" />
+  <worldbody>
+    <body name="ball" pos="0.35 0 0.0415">
+      <freejoint name="ball_free" />
+      <geom name="ball" type="sphere" size="0.0215" mass="0.046" rgba="1.0 0.45 0.05 1" contype="7" conaffinity="7" condim="4" friction="0.35 0.004 0.0002" solref="0.006 1" />
+    </body>
+  </worldbody>
+</mujoco>

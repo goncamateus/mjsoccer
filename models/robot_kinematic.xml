@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mujoco model="robot_kinematic">
+  <compiler angle="radian" meshdir="assets" autolimits="true" />
+  <asset>
+    <mesh name="r_v_COMPOUND_13" file="visual/COMPOUND_13.stl" />
+    <mesh name="r_c_COMPOUND_13_00" file="collision/COMPOUND_13_h00.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_01" file="collision/COMPOUND_13_h01.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_02" file="collision/COMPOUND_13_h02.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_03" file="collision/COMPOUND_13_h03.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_04" file="collision/COMPOUND_13_h04.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_05" file="collision/COMPOUND_13_h05.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_06" file="collision/COMPOUND_13_h06.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_07" file="collision/COMPOUND_13_h07.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_08" file="collision/COMPOUND_13_h08.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_09" file="collision/COMPOUND_13_h09.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_10" file="collision/COMPOUND_13_h10.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_11" file="collision/COMPOUND_13_h11.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_12" file="collision/COMPOUND_13_h12.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_13" file="collision/COMPOUND_13_h13.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_14" file="collision/COMPOUND_13_h14.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_15" file="collision/COMPOUND_13_h15.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_16" file="collision/COMPOUND_13_h16.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_17" file="collision/COMPOUND_13_h17.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_18" file="collision/COMPOUND_13_h18.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_19" file="collision/COMPOUND_13_h19.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_20" file="collision/COMPOUND_13_h20.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_21" file="collision/COMPOUND_13_h21.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_22" file="collision/COMPOUND_13_h22.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_13_23" file="collision/COMPOUND_13_h23.stl" maxhullvert="32" />
+    <mesh name="r_v_COMPOUND_14" file="visual/COMPOUND_14.stl" />
+    <mesh name="r_c_COMPOUND_14_00" file="collision/COMPOUND_14_h00.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_01" file="collision/COMPOUND_14_h01.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_02" file="collision/COMPOUND_14_h02.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_03" file="collision/COMPOUND_14_h03.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_04" file="collision/COMPOUND_14_h04.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_05" file="collision/COMPOUND_14_h05.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_06" file="collision/COMPOUND_14_h06.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_07" file="collision/COMPOUND_14_h07.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_08" file="collision/COMPOUND_14_h08.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_09" file="collision/COMPOUND_14_h09.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_10" file="collision/COMPOUND_14_h10.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_11" file="collision/COMPOUND_14_h11.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_12" file="collision/COMPOUND_14_h12.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_13" file="collision/COMPOUND_14_h13.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_14" file="collision/COMPOUND_14_h14.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_15" file="collision/COMPOUND_14_h15.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_16" file="collision/COMPOUND_14_h16.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_17" file="collision/COMPOUND_14_h17.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_18" file="collision/COMPOUND_14_h18.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_19" file="collision/COMPOUND_14_h19.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_20" file="collision/COMPOUND_14_h20.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_21" file="collision/COMPOUND_14_h21.stl" maxhullvert="32" />
+    <mesh name="r_c_COMPOUND_14_22" file="collision/COMPOUND_14_h22.stl" maxhullvert="32" />
+    <mesh name="r_v_ChipKicke_v2020_3D" file="visual/ChipKicke_v2020_3D.stl" />
+    <mesh name="r_c_ChipKicke_v2020_3D_00" file="collision/ChipKicke_v2020_3D_h00.stl" maxhullvert="32" />
+    <mesh name="r_c_ChipKicke_v2020_3D_01" file="collision/ChipKicke_v2020_3D_h01.stl" maxhullvert="32" />
+    <mesh name="r_c_ChipKicke_v2020_3D_02" file="collision/ChipKicke_v2020_3D_h02.stl" maxhullvert="32" />
+    <mesh name="r_c_ChipKicke_v2020_3D_03" file="collision/ChipKicke_v2020_3D_h03.stl" maxhullvert="32" />
+    <mesh name="r_v_Direct_Transmission_new_Simplify_2" file="visual/Direct_Transmission_new_Simplify_2.stl" />
+    <mesh name="r_c_Direct_Transmission_new_Simplify_2_00" file="collision/Direct_Transmission_new_Simplify_2_h00.stl" maxhullvert="32" />
+    <mesh name="r_c_Direct_Transmission_new_Simplify_2_01" file="collision/Direct_Transmission_new_Simplify_2_h01.stl" maxhullvert="32" />
+    <mesh name="r_c_Direct_Transmission_new_Simplify_2_02" file="collision/Direct_Transmission_new_Simplify_2_h02.stl" maxhullvert="32" />
+    <mesh name="r_c_Direct_Transmission_new_Simplify_2_03" file="collision/Direct_Transmission_new_Simplify_2_h03.stl" maxhullvert="32" />
+    <mesh name="r_c_Direct_Transmission_new_Simplify_2_04" file="collision/Direct_Transmission_new_Simplify_2_h04.stl" maxhullvert="32" />
+    <mesh name="r_c_Direct_Transmission_new_Simplify_2_05" file="collision/Direct_Transmission_new_Simplify_2_h05.stl" maxhullvert="32" />
+    <mesh name="r_v_DribblerBar_Simplify_1" file="visual/DribblerBar_Simplify_1.stl" />
+    <mesh name="r_c_DribblerBar_Simplify_1_00" file="collision/DribblerBar_Simplify_1_h00.stl" maxhullvert="32" />
+    <mesh name="r_c_DribblerBar_Simplify_1_01" file="collision/DribblerBar_Simplify_1_h01.stl" maxhullvert="32" />
+    <mesh name="r_c_DribblerBar_Simplify_1_02" file="collision/DribblerBar_Simplify_1_h02.stl" maxhullvert="32" />
+    <mesh name="r_c_DribblerBar_Simplify_1_03" file="collision/DribblerBar_Simplify_1_h03.stl" maxhullvert="32" />
+    <mesh name="r_c_DribblerBar_Simplify_1_04" file="collision/DribblerBar_Simplify_1_h04.stl" maxhullvert="32" />
+    <mesh name="r_c_DribblerBar_Simplify_1_05" file="collision/DribblerBar_Simplify_1_h05.stl" maxhullvert="32" />
+    <mesh name="r_c_DribblerBar_Simplify_1_06" file="collision/DribblerBar_Simplify_1_h06.stl" maxhullvert="32" />
+    <mesh name="r_c_DribblerBar_Simplify_1_07" file="collision/DribblerBar_Simplify_1_h07.stl" maxhullvert="32" />
+    <mesh name="r_v_Dribbler_Robocup2025v3_Simplify_1" file="visual/Dribbler_Robocup2025v3_Simplify_1.stl" />
+    <mesh name="r_c_Dribbler_Robocup2025v3_Simplify_1_00" file="collision/Dribbler_Robocup2025v3_Simplify_1_h00.stl" maxhullvert="32" />
+    <mesh name="r_c_Dribbler_Robocup2025v3_Simplify_1_01" file="collision/Dribbler_Robocup2025v3_Simplify_1_h01.stl" maxhullvert="32" />
+    <mesh name="r_c_Dribbler_Robocup2025v3_Simplify_1_02" file="collision/Dribbler_Robocup2025v3_Simplify_1_h02.stl" maxhullvert="32" />
+    <mesh name="r_c_Dribbler_Robocup2025v3_Simplify_1_03" file="collision/Dribbler_Robocup2025v3_Simplify_1_h03.stl" maxhullvert="32" />
+    <mesh name="r_c_Dribbler_Robocup2025v3_Simplify_1_04" file="collision/Dribbler_Robocup2025v3_Simplify_1_h04.stl" maxhullvert="32" />
+    <mesh name="r_c_Dribbler_Robocup2025v3_Simplify_1_05" file="collision/Dribbler_Robocup2025v3_Simplify_1_h05.stl" maxhullvert="32" />
+    <mesh name="r_c_Dribbler_Robocup2025v3_Simplify_1_06" file="collision/Dribbler_Robocup2025v3_Simplify_1_h06.stl" maxhullvert="32" />
+    <mesh name="r_c_Dribbler_Robocup2025v3_Simplify_1_07" file="collision/Dribbler_Robocup2025v3_Simplify_1_h07.stl" maxhullvert="32" />
+    <mesh name="r_v_Dribblerschnecke" file="visual/Dribblerschnecke.stl" />
+    <mesh name="r_c_Dribblerschnecke_00" file="collision/Dribblerschnecke_h00.stl" maxhullvert="32" />
+    <mesh name="r_c_Dribblerschnecke_01" file="collision/Dribblerschnecke_h01.stl" maxhullvert="32" />
+    <mesh name="r_c_Dribblerschnecke_02" file="collision/Dribblerschnecke_h02.stl" maxhullvert="32" />
+    <mesh name="r_c_Dribblerschnecke_03" file="collision/Dribblerschnecke_h03.stl" maxhullvert="32" />
+    <mesh name="r_c_Dribblerschnecke_04" file="collision/Dribblerschnecke_h04.stl" maxhullvert="32" />
+    <mesh name="r_c_Dribblerschnecke_05" file="collision/Dribblerschnecke_h05.stl" maxhullvert="32" />
+    <mesh name="r_c_Dribblerschnecke_06" file="collision/Dribblerschnecke_h06.stl" maxhullvert="32" />
+    <mesh name="r_c_Dribblerschnecke_07" file="collision/Dribblerschnecke_h07.stl" maxhullvert="32" />
+    <mesh name="r_v_Middle_Gear_Simplify_1" file="visual/Middle_Gear_Simplify_1.stl" />
+    <mesh name="r_c_Middle_Gear_Simplify_1_00" file="collision/Middle_Gear_Simplify_1_h00.stl" maxhullvert="32" />
+    <mesh name="r_c_Middle_Gear_Simplify_1_01" file="collision/Middle_Gear_Simplify_1_h01.stl" maxhullvert="32" />
+    <mesh name="r_c_Middle_Gear_Simplify_1_02" file="collision/Middle_Gear_Simplify_1_h02.stl" maxhullvert="32" />
+    <mesh name="r_c_Middle_Gear_Simplify_1_03" file="collision/Middle_Gear_Simplify_1_h03.stl" maxhullvert="32" />
+    <mesh name="r_v_Papier_40mm" file="visual/Papier_40mm.stl" />
+    <mesh name="r_v_Papier_50mm" file="visual/Papier_50mm.stl" />
+    <mesh name="r_v_SOLID" file="visual/SOLID.stl" />
+    <mesh name="r_c_SOLID_00" file="collision/SOLID_h00.stl" maxhullvert="32" />
+    <mesh name="r_c_SOLID_01" file="collision/SOLID_h01.stl" maxhullvert="32" />
+    <mesh name="r_c_SOLID_02" file="collision/SOLID_h02.stl" maxhullvert="32" />
+    <mesh name="r_c_SOLID_03" file="collision/SOLID_h03.stl" maxhullvert="32" />
+    <mesh name="r_v_dribbleraxis" file="visual/dribbleraxis.stl" />
+    <mesh name="r_c_dribbleraxis_00" file="collision/dribbleraxis_h00.stl" maxhullvert="32" />
+    <mesh name="r_c_dribbleraxis_01" file="collision/dribbleraxis_h01.stl" maxhullvert="32" />
+    <mesh name="r_c_dribbleraxis_02" file="collision/dribbleraxis_h02.stl" maxhullvert="32" />
+    <mesh name="r_c_dribbleraxis_03" file="collision/dribbleraxis_h03.stl" maxhullvert="32" />
+    <mesh name="r_c_dribbleraxis_04" file="collision/dribbleraxis_h04.stl" maxhullvert="32" />
+    <mesh name="r_c_dribbleraxis_05" file="collision/dribbleraxis_h05.stl" maxhullvert="32" />
+    <mesh name="r_c_dribbleraxis_06" file="collision/dribbleraxis_h06.stl" maxhullvert="32" />
+    <mesh name="r_c_dribbleraxis_07" file="collision/dribbleraxis_h07.stl" maxhullvert="32" />
+    <mesh name="r_v_gear_z18_21101800_di3" file="visual/gear_z18_21101800_di3.stl" />
+    <mesh name="r_c_gear_z18_21101800_di3_00" file="collision/gear_z18_21101800_di3_h00.stl" maxhullvert="32" />
+    <mesh name="r_c_gear_z18_21101800_di3_01" file="collision/gear_z18_21101800_di3_h01.stl" maxhullvert="32" />
+    <mesh name="r_c_gear_z18_21101800_di3_02" file="collision/gear_z18_21101800_di3_h02.stl" maxhullvert="32" />
+    <mesh name="r_c_gear_z18_21101800_di3_03" file="collision/gear_z18_21101800_di3_h03.stl" maxhullvert="32" />
+    <mesh name="r_v_kicker_assembly_chip_Simplify_1" file="visual/kicker_assembly_chip_Simplify_1.stl" />
+    <mesh name="r_c_kicker_assembly_chip_Simplify_1_00" file="collision/kicker_assembly_chip_Simplify_1_h00.stl" maxhullvert="32" />
+    <mesh name="r_c_kicker_assembly_chip_Simplify_1_01" file="collision/kicker_assembly_chip_Simplify_1_h01.stl" maxhullvert="32" />
+    <mesh name="r_c_kicker_assembly_chip_Simplify_1_02" file="collision/kicker_assembly_chip_Simplify_1_h02.stl" maxhullvert="32" />
+    <mesh name="r_c_kicker_assembly_chip_Simplify_1_03" file="collision/kicker_assembly_chip_Simplify_1_h03.stl" maxhullvert="32" />
+    <mesh name="r_c_kicker_assembly_chip_Simplify_1_04" file="collision/kicker_assembly_chip_Simplify_1_h04.stl" maxhullvert="32" />
+    <mesh name="r_c_kicker_assembly_chip_Simplify_1_05" file="collision/kicker_assembly_chip_Simplify_1_h05.stl" maxhullvert="32" />
+    <mesh name="r_v_kicker_assembly_front_Simplify_1" file="visual/kicker_assembly_front_Simplify_1.stl" />
+    <mesh name="r_c_kicker_assembly_front_Simplify_1_00" file="collision/kicker_assembly_front_Simplify_1_h00.stl" maxhullvert="32" />
+    <mesh name="r_c_kicker_assembly_front_Simplify_1_01" file="collision/kicker_assembly_front_Simplify_1_h01.stl" maxhullvert="32" />
+    <mesh name="r_c_kicker_assembly_front_Simplify_1_02" file="collision/kicker_assembly_front_Simplify_1_h02.stl" maxhullvert="32" />
+    <mesh name="r_c_kicker_assembly_front_Simplify_1_03" file="collision/kicker_assembly_front_Simplify_1_h03.stl" maxhullvert="32" />
+    <mesh name="r_c_kicker_assembly_front_Simplify_1_04" file="collision/kicker_assembly_front_Simplify_1_h04.stl" maxhullvert="32" />
+    <mesh name="r_c_kicker_assembly_front_Simplify_1_05" file="collision/kicker_assembly_front_Simplify_1_h05.stl" maxhullvert="32" />
+    <mesh name="r_v_motor_axis" file="visual/motor_axis.stl" />
+    <mesh name="r_c_motor_axis_00" file="collision/motor_axis_h00.stl" maxhullvert="32" />
+    <mesh name="r_c_motor_axis_01" file="collision/motor_axis_h01.stl" maxhullvert="32" />
+    <mesh name="r_v_roller" file="visual/roller.stl" />
+    <mesh name="r_c_roller_00" file="collision/roller_h00.stl" maxhullvert="32" />
+    <material name="r_mat_chassis" rgba="0.16 0.17 0.20 1" specular="0.2" shininess="0.3" />
+    <material name="r_mat_metal" rgba="0.55 0.57 0.60 1" specular="0.2" shininess="0.3" />
+    <material name="r_mat_rubber" rgba="0.10 0.10 0.11 1" specular="0.2" shininess="0.3" />
+    <material name="r_mat_gear" rgba="0.85 0.72 0.30 1" specular="0.2" shininess="0.3" />
+    <material name="r_mat_tag" rgba="0.90 0.90 0.90 1" specular="0.2" shininess="0.3" />
+    <material name="r_mat_carpet" rgba="0.15 0.42 0.20 1" specular="0.2" shininess="0.3" />
+    <material name="r_mat_line" rgba="0.95 0.95 0.95 1" specular="0.2" shininess="0.3" />
+    <material name="r_mat_wall" rgba="0.30 0.32 0.36 1" specular="0.2" shininess="0.3" />
+    <material name="r_mat_goal" rgba="0.85 0.85 0.88 1" specular="0.2" shininess="0.3" />
+    <material name="r_mat_ball" rgba="1.0 0.45 0.05 1" specular="0.2" shininess="0.3" />
+  </asset>
+  <worldbody>
+    <body name="robot" pos="0 0 0.02">
+      <camera name="robot_cam" pos="-0.6 0 0.35" xyaxes="0 -1 0 0.5 0 0.87" mode="trackcom" />
+      <joint name="robot_x" type="slide" axis="1 0 0" limited="false" damping="0.1" />
+      <joint name="robot_y" type="slide" axis="0 1 0" limited="false" damping="0.1" />
+      <joint name="robot_yaw" type="hinge" axis="0 0 1" limited="false" damping="0.005" />
+      <inertial pos="-0.00797317 0.000197266 0.056676" mass="2.39076" fullinertia="0.00934415 0.00803018 0.00856751 2.01183e-05 -4.25656e-05 -2.0804e-05" />
+      <geom name="r_vis_chassis_1" type="mesh" mesh="r_v_COMPOUND_13" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" material="r_mat_chassis" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_chassis_2" type="mesh" mesh="r_v_COMPOUND_14" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" material="r_mat_chassis" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_motor1" type="mesh" mesh="r_v_motor_axis" pos="0.03395 0.0588031 0.0300892" quat="0.227827 -0.458332 0.12281 0.850261" material="r_mat_metal" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_motor2" type="mesh" mesh="r_v_motor_axis" pos="-0.0480126 0.0480126 0.0300892" quat="2.12432e-17 0.92388 0.382683 9.17229e-33" material="r_mat_metal" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_motor3" type="mesh" mesh="r_v_motor_axis" pos="-0.0480126 -0.0480126 0.0300892" quat="0.923879 -0.000408083 -0.000985199 -0.382683" material="r_mat_metal" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_motor4" type="mesh" mesh="r_v_motor_axis" pos="0.03395 -0.0588031 0.0300892" quat="0.947108 0.0508397 -0.189737 0.253777" material="r_mat_metal" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_bumperRight_1" type="mesh" mesh="r_v_SOLID" pos="0.0669 -0.04375 0.0192392" quat="0.707107 0.707107 7.35934e-16 -9.37536e-16" material="r_mat_chassis" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_bumperLeft_1" type="mesh" mesh="r_v_SOLID" pos="0.0669 0.04875 0.0192392" quat="0.707107 0.707107 -1.11185e-16 -1.5249e-16" material="r_mat_chassis" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_dribblerStructure" type="mesh" mesh="r_v_Dribbler_Robocup2025v3_Simplify_1" pos="0.075 -0.03825 0.00958921" quat="-6.92029e-16 8.93632e-16 0.707107 0.707107" material="r_mat_chassis" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_motorDribbler" type="mesh" mesh="r_v_dribbleraxis" pos="0.06515 -0.03875 0.0603382" quat="0.659522 0.255012 0.255012 0.659522" material="r_mat_metal" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_gearMotorDribbler" type="mesh" mesh="r_v_gear_z18_21101800_di3" pos="0.06515 -0.04485 0.0603382" quat="0.569266 -0.419447 -0.419447 0.569266" material="r_mat_gear" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_gearMiddleDribbler" type="mesh" mesh="r_v_Middle_Gear_Simplify_1" pos="0.0634 -0.04325 0.0493264" quat="7.66036e-18 -0.707107 0.707107 7.66036e-18" material="r_mat_gear" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_tag1" type="mesh" mesh="r_v_Papier_40mm" pos="0.035 0.054772 0.149439" quat="0.707107 1.57009e-16 3.92523e-17 0.707107" material="r_mat_tag" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_tag2" type="mesh" mesh="r_v_Papier_40mm" pos="-0.054772 0.035 0.149439" quat="0.707107 0 9.81308e-18 0.707107" material="r_mat_tag" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_tag3" type="mesh" mesh="r_v_Papier_40mm" pos="-0.054772 -0.035 0.149439" quat="0.707107 2.39767e-16 -3.8827e-16 0.707107" material="r_mat_tag" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_tag4" type="mesh" mesh="r_v_Papier_40mm" pos="0.035 -0.054772 0.149439" quat="0.707107 0 1.3493e-17 0.707107" material="r_mat_tag" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_tagCenter" type="mesh" mesh="r_v_Papier_50mm" pos="-4.20585e-19 4.44089e-18 0.149439" quat="0.707107 -4.41488e-48 -4.41488e-48 0.707107" material="r_mat_tag" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_Direct_Transmission_new_Simplify_2_1" type="mesh" mesh="r_v_Direct_Transmission_new_Simplify_2" pos="0.0354828 0.0504772 0.0195433" quat="0.256306 -0.134274 0.0359787 0.956548" material="r_mat_metal" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_1" type="mesh" mesh="r_v_roller" pos="0.0192345 0.0808091 0.0304647" quat="0.631435 -0.630811 0.324412 -0.313249" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_2" type="mesh" mesh="r_v_roller" pos="0.0203415 0.08017 0.0377846" quat="0.629051 -0.616093 0.430464 -0.198557" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_3" type="mesh" mesh="r_v_roller" pos="0.0233533 0.0784311 0.0443512" quat="0.611178 -0.586205 0.525916 -0.0789772" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_4" type="mesh" mesh="r_v_roller" pos="0.027975 0.0757628 0.0495217" quat="0.578256 -0.541883 0.608418 0.0425477" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_5" type="mesh" mesh="r_v_roller" pos="0.0337542 0.0724262 0.05279" quat="0.531095 -0.484218 0.67594 0.163025" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_6" type="mesh" mesh="r_v_roller" pos="0.0401252 0.0687479 0.0538362" quat="0.470856 -0.41463 0.726817 0.279488" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_7" type="mesh" mesh="r_v_roller" pos="0.0464644 0.0650879 0.0525579" quat="0.399024 -0.334832 0.759798 0.389069" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_8" type="mesh" mesh="r_v_roller" pos="0.0521512 0.0618046 0.0490802" quat="0.317367 -0.246789 0.77407 0.48907" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_9" type="mesh" mesh="r_v_roller" pos="0.056629 0.0592194 0.0437436" quat="0.227894 -0.15267 0.769282 0.577028" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_10" type="mesh" mesh="r_v_roller" pos="0.0594595 0.0575852 0.0370703" quat="0.132811 -0.0547915 0.745551 0.650778" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_11" type="mesh" mesh="r_v_roller" pos="0.0603655 0.0570621 0.0297137" quat="0.0344567 0.0444362 0.703463 0.708504" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_12" type="mesh" mesh="r_v_roller" pos="0.0592585 0.0577013 0.0223938" quat="-0.0647457 0.14257 0.644053 0.748784" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_13" type="mesh" mesh="r_v_roller" pos="0.0562467 0.0594401 0.0158273" quat="-0.162354 0.237193 0.568784 0.770627" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_14" type="mesh" mesh="r_v_roller" pos="0.051625 0.0621084 0.0106567" quat="-0.255964 0.325975 0.47951 0.773494" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_15" type="mesh" mesh="r_v_roller" pos="0.0458458 0.0654451 0.0073884" quat="-0.343272 0.406731 0.378429 0.757315" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_16" type="mesh" mesh="r_v_roller" pos="0.0394748 0.0691234 0.00634218" quat="-0.422127 0.477472 0.26803 0.722488" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_17" type="mesh" mesh="r_v_roller" pos="0.0331356 0.0727833 0.00762048" quat="-0.490588 0.536456 0.15103 0.669872" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_18" type="mesh" mesh="r_v_roller" pos="0.0274488 0.0760666 0.0110982" quat="0.546969 -0.58223 -0.0303125 -0.600761" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_19" type="mesh" mesh="r_v_roller" pos="0.022971 0.0786519 0.0164349" quat="0.589882 -0.613668 0.0911519 -0.516857" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_20" type="mesh" mesh="r_v_roller" pos="0.0201405 0.080286 0.0231081" quat="0.618271 -0.629996 0.210372 -0.420226" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_Direct_Transmission_new_Simplify_2_1_2" type="mesh" mesh="r_v_Direct_Transmission_new_Simplify_2" pos="-0.0464676 0.0404442 0.0411897" quat="-0.0315918 0.920726 0.381377 0.0762694" material="r_mat_metal" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_1_2" type="mesh" mesh="r_v_roller" pos="-0.0396324 0.072939 0.0270235" quat="-0.442597 -0.352721 0.591393 0.574414" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_2_2" type="mesh" mesh="r_v_roller" pos="-0.0411174 0.071454 0.0198958" quat="0.541581 0.235881 -0.598693 -0.540941" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_3_2" type="mesh" mesh="r_v_roller" pos="-0.0440871 0.0684843 0.0137659" quat="0.627231 0.113233 -0.591251 -0.494148" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_4_2" type="mesh" mesh="r_v_roller" pos="-0.0482509 0.0643205 0.00923384" quat="0.697436 -0.0122038 -0.569251 -0.435188" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_5_2" type="mesh" mesh="r_v_roller" pos="-0.0532012 0.0593702 0.00674324" quat="0.750467 -0.13734 -0.533233 -0.365512" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_6_2" type="mesh" mesh="r_v_roller" pos="-0.0584535 0.0541179 0.0065379" quat="0.78502 -0.259094 -0.484086 -0.286836" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_7_2" type="mesh" mesh="r_v_roller" pos="-0.0634935 0.0490779 0.00863793" quat="0.800243 -0.374468 -0.423019 -0.201097" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_8_2" type="mesh" mesh="r_v_roller" pos="-0.067828 0.0447434 0.0128378" quat="0.795761 -0.480622 -0.351536 -0.110406" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_9_2" type="mesh" mesh="r_v_roller" pos="-0.0710327 0.0415387 0.0187263" quat="0.771685 -0.574941 -0.271397 -0.0169971" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_10_2" type="mesh" mesh="r_v_roller" pos="-0.0727938 0.0397776 0.0257271" quat="0.728607 -0.655103 -0.184575 0.0768306" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_11_2" type="mesh" mesh="r_v_roller" pos="-0.072939 0.0396324 0.0331549" quat="0.667589 -0.719135 -0.0932087 0.168766" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_12_2" type="mesh" mesh="r_v_roller" pos="-0.071454 0.0411174 0.0402826" quat="0.590133 -0.765459 0.000453015 0.256547" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_13_2" type="mesh" mesh="r_v_roller" pos="-0.0684843 0.0440871 0.0464125" quat="-0.498145 0.792935 -0.0941036 -0.33801" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_14_2" type="mesh" mesh="r_v_roller" pos="-0.0643205 0.0482509 0.0509446" quat="-0.393892 0.800886 -0.185437 -0.41115" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_15_2" type="mesh" mesh="r_v_roller" pos="-0.0593702 0.0532012 0.0534352" quat="-0.279939 0.789116 -0.272204 -0.474167" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_16_2" type="mesh" mesh="r_v_roller" pos="-0.0541179 0.0584535 0.0536405" quat="-0.159094 0.757916 -0.352269 -0.525508" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_17_2" type="mesh" mesh="r_v_roller" pos="-0.0490779 0.0634935 0.0515405" quat="-0.0343308 0.708054 -0.42366 -0.563909" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_18_2" type="mesh" mesh="r_v_roller" pos="-0.0447434 0.067828 0.0473407" quat="0.0912774 0.640757 -0.484619 -0.588425" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_19_2" type="mesh" mesh="r_v_roller" pos="-0.0415387 0.0710327 0.0414521" quat="-0.214638 -0.557682 0.533645 0.598452" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_20_2" type="mesh" mesh="r_v_roller" pos="-0.0397776 0.0727938 0.0344513" quat="-0.332714 -0.460876 0.569531 0.593743" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_Direct_Transmission_new_Simplify_2_1_3" type="mesh" mesh="r_v_Direct_Transmission_new_Simplify_2" pos="-0.0351524 -0.0517594 0.0319508" quat="0.526414 -0.314486 -0.759237 -0.218048" material="r_mat_metal" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_1_3" type="mesh" mesh="r_v_roller" pos="-0.0664897 -0.0460817 0.0489524" quat="0.446429 0.799447 0.141051 -0.376417" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_2_3" type="mesh" mesh="r_v_roller" pos="-0.070112 -0.0424594 0.0435699" quat="0.544966 0.78186 0.0482944 -0.298954" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_3_3" type="mesh" mesh="r_v_roller" pos="-0.0723809 -0.0401905 0.0368678" quat="0.630085 0.745022 -0.0456512 -0.214129" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_4_3" type="mesh" mesh="r_v_roller" pos="-0.0730744 -0.039497 0.0295021" quat="0.699689 0.689838 -0.138473 -0.124032" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_5_3" type="mesh" mesh="r_v_roller" pos="-0.0721244 -0.040447 0.0221939" quat="0.752065 0.617668 -0.227885 -0.0308808" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_6_3" type="mesh" mesh="r_v_roller" pos="-0.069624 -0.0429474 0.0156586" quat="0.785922 0.530289 -0.311685 0.063031" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_7_3" type="mesh" mesh="r_v_roller" pos="-0.065818 -0.0467534 0.0105358" quat="0.800427 0.429853 -0.387811 0.155391" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_8_3" type="mesh" mesh="r_v_roller" pos="-0.0610789 -0.0514925 0.0073271" quat="0.795223 0.318832 -0.454388 0.243924" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_9_3" type="mesh" mesh="r_v_roller" pos="-0.0558706 -0.0567008 0.00634647" quat="0.770438 0.19996 -0.509776 0.326451" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_10_3" type="mesh" mesh="r_v_roller" pos="-0.0507029 -0.0618685 0.00768994" quat="0.726682 0.0761653 -0.552611 0.40094" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_11_3" type="mesh" mesh="r_v_roller" pos="-0.0460817 -0.0664897 0.011226" quat="0.665033 -0.0495054 -0.58184 0.465557" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_12_3" type="mesh" mesh="r_v_roller" pos="-0.0424594 -0.070112 0.0166085" quat="0.587008 -0.173957 -0.596742 0.51871" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_13_3" type="mesh" mesh="r_v_roller" pos="-0.0401905 -0.0723809 0.0233107" quat="-0.49453 0.294125 0.59695 -0.55909" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_14_3" type="mesh" mesh="r_v_roller" pos="-0.039497 -0.0730744 0.0306763" quat="0.389874 -0.407051 -0.582459 0.585704" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_15_3" type="mesh" mesh="r_v_roller" pos="-0.040447 -0.0721244 0.0379845" quat="0.275619 -0.509954 -0.553626 0.597896" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_16_3" type="mesh" mesh="r_v_roller" pos="-0.0429474 -0.069624 0.0445198" quat="-0.154576 0.6003 0.511161 -0.595366" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_17_3" type="mesh" mesh="r_v_roller" pos="-0.0467534 -0.065818 0.0496426" quat="-0.029728 0.675865 0.456109 -0.578175" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_18_3" type="mesh" mesh="r_v_roller" pos="-0.0514925 -0.0610789 0.0528513" quat="0.0958523 0.734788 0.389827 -0.546749" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_19_3" type="mesh" mesh="r_v_roller" pos="-0.0567008 -0.0558706 0.053832" quat="0.219072 0.775618 0.313946 -0.501859" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_20_3" type="mesh" mesh="r_v_roller" pos="-0.0618685 -0.0507029 0.0524885" quat="0.336898 0.797349 0.230334 -0.444612" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_Direct_Transmission_new_Simplify_2_1_4" type="mesh" mesh="r_v_Direct_Transmission_new_Simplify_2" pos="0.0353016 -0.0505818 0.0407415" quat="-0.124825 -0.256649 0.957826 -0.0334468" material="r_mat_metal" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_1_4" type="mesh" mesh="r_v_roller" pos="0.0192449 -0.0808031 0.029245" quat="0.630342 0.631744 0.306239 0.33134" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_2_4" type="mesh" mesh="r_v_roller" pos="0.0204769 -0.0800918 0.0219518" quat="0.614656 0.628381 0.191156 0.4368" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_3_4" type="mesh" mesh="r_v_roller" pos="0.0236003 -0.0782885 0.0154551" quat="0.583835 0.609545 0.0713662 0.531505" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_4_4" type="mesh" mesh="r_v_roller" pos="0.0283095 -0.0755697 0.010391" quat="0.538639 0.575701 -0.050181 0.613122" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_5_4" type="mesh" mesh="r_v_roller" pos="0.0341435 -0.0722014 0.007255" quat="0.480179 0.52768 -0.170493 0.679642" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_6_4" type="mesh" mesh="r_v_roller" pos="0.0405311 -0.0685135 0.00635422" quat="0.409896 0.466666 -0.286606 0.729427" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_7_4" type="mesh" mesh="r_v_roller" pos="0.0468472 -0.0648669 0.00777678" quat="0.32952 0.394162 -0.395663 0.761252" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_8_4" type="mesh" mesh="r_v_roller" pos="0.0524735 -0.0616186 0.0113834" quat="0.24103 0.311952 -0.494977 0.774331" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_9_4" type="mesh" mesh="r_v_roller" pos="0.0568592 -0.0590865 0.0168211" quat="0.146605 0.22206 -0.582102 0.768344" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_10_4" type="mesh" mesh="r_v_roller" pos="0.059575 -0.0575185 0.0235576" quat="0.0485699 0.126701 -0.654895 0.743438" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_11_4" type="mesh" mesh="r_v_roller" pos="0.0603551 -0.0570681 0.0309335" quat="0.050661 -0.0282219 0.711562 -0.700226" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_12_4" type="mesh" mesh="r_v_roller" pos="0.0591231 -0.0577794 0.0382267" quat="0.148644 0.0709521 0.750708 -0.639772" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_13_4" type="mesh" mesh="r_v_roller" pos="0.0559997 -0.0595827 0.0447233" quat="0.242968 0.168379 0.771369 -0.563565" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_14_4" type="mesh" mesh="r_v_roller" pos="0.0512905 -0.0623016 0.0497875" quat="0.331308 0.26166 0.773036 -0.473481" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_15_4" type="mesh" mesh="r_v_roller" pos="0.0454565 -0.0656698 0.0529234" quat="0.411491 0.348498 0.755669 -0.371738" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_16_4" type="mesh" mesh="r_v_roller" pos="0.0390689 -0.0693577 0.0538242" quat="0.481542 0.426755 0.719694 -0.260842" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_17_4" type="mesh" mesh="r_v_roller" pos="0.0327528 -0.0730043 0.0524016" quat="0.539735 0.494503 0.665998 -0.143523" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_18_4" type="mesh" mesh="r_v_roller" pos="0.0271265 -0.0762527 0.048795" quat="0.584638 0.550076 0.595904 -0.0226699" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_19_4" type="mesh" mesh="r_v_roller" pos="0.0227408 -0.0787847 0.0433573" quat="0.615146 0.592103 0.511136 0.0987413" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_vis_roller_20_4" type="mesh" mesh="r_v_roller" pos="0.020025 -0.0803527 0.0366208" quat="0.630506 0.619551 0.413782 0.217721" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="r_col_chassis_1_c00" type="mesh" mesh="r_c_COMPOUND_13_00" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c01" type="mesh" mesh="r_c_COMPOUND_13_01" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c02" type="mesh" mesh="r_c_COMPOUND_13_02" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c03" type="mesh" mesh="r_c_COMPOUND_13_03" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c04" type="mesh" mesh="r_c_COMPOUND_13_04" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c05" type="mesh" mesh="r_c_COMPOUND_13_05" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c06" type="mesh" mesh="r_c_COMPOUND_13_06" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c07" type="mesh" mesh="r_c_COMPOUND_13_07" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c08" type="mesh" mesh="r_c_COMPOUND_13_08" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c09" type="mesh" mesh="r_c_COMPOUND_13_09" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c10" type="mesh" mesh="r_c_COMPOUND_13_10" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c11" type="mesh" mesh="r_c_COMPOUND_13_11" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c12" type="mesh" mesh="r_c_COMPOUND_13_12" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c13" type="mesh" mesh="r_c_COMPOUND_13_13" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c14" type="mesh" mesh="r_c_COMPOUND_13_14" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c15" type="mesh" mesh="r_c_COMPOUND_13_15" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c16" type="mesh" mesh="r_c_COMPOUND_13_16" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c17" type="mesh" mesh="r_c_COMPOUND_13_17" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c18" type="mesh" mesh="r_c_COMPOUND_13_18" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c19" type="mesh" mesh="r_c_COMPOUND_13_19" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c20" type="mesh" mesh="r_c_COMPOUND_13_20" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c21" type="mesh" mesh="r_c_COMPOUND_13_21" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c22" type="mesh" mesh="r_c_COMPOUND_13_22" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_1_c23" type="mesh" mesh="r_c_COMPOUND_13_23" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c00" type="mesh" mesh="r_c_COMPOUND_14_00" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c01" type="mesh" mesh="r_c_COMPOUND_14_01" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c02" type="mesh" mesh="r_c_COMPOUND_14_02" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c03" type="mesh" mesh="r_c_COMPOUND_14_03" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c04" type="mesh" mesh="r_c_COMPOUND_14_04" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c05" type="mesh" mesh="r_c_COMPOUND_14_05" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c06" type="mesh" mesh="r_c_COMPOUND_14_06" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c07" type="mesh" mesh="r_c_COMPOUND_14_07" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c08" type="mesh" mesh="r_c_COMPOUND_14_08" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c09" type="mesh" mesh="r_c_COMPOUND_14_09" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c10" type="mesh" mesh="r_c_COMPOUND_14_10" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c11" type="mesh" mesh="r_c_COMPOUND_14_11" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c12" type="mesh" mesh="r_c_COMPOUND_14_12" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c13" type="mesh" mesh="r_c_COMPOUND_14_13" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c14" type="mesh" mesh="r_c_COMPOUND_14_14" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c15" type="mesh" mesh="r_c_COMPOUND_14_15" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c16" type="mesh" mesh="r_c_COMPOUND_14_16" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c17" type="mesh" mesh="r_c_COMPOUND_14_17" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c18" type="mesh" mesh="r_c_COMPOUND_14_18" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c19" type="mesh" mesh="r_c_COMPOUND_14_19" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c20" type="mesh" mesh="r_c_COMPOUND_14_20" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c21" type="mesh" mesh="r_c_COMPOUND_14_21" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_chassis_2_c22" type="mesh" mesh="r_c_COMPOUND_14_22" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_motor1_c00" type="mesh" mesh="r_c_motor_axis_00" pos="0.03395 0.0588031 0.0300892" quat="0.227827 -0.458332 0.12281 0.850261" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_motor1_c01" type="mesh" mesh="r_c_motor_axis_01" pos="0.03395 0.0588031 0.0300892" quat="0.227827 -0.458332 0.12281 0.850261" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_motor2_c00" type="mesh" mesh="r_c_motor_axis_00" pos="-0.0480126 0.0480126 0.0300892" quat="2.12432e-17 0.92388 0.382683 9.17229e-33" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_motor2_c01" type="mesh" mesh="r_c_motor_axis_01" pos="-0.0480126 0.0480126 0.0300892" quat="2.12432e-17 0.92388 0.382683 9.17229e-33" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_motor3_c00" type="mesh" mesh="r_c_motor_axis_00" pos="-0.0480126 -0.0480126 0.0300892" quat="0.923879 -0.000408083 -0.000985199 -0.382683" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_motor3_c01" type="mesh" mesh="r_c_motor_axis_01" pos="-0.0480126 -0.0480126 0.0300892" quat="0.923879 -0.000408083 -0.000985199 -0.382683" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_motor4_c00" type="mesh" mesh="r_c_motor_axis_00" pos="0.03395 -0.0588031 0.0300892" quat="0.947108 0.0508397 -0.189737 0.253777" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_motor4_c01" type="mesh" mesh="r_c_motor_axis_01" pos="0.03395 -0.0588031 0.0300892" quat="0.947108 0.0508397 -0.189737 0.253777" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_bumperRight_1_c00" type="mesh" mesh="r_c_SOLID_00" pos="0.0669 -0.04375 0.0192392" quat="0.707107 0.707107 7.35934e-16 -9.37536e-16" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_bumperRight_1_c01" type="mesh" mesh="r_c_SOLID_01" pos="0.0669 -0.04375 0.0192392" quat="0.707107 0.707107 7.35934e-16 -9.37536e-16" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_bumperRight_1_c02" type="mesh" mesh="r_c_SOLID_02" pos="0.0669 -0.04375 0.0192392" quat="0.707107 0.707107 7.35934e-16 -9.37536e-16" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_bumperRight_1_c03" type="mesh" mesh="r_c_SOLID_03" pos="0.0669 -0.04375 0.0192392" quat="0.707107 0.707107 7.35934e-16 -9.37536e-16" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_bumperLeft_1_c00" type="mesh" mesh="r_c_SOLID_00" pos="0.0669 0.04875 0.0192392" quat="0.707107 0.707107 -1.11185e-16 -1.5249e-16" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_bumperLeft_1_c01" type="mesh" mesh="r_c_SOLID_01" pos="0.0669 0.04875 0.0192392" quat="0.707107 0.707107 -1.11185e-16 -1.5249e-16" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_bumperLeft_1_c02" type="mesh" mesh="r_c_SOLID_02" pos="0.0669 0.04875 0.0192392" quat="0.707107 0.707107 -1.11185e-16 -1.5249e-16" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_bumperLeft_1_c03" type="mesh" mesh="r_c_SOLID_03" pos="0.0669 0.04875 0.0192392" quat="0.707107 0.707107 -1.11185e-16 -1.5249e-16" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_dribblerStructure_c00" type="mesh" mesh="r_c_Dribbler_Robocup2025v3_Simplify_1_00" pos="0.075 -0.03825 0.00958921" quat="-6.92029e-16 8.93632e-16 0.707107 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_dribblerStructure_c01" type="mesh" mesh="r_c_Dribbler_Robocup2025v3_Simplify_1_01" pos="0.075 -0.03825 0.00958921" quat="-6.92029e-16 8.93632e-16 0.707107 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_dribblerStructure_c02" type="mesh" mesh="r_c_Dribbler_Robocup2025v3_Simplify_1_02" pos="0.075 -0.03825 0.00958921" quat="-6.92029e-16 8.93632e-16 0.707107 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_dribblerStructure_c03" type="mesh" mesh="r_c_Dribbler_Robocup2025v3_Simplify_1_03" pos="0.075 -0.03825 0.00958921" quat="-6.92029e-16 8.93632e-16 0.707107 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_dribblerStructure_c04" type="mesh" mesh="r_c_Dribbler_Robocup2025v3_Simplify_1_04" pos="0.075 -0.03825 0.00958921" quat="-6.92029e-16 8.93632e-16 0.707107 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_dribblerStructure_c05" type="mesh" mesh="r_c_Dribbler_Robocup2025v3_Simplify_1_05" pos="0.075 -0.03825 0.00958921" quat="-6.92029e-16 8.93632e-16 0.707107 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_dribblerStructure_c06" type="mesh" mesh="r_c_Dribbler_Robocup2025v3_Simplify_1_06" pos="0.075 -0.03825 0.00958921" quat="-6.92029e-16 8.93632e-16 0.707107 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_dribblerStructure_c07" type="mesh" mesh="r_c_Dribbler_Robocup2025v3_Simplify_1_07" pos="0.075 -0.03825 0.00958921" quat="-6.92029e-16 8.93632e-16 0.707107 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_motorDribbler_c00" type="mesh" mesh="r_c_dribbleraxis_00" pos="0.06515 -0.03875 0.0603382" quat="0.659522 0.255012 0.255012 0.659522" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_motorDribbler_c01" type="mesh" mesh="r_c_dribbleraxis_01" pos="0.06515 -0.03875 0.0603382" quat="0.659522 0.255012 0.255012 0.659522" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_motorDribbler_c02" type="mesh" mesh="r_c_dribbleraxis_02" pos="0.06515 -0.03875 0.0603382" quat="0.659522 0.255012 0.255012 0.659522" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_motorDribbler_c03" type="mesh" mesh="r_c_dribbleraxis_03" pos="0.06515 -0.03875 0.0603382" quat="0.659522 0.255012 0.255012 0.659522" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_motorDribbler_c04" type="mesh" mesh="r_c_dribbleraxis_04" pos="0.06515 -0.03875 0.0603382" quat="0.659522 0.255012 0.255012 0.659522" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_motorDribbler_c05" type="mesh" mesh="r_c_dribbleraxis_05" pos="0.06515 -0.03875 0.0603382" quat="0.659522 0.255012 0.255012 0.659522" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_motorDribbler_c06" type="mesh" mesh="r_c_dribbleraxis_06" pos="0.06515 -0.03875 0.0603382" quat="0.659522 0.255012 0.255012 0.659522" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_motorDribbler_c07" type="mesh" mesh="r_c_dribbleraxis_07" pos="0.06515 -0.03875 0.0603382" quat="0.659522 0.255012 0.255012 0.659522" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_gearMotorDribbler_c00" type="mesh" mesh="r_c_gear_z18_21101800_di3_00" pos="0.06515 -0.04485 0.0603382" quat="0.569266 -0.419447 -0.419447 0.569266" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_gearMotorDribbler_c01" type="mesh" mesh="r_c_gear_z18_21101800_di3_01" pos="0.06515 -0.04485 0.0603382" quat="0.569266 -0.419447 -0.419447 0.569266" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_gearMotorDribbler_c02" type="mesh" mesh="r_c_gear_z18_21101800_di3_02" pos="0.06515 -0.04485 0.0603382" quat="0.569266 -0.419447 -0.419447 0.569266" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_gearMotorDribbler_c03" type="mesh" mesh="r_c_gear_z18_21101800_di3_03" pos="0.06515 -0.04485 0.0603382" quat="0.569266 -0.419447 -0.419447 0.569266" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_gearMiddleDribbler_c00" type="mesh" mesh="r_c_Middle_Gear_Simplify_1_00" pos="0.0634 -0.04325 0.0493264" quat="7.66036e-18 -0.707107 0.707107 7.66036e-18" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_gearMiddleDribbler_c01" type="mesh" mesh="r_c_Middle_Gear_Simplify_1_01" pos="0.0634 -0.04325 0.0493264" quat="7.66036e-18 -0.707107 0.707107 7.66036e-18" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_gearMiddleDribbler_c02" type="mesh" mesh="r_c_Middle_Gear_Simplify_1_02" pos="0.0634 -0.04325 0.0493264" quat="7.66036e-18 -0.707107 0.707107 7.66036e-18" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <geom name="r_col_gearMiddleDribbler_c03" type="mesh" mesh="r_c_Middle_Gear_Simplify_1_03" pos="0.0634 -0.04325 0.0493264" quat="7.66036e-18 -0.707107 0.707107 7.66036e-18" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.5 0.005 0.0001" density="0" solref="0.004 1" />
+      <body name="dribbler_arm" pos="0.0534 -0.00136632 0.0122892">
+        <joint name="dribbler_pivot" type="hinge" axis="5.63334e-17 1 1.11022e-16" limited="true" range="0 0.14" stiffness="1" springref="0" damping="0.0232551" armature="1e-06" solreflimit="0.004 1" />
+        <inertial pos="0 0 0" mass="0.008" diaginertia="1e-6 1e-6 1e-6" />
+        <body name="dribbler" pos="0.0195 -0 0.0312">
+          <joint name="dribbler_spin" type="hinge" axis="5.63334e-17 1 1.11022e-16" limited="false" damping="1e-6" armature="1e-7" />
+          <inertial pos="9.56177e-19 2.28787e-19 4.77422e-18" mass="0.0148091" fullinertia="7.83429e-06 2.93583e-07 7.83429e-06 -1.76942e-22 1.92902e-21 -2.57306e-21" />
+          <geom name="r_vis_axisDribbler" type="mesh" mesh="r_v_DribblerBar_Simplify_1" pos="0.033944 -0.0368837 0.00119495" quat="0.493286 -0.493286 0.506625 0.506625" material="r_mat_chassis" contype="0" conaffinity="0" group="2" density="0" />
+          <geom name="r_vis_barDribbler" type="mesh" mesh="r_v_Dribblerschnecke" pos="-8.32667e-17 0.00161632 2.08167e-17" quat="0.689501 0.156808 0.156808 0.689501" material="r_mat_gear" contype="0" conaffinity="0" group="2" density="0" />
+          <geom name="r_col_axisDribbler" type="cylinder" size="0.005 0.047" pos="-1.62448e-19 -0.00288368 -3.20153e-19" quat="0.707107 -0.707107 3.98337e-17 -4.35788e-33" group="3" rgba="0.9 0.3 0.2 0.35" density="0" contype="2" conaffinity="0" condim="4" friction="2.0 0.02 0.002" solref="0.004 0.5" />
+          <geom name="r_col_barDribbler" type="cylinder" size="0.009 0.036" pos="9.10527e-20 0.00161632 1.79447e-19" quat="0.707107 -0.707107 3.98337e-17 -4.35788e-33" group="3" rgba="0.9 0.3 0.2 0.35" density="0" contype="2" conaffinity="0" condim="4" friction="2.0 0.02 0.002" solref="0.004 0.5" />
+        </body>
+      </body>
+      <body name="kicker" pos="0.0236501 -3.85059e-09 0.0331464">
+        <joint name="kicker_slide" type="slide" axis="1 0 0" limited="true" range="0 0.03" stiffness="2000" springref="0" damping="2.0" />
+        <inertial pos="0 0 0" mass="0.141298" fullinertia="2.28765e-05 0.000182434 0.000192566 1.08763e-11 2.3456e-05 -7.1942e-13" />
+        <geom name="r_vis_frontKicker" type="mesh" mesh="r_v_kicker_assembly_front_Simplify_1" pos="-0.0232239 3.85059e-09 0.00669279" quat="7.12085e-16 6.49784e-16 0.707107 0.707107" material="r_mat_metal" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="r_col_frontKicker_c00" type="mesh" mesh="r_c_kicker_assembly_front_Simplify_1_00" pos="-0.0232239 3.85059e-09 0.00669279" quat="7.12085e-16 6.49784e-16 0.707107 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="2" conaffinity="0" condim="4" friction="0.4 0.005 0.0001" density="0" solref="0.004 1" />
+        <geom name="r_col_frontKicker_c01" type="mesh" mesh="r_c_kicker_assembly_front_Simplify_1_01" pos="-0.0232239 3.85059e-09 0.00669279" quat="7.12085e-16 6.49784e-16 0.707107 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="2" conaffinity="0" condim="4" friction="0.4 0.005 0.0001" density="0" solref="0.004 1" />
+        <geom name="r_col_frontKicker_c02" type="mesh" mesh="r_c_kicker_assembly_front_Simplify_1_02" pos="-0.0232239 3.85059e-09 0.00669279" quat="7.12085e-16 6.49784e-16 0.707107 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="2" conaffinity="0" condim="4" friction="0.4 0.005 0.0001" density="0" solref="0.004 1" />
+        <geom name="r_col_frontKicker_c03" type="mesh" mesh="r_c_kicker_assembly_front_Simplify_1_03" pos="-0.0232239 3.85059e-09 0.00669279" quat="7.12085e-16 6.49784e-16 0.707107 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="2" conaffinity="0" condim="4" friction="0.4 0.005 0.0001" density="0" solref="0.004 1" />
+        <geom name="r_col_frontKicker_c04" type="mesh" mesh="r_c_kicker_assembly_front_Simplify_1_04" pos="-0.0232239 3.85059e-09 0.00669279" quat="7.12085e-16 6.49784e-16 0.707107 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="2" conaffinity="0" condim="4" friction="0.4 0.005 0.0001" density="0" solref="0.004 1" />
+        <geom name="r_col_frontKicker_c05" type="mesh" mesh="r_c_kicker_assembly_front_Simplify_1_05" pos="-0.0232239 3.85059e-09 0.00669279" quat="7.12085e-16 6.49784e-16 0.707107 0.707107" group="3" rgba="0.9 0.3 0.2 0.35" contype="2" conaffinity="0" condim="4" friction="0.4 0.005 0.0001" density="0" solref="0.004 1" />
+      </body>
+      <body name="chipper" pos="0.0358016 9.21431e-14 0.0126796">
+        <joint name="chipper_slide" type="slide" axis="1 0 0" limited="true" range="0 0.03" stiffness="2000" springref="0" damping="2.0" />
+        <inertial pos="-3.16079e-18 5.74945e-30 7.90198e-19" mass="0.137206" fullinertia="4.87947e-05 0.000261326 0.000299671 9.84324e-16 2.60648e-05 -6.15548e-17" />
+        <geom name="r_vis_chipKicker" type="mesh" mesh="r_v_kicker_assembly_chip_Simplify_1" pos="-0.0328018 -9.2151e-14 0.00565963" quat="3.5421e-31 2.12861e-16 1 -7.46459e-47" material="r_mat_metal" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="r_vis_chip" type="mesh" mesh="r_v_ChipKicke_v2020_3D" pos="0.0282984 0.037 -0.0110904" quat="0.707107 0.707107 -7.79089e-17 -7.79089e-17" material="r_mat_metal" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="r_col_chipKicker_c00" type="mesh" mesh="r_c_kicker_assembly_chip_Simplify_1_00" pos="-0.0328018 -9.2151e-14 0.00565963" quat="3.5421e-31 2.12861e-16 1 -7.46459e-47" group="3" rgba="0.9 0.3 0.2 0.35" contype="2" conaffinity="0" condim="4" friction="0.4 0.005 0.0001" density="0" solref="0.004 1" />
+        <geom name="r_col_chipKicker_c01" type="mesh" mesh="r_c_kicker_assembly_chip_Simplify_1_01" pos="-0.0328018 -9.2151e-14 0.00565963" quat="3.5421e-31 2.12861e-16 1 -7.46459e-47" group="3" rgba="0.9 0.3 0.2 0.35" contype="2" conaffinity="0" condim="4" friction="0.4 0.005 0.0001" density="0" solref="0.004 1" />
+        <geom name="r_col_chipKicker_c02" type="mesh" mesh="r_c_kicker_assembly_chip_Simplify_1_02" pos="-0.0328018 -9.2151e-14 0.00565963" quat="3.5421e-31 2.12861e-16 1 -7.46459e-47" group="3" rgba="0.9 0.3 0.2 0.35" contype="2" conaffinity="0" condim="4" friction="0.4 0.005 0.0001" density="0" solref="0.004 1" />
+        <geom name="r_col_chipKicker_c03" type="mesh" mesh="r_c_kicker_assembly_chip_Simplify_1_03" pos="-0.0328018 -9.2151e-14 0.00565963" quat="3.5421e-31 2.12861e-16 1 -7.46459e-47" group="3" rgba="0.9 0.3 0.2 0.35" contype="2" conaffinity="0" condim="4" friction="0.4 0.005 0.0001" density="0" solref="0.004 1" />
+        <geom name="r_col_chipKicker_c04" type="mesh" mesh="r_c_kicker_assembly_chip_Simplify_1_04" pos="-0.0328018 -9.2151e-14 0.00565963" quat="3.5421e-31 2.12861e-16 1 -7.46459e-47" group="3" rgba="0.9 0.3 0.2 0.35" contype="2" conaffinity="0" condim="4" friction="0.4 0.005 0.0001" density="0" solref="0.004 1" />
+        <geom name="r_col_chipKicker_c05" type="mesh" mesh="r_c_kicker_assembly_chip_Simplify_1_05" pos="-0.0328018 -9.2151e-14 0.00565963" quat="3.5421e-31 2.12861e-16 1 -7.46459e-47" group="3" rgba="0.9 0.3 0.2 0.35" contype="2" conaffinity="0" condim="4" friction="0.4 0.005 0.0001" density="0" solref="0.004 1" />
+        <geom name="r_col_chip_c00" type="mesh" mesh="r_c_ChipKicke_v2020_3D_00" pos="0.0282984 0.037 -0.0110904" quat="0.707107 0.707107 -7.79089e-17 -7.79089e-17" group="3" rgba="0.9 0.3 0.2 0.35" contype="2" conaffinity="0" condim="4" friction="0.4 0.005 0.0001" density="0" solref="0.004 1" />
+        <geom name="r_col_chip_c01" type="mesh" mesh="r_c_ChipKicke_v2020_3D_01" pos="0.0282984 0.037 -0.0110904" quat="0.707107 0.707107 -7.79089e-17 -7.79089e-17" group="3" rgba="0.9 0.3 0.2 0.35" contype="2" conaffinity="0" condim="4" friction="0.4 0.005 0.0001" density="0" solref="0.004 1" />
+        <geom name="r_col_chip_c02" type="mesh" mesh="r_c_ChipKicke_v2020_3D_02" pos="0.0282984 0.037 -0.0110904" quat="0.707107 0.707107 -7.79089e-17 -7.79089e-17" group="3" rgba="0.9 0.3 0.2 0.35" contype="2" conaffinity="0" condim="4" friction="0.4 0.005 0.0001" density="0" solref="0.004 1" />
+        <geom name="r_col_chip_c03" type="mesh" mesh="r_c_ChipKicke_v2020_3D_03" pos="0.0282984 0.037 -0.0110904" quat="0.707107 0.707107 -7.79089e-17 -7.79089e-17" group="3" rgba="0.9 0.3 0.2 0.35" contype="2" conaffinity="0" condim="4" friction="0.4 0.005 0.0001" density="0" solref="0.004 1" />
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <velocity name="dribbler_vel" joint="dribbler_spin" kv="0.000146792" ctrlrange="-1500 1500" forcerange="-0.05 0.05" />
+    <motor name="kicker_force" joint="kicker_slide" gear="1" ctrlrange="0 200" />
+    <motor name="chipper_force" joint="chipper_slide" gear="1" ctrlrange="0 200" />
+    <velocity name="vel_x" joint="robot_x" kv="119.538" ctrlrange="-4 4" forcerange="-19.1261 19.1261" />
+    <velocity name="vel_y" joint="robot_y" kv="119.538" ctrlrange="-4 4" forcerange="-19.1261 19.1261" />
+    <velocity name="vel_yaw" joint="robot_yaw" kv="0.428375" ctrlrange="-30 30" forcerange="-3.427 3.427" />
+  </actuator>
+  <sensor>
+    <jointpos name="dribbler_arm_pos" joint="dribbler_pivot" />
+    <jointvel name="dribbler_bar_vel" joint="dribbler_spin" />
+    <actuatorfrc name="dribbler_torque" actuator="dribbler_vel" />
+  </sensor>
+</mujoco>

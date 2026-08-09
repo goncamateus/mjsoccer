@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mujoco model="scene">
+  <compiler angle="radian" meshdir="assets" autolimits="true" />
+  <option timestep="0.002" integrator="implicitfast" solver="Newton" iterations="100" ls_iterations="50" cone="elliptic" gravity="0 0 -9.81" />
+  <visual>
+    <headlight ambient="0.4 0.4 0.4" diffuse="0.6 0.6 0.6" specular="0.1 0.1 0.1" />
+    <map znear="0.01" zfar="60" />
+    <global offwidth="1920" offheight="1080" />
+    <quality shadowsize="4096" />
+  </visual>
+  <include file="field.xml" />
+  <include file="robot_kinematic.xml" />
+  <include file="ball.xml" />
+  <worldbody>
+    <light name="sun" pos="0 0 6" dir="0 0 -1" directional="true" diffuse="0.7 0.7 0.7" castshadow="false" />
+    <light name="fill" pos="1.5 -1.5 2.0" dir="-0.5 0.5 -1" diffuse="0.25 0.25 0.25" castshadow="false" />
+    <camera name="overview" pos="0 -9 6" xyaxes="1 0 0 0 0.6 0.8" />
+    <camera name="closeup" pos="0.6 -0.7 0.5" xyaxes="0.75 0.66 0 -0.36 0.41 0.84" />
+  </worldbody>
+  <contact>
+    <pair geom1="ball" geom2="r_col_axisDribbler" condim="4" friction="2.5 2.5 0.02 0.0001 0.0001" solref="0.004 0.5" solimp="0.95 0.99 0.001" />
+    <pair geom1="ball" geom2="r_col_barDribbler" condim="4" friction="2.5 2.5 0.02 0.0001 0.0001" solref="0.004 0.5" solimp="0.95 0.99 0.001" />
+    <pair geom1="ball" geom2="floor" condim="6" friction="0.35 0.35 0.005 0.0009 0.0009" solref="0.006 1" />
+  </contact>
+</mujoco>
