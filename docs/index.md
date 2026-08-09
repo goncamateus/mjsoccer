@@ -221,6 +221,10 @@ in the goal when its centre is past the goal line, inside the mouth and under th
 ## Rendering
 
 `render_mode="human"` opens `mujoco.viewer.launch_passive` and syncs it once per `step`.
+The view starts on the whole field — south side, both goals in frame, `+x` on the right —
+rather than on the viewer's own default, which is placed off the model's extent statistic
+and lands close in on a patch of grass. It stays a *free* camera, so the mouse still
+orbits, pans and zooms from there; only the opening view is set.
 
 `render_mode="rgb_array"` returns a 720x1280 RGB frame from an off-screen
 `mujoco.Renderer`, using the model's `overview` camera.

@@ -282,8 +282,29 @@ class BaseEnv(gym.Env):
 
             if self._viewer is None:
                 self._viewer = mujoco.viewer.launch_passive(self.model, self.data)
+                # The viewer renders on its own thread, so its camera is behind a mutex.
+                with self._viewer.lock():
+                    self._frame_field(self._viewer.cam)
             self._viewer.sync()
         return None
+
+    def _frame_field(self, cam) -> None:
+        """Open the viewer on the whole field rather than on a patch of grass.
+
+        The viewer's default free camera is placed off the model's own extent statistic,
+        which the surrounding walls and the goal nets inflate well past the playing area --
+        it lands close in and pointed at the middle of the pitch, and the first thing anyone
+        does is drag it back out. Match the `overview` camera in the MJCF instead: south
+        side, both goals in frame, the field roughly filling the window. Distance is tied to
+        the field rather than a constant so it survives a differently sized pitch.
+
+        This is a *free* camera, deliberately -- pinning the viewer to the fixed `overview`
+        camera would take the mouse away. It only sets where the view starts.
+        """
+        cam.lookat[:] = (0.0, 0.0, 0.0)
+        cam.distance = 2.2 * S.FIELD_HALF_X
+        cam.azimuth = 90.0  # south of the field, so +x (the attacking goal) is on the right
+        cam.elevation = -35.0
 
     def close(self):
         if self._renderer is not None:
