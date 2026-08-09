@@ -112,15 +112,23 @@ def test_deterministic(env_id):
 
 
 @pytest.mark.parametrize("env_id,index", [("ContestedPossession-v0", 1), ("Dribbling-v0", 0)])
-def test_seated_ball_is_possessed(env_id, index):
+@pytest.mark.parametrize("tier", TIERS)
+def test_seated_ball_is_possessed(env_id, index, tier):
     """Tasks that begin with the ball carried must actually begin that way.
 
     Both the seating and the detection have failed silently here before -- a ball placed
     from a stale orientation lands nowhere near the mouth, and the arm-deflection sensor
     reads the wrong sign on this model, so `has_ball` was False with the ball parked
     square in the mouth. Either way the episode looks fine and the task is unsolvable.
+
+    Both tiers, because they do not retain alike. Measured over 8 seeds, contact steps out
+    of 120 idle ones: ContestedPossession 96-103 on tier 0 against 87-95 on tier 1,
+    Dribbling a flat 120 against 111-112. Real wheel slip lets the chassis recoil off the
+    ball it is holding, which costs about 8% of the contact steps. The threshold sits under
+    the worse tier rather than between them -- a ball that is actually dropped scores near
+    zero, so there is no risk of that slipping through a lower bar.
     """
-    env = gym.make(env_id).unwrapped
+    env = gym.make(env_id, tier=tier).unwrapped
     for seed in range(5):
         env.reset(seed=seed)
         # Seated at reset: ~94 mm out along the robot's own +x, at ball radius height.
@@ -133,7 +141,7 @@ def test_seated_ball_is_possessed(env_id, index):
 
         held = sum(int(env.holds(index)) for _ in range(120) if env.step(
             np.zeros(env.action_space.shape, dtype=np.float32)) or True)
-        assert held > 90, f"seed {seed}: carried only {held}/120 idle steps"
+        assert held > 80, f"seed {seed}: carried only {held}/120 idle steps on tier {tier}"
     env.close()
 
 
@@ -144,7 +152,10 @@ def test_goto_ball_is_solvable():
     is the check that can. It is deliberately a weak controller -- if it needs tuning to
     pass, the task got harder, which is worth knowing.
     """
-    env = gym.make("GoToBall-v0")
+    # Pinned to tier 0: goto_ball_policy emits a body-frame (vx, vy, omega) command, and
+    # tier 1's drive slice is four wheel speeds. What is under test is the reward, not the
+    # chassis, so run it on the chassis the controller was written for.
+    env = gym.make("GoToBall-v0", tier=0)
     wins, returns = 0, []
     for seed in range(20):
         obs, _ = env.reset(seed=seed)
@@ -177,7 +188,9 @@ def test_kicker_rearms():
     stroke = int(env.model.jnt_qposadr[jid])
 
     action = np.zeros(env.action_space.shape, dtype=np.float32)
-    action[3] = 1.0  # kick, held down for a second
+    # The kick channel sits directly after the drive slice, which is 3 wide on tier 0 and
+    # 4 on tier 1 -- index off drive_dim so this follows the default tier wherever it goes.
+    action[env.drive_dim] = 1.0  # kick, held down for a second
     fired, travel = 0, []
     for _ in range(60):
         env.step(action)
@@ -207,7 +220,7 @@ def test_chipper_rearms():
     stroke = int(env.model.jnt_qposadr[jid])
 
     action = np.zeros(env.action_space.shape, dtype=np.float32)
-    action[4] = 1.0  # chip, held down for a second
+    action[env.drive_dim + 1] = 1.0  # chip, held down for a second
     fired, travel = 0, []
     for _ in range(60):
         env.step(action)

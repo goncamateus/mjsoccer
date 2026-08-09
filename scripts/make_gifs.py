@@ -201,7 +201,11 @@ def main(argv=None) -> int:
     n_frames = round(args.seconds * args.fps)
 
     for env_id in args.envs:
-        env = gym.make(env_id, render_mode="rgb_array").unwrapped
+        # tier 0, not the env default of 1: every clip is driven by goto_ball_policy and
+        # the striker in _demo_action, both of which command a body-frame velocity that
+        # tier 1's four wheel servos cannot be given. On tier 1 the clips fall back to
+        # noise. The physics on show is the same field, ball and dribbler either way.
+        env = gym.make(env_id, tier=0, render_mode="rgb_array").unwrapped
         # base.render() hardcodes 720x1280; build our own renderer so the docs can ask for
         # a size small enough to commit. The wide clips get more pixels because a fixed
         # camera leaves most of the frame identical between frames and compresses several

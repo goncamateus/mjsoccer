@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Action Space | `Box(-1.0, 1.0, (6,), float32)` on tier 0, `Box(-1.0, 1.0, (7,), float32)` on tier 1 |
+| Action Space | `Box(-1.0, 1.0, (7,), float32)` on the default tier 1, `Box(-1.0, 1.0, (6,), float32)` on tier 0 |
 | Observation Space | `Box(-inf, inf, (62,), float32)` |
 | import | `gym.make("StaticDefenders-v0")` |
 
@@ -31,9 +31,22 @@ the [tier benchmark](../index.md#tiers).
 ## Action Space
 
 Unchanged from every other environment in the suite. The action is a
-`Box(-1, 1, (6,), float32)` on tier 0, driving the one blue robot; the six yellow robots
-are not controllable and never appear in it. Every element is normalised and scaled
-internally by the actuator's own `ctrlrange`.
+`Box(-1, 1, (7,), float32)` on the default tier 1, driving the one blue robot; the six
+yellow robots are not controllable and never appear in it. Every element is normalised and
+scaled internally by the actuator's own `ctrlrange`.
+
+| Num | Action | Min | Max | Unit |
+|---|---|---|---|---|
+| 0 | wheel 1 speed (`wheel1_vel`) | -200 | 200 | rad/s |
+| 1 | wheel 2 speed (`wheel2_vel`) | -200 | 200 | rad/s |
+| 2 | wheel 3 speed (`wheel3_vel`) | -200 | 200 | rad/s |
+| 3 | wheel 4 speed (`wheel4_vel`) | -200 | 200 | rad/s |
+| 4 | kicker plunger force (`kicker_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
+| 5 | chipper plunger force (`chipper_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
+| 6 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
+
+On tier 0 the action is a `Box(-1, 1, (6,), float32)`: the four wheel servos are replaced by
+the three chassis rows, and kicker, chipper and dribbler shift down to indices 3, 4 and 5.
 
 | Num | Action | Min | Max | Unit |
 |---|---|---|---|---|
@@ -44,17 +57,8 @@ internally by the actuator's own `ctrlrange`.
 | 4 | chipper plunger force (`chipper_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
 | 5 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
 
-On tier 1 the action is a `Box(-1, 1, (7,), float32)`: the three chassis rows are replaced
-by the four wheel servos, and kicker, chipper and dribbler shift to indices 4, 5 and 6.
-
-| Num | Action | Min | Max | Unit |
-|---|---|---|---|---|
-| 0 | wheel 1 speed (`wheel1_vel`) | -200 | 200 | rad/s |
-| 1 | wheel 2 speed (`wheel2_vel`) | -200 | 200 | rad/s |
-| 2 | wheel 3 speed (`wheel3_vel`) | -200 | 200 | rad/s |
-| 3 | wheel 4 speed (`wheel4_vel`) | -200 | 200 | rad/s |
-
-The chipper (row 4 on tier 0, row 5 on tier 1) is the control this task exists to motivate.
+The chipper (row 5 on the default tier 1, row 4 on tier 0) is the control this task exists
+to motivate.
 Like the kicker it is a trigger, not a proportional command: any action above zero writes
 the full 200 N for one control step and then locks that plunger out for 250 ms. The two
 locks are independent, so a kick cannot block a chip. See
@@ -156,9 +160,9 @@ starting distances and no cycle pays. Nothing in the reward mentions the defende
 rebounding off a defender back down the field simply un-earns the goal shaping it had
 banked, which is the only penalty for hitting one.
 
-`ENERGY = 0.001` multiplies the squared norm of the whole flat action, summing over all 6
-dimensions on tier 0 (7 on tier 1), so a saturated action costs `-0.006` per step on
-tier 0.
+`ENERGY = 0.001` multiplies the squared norm of the whole flat action, summing over all 7
+dimensions on the default tier 1 (6 on tier 0), so a saturated action costs `-0.007` per
+step on tier 1, `-0.006` on tier 0.
 
 ## Starting State
 
@@ -214,7 +218,7 @@ unproductive.
 
 | parameter | type | default | description |
 |---|---|---|---|
-| `tier` | `int` | `0` | `0` = kinematic chassis, `1` = roller wheels with real slip |
+| `tier` | `int` | `1` | `1` = roller wheels with real slip, the default; `0` = the faster kinematic chassis |
 | `control_hz` | `int` | `60` | requested control rate; rounded to a whole number of 2 ms physics steps, so 60 becomes 62.5 Hz |
 | `horizon_s` | `float` | `30.0` | truncation horizon, in seconds |
 | `render_mode` | `str \| None` | `None` | `"human"` or `"rgb_array"` |
@@ -223,7 +227,7 @@ unproductive.
 import gymnasium as gym
 import mjsoccer
 
-env = gym.make("StaticDefenders-v0", tier=1, control_hz=60, horizon_s=30.0, render_mode="rgb_array")
+env = gym.make("StaticDefenders-v0", tier=0, control_hz=60, horizon_s=30.0, render_mode="rgb_array")
 ```
 
 `n_yellow` (6) is a class attribute on `StaticDefendersEnv`, not a `gym.make` keyword — it

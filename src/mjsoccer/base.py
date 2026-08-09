@@ -10,10 +10,10 @@ robots get a slice; scripted ones are driven inside `_script`.
 
 Per-robot slice, in order:
 
-    tier 0:  vx, vy, omega            tier 1:  w1, w2, w3, w4
+    tier 1 (default):  w1, w2, w3, w4        tier 0:  vx, vy, omega
     then always:  kick, chip, dribble
 
-so `act_dim` is 6 on tier 0 and 7 on tier 1, the same for every task. Every robot always
+so `act_dim` is 7 on the default tier 1 and 6 on tier 0, the same for every task. Every robot always
 exposes every control it physically has; a task that does not care about one simply does
 not reward it, which keeps a single action head transferable across all the envs.
 
@@ -49,7 +49,7 @@ class BaseEnv(gym.Env):
 
     def __init__(
         self,
-        tier: int = 0,
+        tier: int = 1,
         control_hz: int = 60,
         horizon_s: float = 30.0,
         render_mode: str | None = None,

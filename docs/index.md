@@ -20,28 +20,28 @@ uv sync
 import gymnasium as gym
 import mjsoccer                                  # registers the ids
 
-env = gym.make("GoToBall-v0")                    # tier 0
+env = gym.make("GoToBall-v0")                    # default tier 1
 obs, info = env.reset(seed=0)
 obs, reward, terminated, truncated, info = env.step(env.action_space.sample())
 env.close()
 ```
 
 ```bash
-uv run python examples/random.py --env GoToBall-v0 --tier 1
+uv run python examples/random.py --env GoToBall-v0 --tier 0
 uv run python examples/random.py --list
 uv run python -m pytest tests -q
 ```
 
 ## Environment index
 
-| id | robots | obs dim | action dim (tier 0 / tier 1) | horizon (s) | terminates on |
+| id | robots | obs dim | action dim (tier 1, default / tier 0) | horizon (s) | terminates on |
 |---|---|---|---|---|---|
-| [`GoToBall-v0`](environments/go_to_ball.md) | 1 blue | 14 | 6 / 7 | 20 | within 0.13 m of the ball and facing it (cos > 0.9) |
-| [`GoToBallShoot-v0`](environments/go_to_ball_shoot.md) | 1 blue | 14 | 6 / 7 | 30 | ball in the +x goal |
-| [`Dribbling-v0`](environments/dribbling.md) | 1 blue | 16 | 6 / 7 | 40 | 4 waypoints carried, or ball lost for 2 s |
-| [`StaticDefenders-v0`](environments/static_defenders.md) | 1 blue + 6 yellow | 62 | 6 / 7 | 30 | ball in the +x goal |
-| [`ContestedPossession-v0`](environments/contested_possession.md) | 1 blue + 1 yellow | 22 | 6 / 7 | 20 | blue holds the ball for 0.5 s |
-| [`PassEndurance-v0`](environments/pass_endurance.md) | 2 blue (1 controlled) | 22 | 6 / 7 | 20 | team-mate receives the pass |
+| [`GoToBall-v0`](environments/go_to_ball.md) | 1 blue | 14 | 7 / 6 | 20 | within 0.13 m of the ball and facing it (cos > 0.9) |
+| [`GoToBallShoot-v0`](environments/go_to_ball_shoot.md) | 1 blue | 14 | 7 / 6 | 30 | ball in the +x goal |
+| [`Dribbling-v0`](environments/dribbling.md) | 1 blue | 16 | 7 / 6 | 40 | 4 waypoints carried, or ball lost for 2 s |
+| [`StaticDefenders-v0`](environments/static_defenders.md) | 1 blue + 6 yellow | 62 | 7 / 6 | 30 | ball in the +x goal |
+| [`ContestedPossession-v0`](environments/contested_possession.md) | 1 blue + 1 yellow | 22 | 7 / 6 | 20 | blue holds the ball for 0.5 s |
+| [`PassEndurance-v0`](environments/pass_endurance.md) | 2 blue (1 controlled) | 22 | 7 / 6 | 20 | team-mate receives the pass |
 
 Every environment also terminates when the ball leaves the field, and truncates at its
 horizon. All six controls exactly one blue robot; the remaining robots are scripted.
@@ -55,21 +55,23 @@ never appear in the action; they are driven inside the task's `_script`.
 The per-robot slice is identical in every environment:
 
 ```
-tier 0:  vx, vy, omega          body-frame velocity vector V   (3)
-tier 1:  w1, w2, w3, w4         raw wheel speeds               (4)
-then always:  kick, chip, dribble                              (3)
+tier 1 (default):  w1, w2, w3, w4    raw wheel speeds               (4)
+tier 0:            vx, vy, omega     body-frame velocity vector V   (3)
+then always:       kick, chip, dribble                              (3)
 ```
 
-so `act_dim` is 6 on tier 0 and 7 on tier 1, for all six environments. Every robot always
-exposes every control it physically has. A task that does not care about one simply does
-not reward it, which is what keeps a single action head transferable across the suite.
+so `act_dim` is 7 on the default tier 1 and 6 on tier 0, for all six environments. Only the
+drive slice changes; `kick`, `chip` and `dribble` are always the last three, which puts them
+at indices 4, 5 and 6 on tier 1 and at 3, 4 and 5 on tier 0. Every robot always exposes
+every control it physically has. A task that does not care about one simply does not reward
+it, which is what keeps a single action head transferable across the suite.
 
-| control | tier 0 actuator | tier 1 actuator | ctrlrange | commanded |
+| control | tier 1 actuator (default) | tier 0 actuator | ctrlrange | commanded |
 |---|---|---|---|---|
-| `vx` | `vel_x` | — | -4 .. 4 m/s | `a * 4` |
-| `vy` | `vel_y` | — | -4 .. 4 m/s | `a * 4` |
-| `omega` | `vel_yaw` | — | -30 .. 30 rad/s | `a * 30` |
-| `w1..w4` | — | `wheel{1..4}_vel` | -200 .. 200 rad/s | `a * 200` |
+| `w1..w4` | `wheel{1..4}_vel` | — | -200 .. 200 rad/s | `a * 200` |
+| `vx` | — | `vel_x` | -4 .. 4 m/s | `a * 4` |
+| `vy` | — | `vel_y` | -4 .. 4 m/s | `a * 4` |
+| `omega` | — | `vel_yaw` | -30 .. 30 rad/s | `a * 30` |
 | `kick` | `kicker_force` | `kicker_force` | 0 .. 200 N | 200 N pulse if `a > 0` |
 | `chip` | `chipper_force` | `chipper_force` | 0 .. 200 N | 200 N pulse if `a > 0` |
 | `dribble` | `dribbler_vel` | `dribbler_vel` | -1500 .. 1500 rad/s | `314 * (a + 1) / 2` |
@@ -79,12 +81,12 @@ from the model rather than from a constant in the Python. The drive scale is
 `max(hi, -lo)` over the actuator's range, which is symmetric, so a zero action is a zero
 command rather than the midpoint of the range.
 
-**Body frame.** The tier-0 chassis joints are *world*-axis slides, but the action means a
-body-frame velocity — that is how SSL firmware is commanded, and it is what tier 1's wheel
-speeds inherently produce. `base._drive_robot` rotates the command through the chassis
-orientation before writing it, which is what makes the two tiers mean the same thing. A
-diagonal command can therefore ask for `4 * sqrt(2)` on one world axis; MuJoCo clamps it to
-`ctrlrange`, exactly as a real servo would.
+**Body frame.** Tier 1's wheel speeds inherently produce a *body-frame* motion, which is
+also how SSL firmware is commanded. Tier 0 has to be made to agree: its chassis joints are
+*world*-axis slides, so `base._drive_robot` rotates the `vx, vy, omega` command through the
+chassis orientation before writing it, which is what makes the two tiers mean the same
+thing. A diagonal tier-0 command can therefore ask for `4 * sqrt(2)` on one world axis;
+MuJoCo clamps it to `ctrlrange`, exactly as a real servo would.
 
 **Kicker and chipper.** `kick > 0` and `chip > 0` each fire a solenoid pulse: full
 `KICK_FORCE = 200 N` on the plunger for one control step, then a 250 ms lockout on that
@@ -115,9 +117,9 @@ Robots are ordered controlled blue first, then the remaining blue, then yellow �
 order `scene.build` attaches them in, so the observation index of `b0_robot` is the same in
 every environment.
 
-Robot linear velocity is world-frame (it is read straight off `qvel`), unlike the tier-0
-drive command, which is body-frame. `has_ball` is `1.0` while the robot is inside the
-possession grace window (see below) and `0.0` otherwise.
+Robot linear velocity is world-frame (it is read straight off `qvel`), unlike the drive
+command, which is per-wheel on tier 1 and body-frame on tier 0. `has_ball` is `1.0` while
+the robot is inside the possession grace window (see below) and `0.0` otherwise.
 
 Every entry is normalised by a constant from `base.py` or `scene.py`:
 
@@ -136,8 +138,21 @@ play the values sit in roughly `[-1, 1]`.
 
 ## Tiers
 
-`tier=0` is the kinematic chassis (slide-x / slide-y / hinge-z, 3 velocity servos);
-`tier=1` gives every wheel its 20 rollers and real slip. Measured here, 100 random steps:
+`tier=1` is the **default**: every wheel gets its 20 rollers and real slip, and the drive
+slice is the four wheel speeds `w1..w4`. `tier=0` is the kinematic chassis (slide-x /
+slide-y / hinge-z, 3 velocity servos) driven by a body-frame `vx, vy, omega`.
+
+Tier 1 is the default because it is the physics the hardware actually has. An omni-wheel
+robot does not track a commanded velocity vector; it applies four wheel torques through
+contacts that slip, and everything that follows from that — the recoil off a ball it is
+carrying, the yaw it picks up under lateral acceleration, the fact that a saturated wheel
+does not mean a saturated chassis — only exists on tier 1. A policy trained against the
+kinematic approximation has never met any of it.
+
+Tier 0 is the fast approximation. It is several times cheaper to step, and it is what to
+drop to when throughput is the binding constraint — early sweeps, reward debugging,
+anything where the number of samples matters more than their fidelity. Measured here, 100
+random steps:
 
 | env | tier 0 | tier 1 |
 |---|---|---|
@@ -148,7 +163,9 @@ Those figures were measured with the older, narrower action space (drive only on
 tasks), so treat them as indicative of the ratio between the tiers rather than as a current
 benchmark. The physics cost, which dominates, is unchanged.
 
-Train on tier 0; use tier 1 to check what the policy does when the wheels can slip.
+The two tiers are not interchangeable as evaluation targets — see
+[Possession](#possession) for a measured behavioural difference — so a number produced on
+one tier should always be reported with the tier it came from.
 
 ## Possession
 
@@ -161,11 +178,38 @@ mjssl retention benchmarks score against.
 `BaseEnv._update_possession` makes one pass over `data.contact` per step and marks every
 dribbler body currently touching the ball, which is cheaper than asking per robot.
 
-A spinning bar does not touch the ball every step either; it sticks, slips and re-grips, and
-a held ball reads as contact on roughly half of them. So contact is held over a
-`POSSESSION_GRACE = 0.05 s` window — 3 control steps at the default rate — the same
-criterion the retention sweeps use before calling a ball lost. Without it, "carry the ball
-for N seconds" never terminates successfully. `BaseEnv.holds(i)` reads that window.
+A spinning bar does not touch the ball every step either; it sticks, slips and re-grips. So
+contact is held over a `POSSESSION_GRACE = 0.05 s` window — 3 control steps at the default
+rate — the same criterion the retention sweeps use before calling a ball lost. Without it,
+"carry the ball for N seconds" never terminates successfully. `BaseEnv.holds(i)` reads that
+window, not the raw contact.
+
+That distinction is worth a number, because the two differ a lot and by tier. A ball seated
+in the mouth for 120 idle steps, measured on `Dribbling-v0`:
+
+| | raw ball/dribbler contact | `holds()` |
+|---|---|---|
+| tier 0 | 83% of steps | 100% |
+| tier 1 (default) | **55%** of steps | 93% |
+
+On the default tier the bar is genuinely off the ball on nearly half the steps, and the
+grace window is the whole reason a carry task is solvable at all. Read a raw contact count
+as "has the ball" and tier 1 looks like a robot that keeps dropping it.
+
+**The tiers do not retain a carried ball alike.** Measured over 8 seeds, counting `holds()`
+steps out of 120 idle ones — the robot seated on the ball, no drive command given:
+
+| env | tier 0 | tier 1 (default) |
+|---|---|---|
+| `ContestedPossession-v0` | 96-103 / 120 | 87-95 / 120 |
+| `Dribbling-v0` | a flat 120 / 120 | 111-112 / 120 |
+
+Tier 0 holds a ball it is not even trying to hold; on `Dribbling-v0` it never once drops
+contact. Tier 1 loses about 8% of those contact steps, because real wheel slip lets the
+chassis recoil off the ball it is carrying — a rigid kinematic chassis has nothing to
+recoil with. The grace window absorbs most of the difference, so `holds` stays usable on
+both, but any retention number, ball-lost rate or possession-gated reward is tier-dependent
+and comparing one across tiers is comparing two different mechanisms.
 
 `Dribbling-v0` and `ContestedPossession-v0` start with the ball already in a mouth, seated
 the way the mechanism actually takes one: `BaseEnv.seat_ball` spins the bar up, rolls a
@@ -245,6 +289,13 @@ That script builds its own smaller renderer (480x270 by default) rather than the
 one `BaseEnv.render` hardcodes, and drives the clips with the repo's scripted
 `goto_ball_policy` so the documentation shows a robot doing the task rather than a robot
 twitching at random. `pillow` is a dev-only dependency and nothing in `mjsoccer` imports it.
+
+**The committed clips are rendered on tier 0**, not on the default tier 1, because
+`goto_ball_policy` is a body-frame velocity controller: `vx, vy, omega` is a command four
+wheel servos cannot be given, so on tier 1 the same policy has nothing meaningful to write
+and the clips degenerate. What the GIFs show of the field, the ball, the goal geometry and
+the dribbler mechanism is the same either way — only the chassis underneath the robot
+differs.
 
 ## Timing
 

@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Action Space | `Box(-1.0, 1.0, (6,), float32)` on tier 0, `Box(-1.0, 1.0, (7,), float32)` on tier 1 |
+| Action Space | `Box(-1.0, 1.0, (7,), float32)` on the default tier 1, `Box(-1.0, 1.0, (6,), float32)` on tier 0 |
 | Observation Space | `Box(-inf, inf, (16,), float32)` |
 | import | `gym.make("Dribbling-v0")` |
 
@@ -22,6 +22,12 @@ holds the ball by friction against the mouth, and it lets go if the chassis acce
 sideways hard enough, turns faster than the ball can follow, or drives into anything.
 Carrying the ball fast and carrying it at all are in direct tension.
 
+How hard that is depends on the tier. Sitting still on a seated ball, tier 0 keeps contact
+on every one of 120 idle steps while the default tier 1 keeps it on 111-112, because wheel
+slip lets the chassis recoil off the ball it is holding — see
+[Possession](../index.md#possession). Retention numbers from this environment are therefore
+only comparable within a tier.
+
 The agent can also kick or chip its own carried ball away — those controls are always in
 the action space, in every environment. It is not worth doing here: the shaping below is
 gated on `holds(0)`, so the step the ball leaves the mouth is the step progress stops
@@ -29,9 +35,22 @@ paying, and the loss timer starts.
 
 ## Action Space
 
-The action is a `Box(-1, 1, (6,), float32)` on tier 0. Every element is normalised and
-scaled internally by the actuator's own `ctrlrange`, so the physical bounds below come from
-the model, not from a constant in the environment.
+The action is a `Box(-1, 1, (7,), float32)` on the default tier 1. Every element is
+normalised and scaled internally by the actuator's own `ctrlrange`, so the physical bounds
+below come from the model, not from a constant in the environment.
+
+| Num | Action | Min | Max | Unit |
+|---|---|---|---|---|
+| 0 | wheel 1 speed (`wheel1_vel`) | -200 | 200 | rad/s |
+| 1 | wheel 2 speed (`wheel2_vel`) | -200 | 200 | rad/s |
+| 2 | wheel 3 speed (`wheel3_vel`) | -200 | 200 | rad/s |
+| 3 | wheel 4 speed (`wheel4_vel`) | -200 | 200 | rad/s |
+| 4 | kicker plunger force (`kicker_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
+| 5 | chipper plunger force (`chipper_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
+| 6 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
+
+On tier 0 the action is a `Box(-1, 1, (6,), float32)`: the four wheel servos are replaced by
+the three chassis rows, and kicker, chipper and dribbler shift down to indices 3, 4 and 5.
 
 | Num | Action | Min | Max | Unit |
 |---|---|---|---|---|
@@ -42,20 +61,12 @@ the model, not from a constant in the environment.
 | 4 | chipper plunger force (`chipper_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
 | 5 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
 
-On tier 1 the action is a `Box(-1, 1, (7,), float32)`: the three chassis rows are replaced
-by the four wheel servos, and kicker, chipper and dribbler shift to indices 4, 5 and 6.
-
-| Num | Action | Min | Max | Unit |
-|---|---|---|---|---|
-| 0 | wheel 1 speed (`wheel1_vel`) | -200 | 200 | rad/s |
-| 1 | wheel 2 speed (`wheel2_vel`) | -200 | 200 | rad/s |
-| 2 | wheel 3 speed (`wheel3_vel`) | -200 | 200 | rad/s |
-| 3 | wheel 4 speed (`wheel4_vel`) | -200 | 200 | rad/s |
-
-Row 5 (tier 0) or 6 (tier 1) is the one the task actually turns on: `[-1, 1]` maps to
-`[0, 314] rad/s`, and a resting action of `-1` means a stopped bar, which drops the ball.
-The bar is never driven backwards — a reversed bar throws the ball out of the mouth. Rows
-0-2 on tier 0 are a *body-frame* velocity that is rotated into the world-axis chassis slides
+Row 6 on the default tier 1 — row 5 on tier 0 — is the one the task actually turns on:
+`[-1, 1]` maps to `[0, 314] rad/s`, and a resting action of `-1` means a stopped bar, which
+drops the ball. The bar is never driven backwards — a reversed bar throws the ball out of
+the mouth. Rows 0-3 on tier 1 are the four wheel servos, whose slip is what makes retention
+harder here than on tier 0 (see [Possession](../index.md#possession)); rows 0-2 on tier 0
+are instead a *body-frame* velocity that is rotated into the world-axis chassis slides
 before being written. See [the action space contract](../index.md#action-space) for the
 rest.
 
@@ -113,9 +124,10 @@ ball is recaptured, `prev_dist` has already moved with it. The `+0.01` holding b
 small, constant reason to keep the bar on the ball even when the waypoint is not getting
 closer; over the full 2500-step horizon it is worth at most `+25`.
 
-`ENERGY = 0.001` multiplies the squared norm of the whole flat action, summing over all 6
-dimensions on tier 0 (7 on tier 1) rather than just the drive channels, so a saturated
-action costs `-0.006` per step on tier 0. It is what makes a stray kick or chip cost
+`ENERGY = 0.001` multiplies the squared norm of the whole flat action, summing over all 7
+dimensions on the default tier 1 (6 on tier 0) rather than just the drive channels, so a
+saturated action costs `-0.007` per step on tier 1, `-0.006` on tier 0. It is what makes a
+stray kick or chip cost
 something on top of the gated shaping it forfeits.
 
 ## Starting State
@@ -171,7 +183,7 @@ ground to cover at a speed that keeps the ball.
 
 | parameter | type | default | description |
 |---|---|---|---|
-| `tier` | `int` | `0` | `0` = kinematic chassis, `1` = roller wheels with real slip |
+| `tier` | `int` | `1` | `1` = roller wheels with real slip, the default; `0` = the faster kinematic chassis |
 | `control_hz` | `int` | `60` | requested control rate; rounded to a whole number of 2 ms physics steps, so 60 becomes 62.5 Hz |
 | `horizon_s` | `float` | `40.0` | truncation horizon, in seconds |
 | `render_mode` | `str \| None` | `None` | `"human"` or `"rgb_array"` |
@@ -180,7 +192,7 @@ ground to cover at a speed that keeps the ball.
 import gymnasium as gym
 import mjsoccer
 
-env = gym.make("Dribbling-v0", tier=1, control_hz=60, horizon_s=40.0, render_mode="rgb_array")
+env = gym.make("Dribbling-v0", tier=0, control_hz=60, horizon_s=40.0, render_mode="rgb_array")
 ```
 
 `n_waypoints` (4) and `waypoint_tol` (0.3 m) are class attributes on `DribblingEnv`, not

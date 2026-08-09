@@ -16,22 +16,22 @@ uv sync
 import gymnasium as gym
 import mjsoccer                                  # registers the ids
 
-env = gym.make("GoToBall-v0")                    # tier 0: action (6,), obs (14,)
-env = gym.make("GoToBallShoot-v0", tier=1)       # tier 1: roller physics, action (7,)
+env = gym.make("GoToBall-v0")                    # default tier 1: roller physics, action (7,), obs (14,)
+env = gym.make("GoToBallShoot-v0", tier=0)       # tier 0: fast kinematic chassis, action (6,)
 obs, info = env.reset(seed=0)
 obs, reward, terminated, truncated, info = env.step(env.action_space.sample())
 ```
 
 ## Environments
 
-| id | robots | obs | action (tier 0 / 1) | horizon | ends on |
+| id | robots | obs | action (tier 1, default / tier 0) | horizon | ends on |
 |---|---|---|---|---|---|
-| [`GoToBall-v0`](docs/environments/go_to_ball.md) | 1 blue | 14 | 6 / 7 | 20 s | at the ball, pointing at it |
-| [`GoToBallShoot-v0`](docs/environments/go_to_ball_shoot.md) | 1 blue | 14 | 6 / 7 | 30 s | ball in the +x goal |
-| [`Dribbling-v0`](docs/environments/dribbling.md) | 1 blue | 16 | 6 / 7 | 40 s | 4 waypoints carried, or ball lost for 2 s |
-| [`StaticDefenders-v0`](docs/environments/static_defenders.md) | 1 blue + 6 yellow | 62 | 6 / 7 | 30 s | ball in the +x goal |
-| [`ContestedPossession-v0`](docs/environments/contested_possession.md) | 1 blue + 1 yellow | 22 | 6 / 7 | 20 s | blue holds the ball 0.5 s |
-| [`PassEndurance-v0`](docs/environments/pass_endurance.md) | 2 blue (1 controlled) | 22 | 6 / 7 | 20 s | team-mate receives the pass |
+| [`GoToBall-v0`](docs/environments/go_to_ball.md) | 1 blue | 14 | 7 / 6 | 20 s | at the ball, pointing at it |
+| [`GoToBallShoot-v0`](docs/environments/go_to_ball_shoot.md) | 1 blue | 14 | 7 / 6 | 30 s | ball in the +x goal |
+| [`Dribbling-v0`](docs/environments/dribbling.md) | 1 blue | 16 | 7 / 6 | 40 s | 4 waypoints carried, or ball lost for 2 s |
+| [`StaticDefenders-v0`](docs/environments/static_defenders.md) | 1 blue + 6 yellow | 62 | 7 / 6 | 30 s | ball in the +x goal |
+| [`ContestedPossession-v0`](docs/environments/contested_possession.md) | 1 blue + 1 yellow | 22 | 7 / 6 | 20 s | blue holds the ball 0.5 s |
+| [`PassEndurance-v0`](docs/environments/pass_endurance.md) | 2 blue (1 controlled) | 22 | 7 / 6 | 20 s | team-mate receives the pass |
 
 Every environment exposes the same per-robot action — drive, kick, chip, dribble — whether
 or not its reward uses it, so one action head transfers across all six.

@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Action Space | `Box(-1.0, 1.0, (6,), float32)` on tier 0, `Box(-1.0, 1.0, (7,), float32)` on tier 1 |
+| Action Space | `Box(-1.0, 1.0, (7,), float32)` on the default tier 1, `Box(-1.0, 1.0, (6,), float32)` on tier 0 |
 | Observation Space | `Box(-inf, inf, (22,), float32)` |
 | import | `gym.make("ContestedPossession-v0")` |
 
@@ -29,9 +29,22 @@ measurable at all — see [Possession](../index.md#possession).
 
 ## Action Space
 
-The action is a `Box(-1, 1, (6,), float32)` on tier 0 and drives the blue robot only; the
-yellow robot is scripted and never appears in it. Every element is normalised and scaled
-internally by the actuator's own `ctrlrange`.
+The action is a `Box(-1, 1, (7,), float32)` on the default tier 1 and drives the blue robot
+only; the yellow robot is scripted and never appears in it. Every element is normalised and
+scaled internally by the actuator's own `ctrlrange`.
+
+| Num | Action | Min | Max | Unit |
+|---|---|---|---|---|
+| 0 | wheel 1 speed (`wheel1_vel`) | -200 | 200 | rad/s |
+| 1 | wheel 2 speed (`wheel2_vel`) | -200 | 200 | rad/s |
+| 2 | wheel 3 speed (`wheel3_vel`) | -200 | 200 | rad/s |
+| 3 | wheel 4 speed (`wheel4_vel`) | -200 | 200 | rad/s |
+| 4 | kicker plunger force (`kicker_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
+| 5 | chipper plunger force (`chipper_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
+| 6 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
+
+On tier 0 the action is a `Box(-1, 1, (6,), float32)`: the four wheel servos are replaced by
+the three chassis rows, and kicker, chipper and dribbler shift down to indices 3, 4 and 5.
 
 | Num | Action | Min | Max | Unit |
 |---|---|---|---|---|
@@ -42,21 +55,17 @@ internally by the actuator's own `ctrlrange`.
 | 4 | chipper plunger force (`chipper_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
 | 5 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
 
-On tier 1 the action is a `Box(-1, 1, (7,), float32)`: the three chassis rows are replaced
-by the four wheel servos, and kicker, chipper and dribbler shift to indices 4, 5 and 6.
-
-| Num | Action | Min | Max | Unit |
-|---|---|---|---|---|
-| 0 | wheel 1 speed (`wheel1_vel`) | -200 | 200 | rad/s |
-| 1 | wheel 2 speed (`wheel2_vel`) | -200 | 200 | rad/s |
-| 2 | wheel 3 speed (`wheel3_vel`) | -200 | 200 | rad/s |
-| 3 | wheel 4 speed (`wheel4_vel`) | -200 | 200 | rad/s |
-
-Firing the kicker or the chipper is available but self-defeating here: a ball punched away
-from the contest cannot be held for half a second, and the plunger then locks out for
-250 ms. Rows 0-2 on tier 0 are a *body-frame* velocity that is rotated into the world-axis
-chassis slides before being written. See
+Firing the kicker or the chipper — rows 4 and 5 on tier 1, rows 3 and 4 on tier 0 — is
+available but self-defeating here: a ball punched away from the contest cannot be held for
+half a second, and the plunger then locks out for 250 ms. Rows 0-3 on tier 1 are the four
+wheel servos; rows 0-2 on tier 0 are instead a *body-frame* velocity that is rotated into
+the world-axis chassis slides before being written. See
 [the action space contract](../index.md#action-space).
+
+The half-second hold is also measurably harder to complete on tier 1: a robot that is not
+even driving keeps ball contact on 87-95 of 120 idle steps there against 96-103 on tier 0,
+because wheel slip lets the chassis recoil off the ball. See
+[Possession](../index.md#possession).
 
 ## Observation Space
 
@@ -118,9 +127,9 @@ taking it. It is not potential-based, but it is bounded per step and cannot exce
 because holding the ball for 31 consecutive steps ends the episode with the `+10` bonus
 anyway.
 
-`ENERGY = 0.001` multiplies the squared norm of the whole flat action, summing over all 6
-dimensions on tier 0 (7 on tier 1), so a saturated action costs `-0.006` per step on
-tier 0.
+`ENERGY = 0.001` multiplies the squared norm of the whole flat action, summing over all 7
+dimensions on the default tier 1 (6 on tier 0), so a saturated action costs `-0.007` per
+step on tier 1, `-0.006` on tier 0.
 
 ## Starting State
 
@@ -174,7 +183,7 @@ long enough.
 
 | parameter | type | default | description |
 |---|---|---|---|
-| `tier` | `int` | `0` | `0` = kinematic chassis, `1` = roller wheels with real slip |
+| `tier` | `int` | `1` | `1` = roller wheels with real slip, the default; `0` = the faster kinematic chassis |
 | `control_hz` | `int` | `60` | requested control rate; rounded to a whole number of 2 ms physics steps, so 60 becomes 62.5 Hz |
 | `horizon_s` | `float` | `20.0` | truncation horizon, in seconds |
 | `render_mode` | `str \| None` | `None` | `"human"` or `"rgb_array"` |
@@ -183,7 +192,7 @@ long enough.
 import gymnasium as gym
 import mjsoccer
 
-env = gym.make("ContestedPossession-v0", tier=1, control_hz=60, horizon_s=20.0, render_mode="rgb_array")
+env = gym.make("ContestedPossession-v0", tier=0, control_hz=60, horizon_s=20.0, render_mode="rgb_array")
 ```
 
 `hold_seconds` (0.5) and `n_yellow` (1) are class attributes on `ContestedPossessionEnv`,

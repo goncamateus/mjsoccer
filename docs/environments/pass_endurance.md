@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Action Space | `Box(-1.0, 1.0, (6,), float32)` on tier 0, `Box(-1.0, 1.0, (7,), float32)` on tier 1 |
+| Action Space | `Box(-1.0, 1.0, (7,), float32)` on the default tier 1, `Box(-1.0, 1.0, (6,), float32)` on tier 0 |
 | Observation Space | `Box(-inf, inf, (22,), float32)` |
 | import | `gym.make("PassEndurance-v0")` |
 
@@ -29,9 +29,23 @@ Despite the name, one episode is one pass; the endurance is across episodes.
 
 ## Action Space
 
-The action is a `Box(-1, 1, (6,), float32)` on tier 0 and drives the passer only. The
-team-mate is scripted and never appears in the action, which is why the action is 6 wide
-even though the model contains two robots.
+The action is a `Box(-1, 1, (7,), float32)` on the default tier 1 and drives the passer
+only. The team-mate is scripted and never appears in the action, which is why the action is
+7 wide even though the model contains two robots.
+
+| Num | Action | Min | Max | Unit |
+|---|---|---|---|---|
+| 0 | wheel 1 speed (`wheel1_vel`) | -200 | 200 | rad/s |
+| 1 | wheel 2 speed (`wheel2_vel`) | -200 | 200 | rad/s |
+| 2 | wheel 3 speed (`wheel3_vel`) | -200 | 200 | rad/s |
+| 3 | wheel 4 speed (`wheel4_vel`) | -200 | 200 | rad/s |
+| 4 | kicker plunger force (`kicker_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
+| 5 | chipper plunger force (`chipper_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
+| 6 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
+
+On tier 0 the action is a `Box(-1, 1, (6,), float32)`, 6 wide for the same reason: the four
+wheel servos are replaced by the three chassis rows, and kicker, chipper and dribbler shift
+down to indices 3, 4 and 5.
 
 | Num | Action | Min | Max | Unit |
 |---|---|---|---|---|
@@ -42,17 +56,8 @@ even though the model contains two robots.
 | 4 | chipper plunger force (`chipper_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
 | 5 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
 
-On tier 1 the action is a `Box(-1, 1, (7,), float32)`: the three chassis rows are replaced
-by the four wheel servos, and kicker, chipper and dribbler shift to indices 4, 5 and 6.
-
-| Num | Action | Min | Max | Unit |
-|---|---|---|---|---|
-| 0 | wheel 1 speed (`wheel1_vel`) | -200 | 200 | rad/s |
-| 1 | wheel 2 speed (`wheel2_vel`) | -200 | 200 | rad/s |
-| 2 | wheel 3 speed (`wheel3_vel`) | -200 | 200 | rad/s |
-| 3 | wheel 4 speed (`wheel4_vel`) | -200 | 200 | rad/s |
-
-The kicker is the natural control for this task, and it is a trigger rather than a
+The kicker — row 4 on tier 1, row 3 on tier 0 — is the natural control for this task, and it
+is a trigger rather than a
 proportional command: any action above zero writes the full 200 N for one control step and
 then locks that plunger out for 250 ms, so pass strength cannot be modulated through the
 action — a flat kick always leaves the mouth at 6-7 m/s, and the distance the ball travels
@@ -117,9 +122,10 @@ rolling towards the receiver after a kick keeps paying while it travels — whic
 intended behaviour for a task whose success condition is about the ball arriving, and is
 bounded by the same telescoping sum as everything else.
 
-`ENERGY = 0.001` multiplies the squared norm of the whole flat action, summing over all 6
-dimensions on tier 0 (7 on tier 1), so a saturated action costs `-0.006` per step on
-tier 0. A kick costs `0.001` on the step it fires, which is negligible against a `+10`
+`ENERGY = 0.001` multiplies the squared norm of the whole flat action, summing over all 7
+dimensions on the default tier 1 (6 on tier 0), so a saturated action costs `-0.007` per
+step on tier 1, `-0.006` on tier 0. A kick costs `0.001` on the step it fires, which is
+negligible against a `+10`
 reception.
 
 ## Starting State
@@ -168,7 +174,7 @@ drive command, so it coasts if the ball or the passer hits it hard enough.
 
 | parameter | type | default | description |
 |---|---|---|---|
-| `tier` | `int` | `0` | `0` = kinematic chassis, `1` = roller wheels with real slip |
+| `tier` | `int` | `1` | `1` = roller wheels with real slip, the default; `0` = the faster kinematic chassis |
 | `control_hz` | `int` | `60` | requested control rate; rounded to a whole number of 2 ms physics steps, so 60 becomes 62.5 Hz |
 | `horizon_s` | `float` | `20.0` | truncation horizon, in seconds |
 | `render_mode` | `str \| None` | `None` | `"human"` or `"rgb_array"` |
@@ -177,7 +183,7 @@ drive command, so it coasts if the ball or the passer hits it hard enough.
 import gymnasium as gym
 import mjsoccer
 
-env = gym.make("PassEndurance-v0", tier=1, control_hz=60, horizon_s=20.0, render_mode="rgb_array")
+env = gym.make("PassEndurance-v0", tier=0, control_hz=60, horizon_s=20.0, render_mode="rgb_array")
 ```
 
 `n_blue` (2) is a class attribute on `PassEnduranceEnv`, not a `gym.make` keyword — it

@@ -8,13 +8,13 @@ starting distance and no cycle pays.
 Every env exposes the same per-robot action -- drive, kick, chip, dribble -- whether or
 not its reward cares, so one action head transfers across all six.
 
-    id                       robots           action (tier 0)
-    GoToBall-v0              1 blue           6
-    GoToBallShoot-v0         1 blue           6
-    Dribbling-v0             1 blue           6
-    StaticDefenders-v0       1 blue + 6 yel   6
-    ContestedPossession-v0   1 blue + 1 yel   6
-    PassEndurance-v0         2 blue           6
+    id                       robots           action (tier 1 default / tier 0)
+    GoToBall-v0              1 blue           7 / 6
+    GoToBallShoot-v0         1 blue           7 / 6
+    Dribbling-v0             1 blue           7 / 6
+    StaticDefenders-v0       1 blue + 6 yel   7 / 6
+    ContestedPossession-v0   1 blue + 1 yel   7 / 6
+    PassEndurance-v0         2 blue           7 / 6
 """
 
 from __future__ import annotations
@@ -285,6 +285,9 @@ def main(argv=None) -> int:
 
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--env", default="GoToBall-v0")
+    # Defaults to 0 rather than to the env default of 1: this demo is driven by
+    # goto_ball_policy, which is a body-frame velocity controller and says nothing useful
+    # to tier 1's four wheel servos.
     ap.add_argument("--tier", type=int, choices=(0, 1), default=0)
     ap.add_argument("--episodes", type=int, default=3)
     ap.add_argument("--view", action="store_true", help="open the MuJoCo viewer")

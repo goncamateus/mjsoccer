@@ -24,7 +24,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--env", default="GoToBall-v0")
     ap.add_argument(
-        "--tier", type=int, choices=(0, 1), default=0, help="0 = kinematic chassis, 1 = roller wheels"
+        "--tier", type=int, choices=(0, 1), default=1, help="0 = kinematic chassis, 1 = roller wheels"
     )
     ap.add_argument("--episodes", type=int, default=3)
     ap.add_argument("--seed", type=int, default=0)
