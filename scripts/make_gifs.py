@@ -45,6 +45,12 @@ DEMOS = {
     "Dribbling-v0": (lambda env: env._target.copy(), False),
 }
 
+# Tasks whose subject is a spatial relationship spread across the field -- where the wall
+# of defenders sits, where the team-mate is standing -- rather than what one robot is doing
+# with the ball. A shot that follows the robot crops exactly the thing these two are about,
+# so they get the model's own `overview` camera and the whole 12 x 9 m field.
+WIDE = {"StaticDefenders-v0", "PassEndurance-v0"}
+
 
 def _demo_action(env, obs: np.ndarray, target, kick: bool) -> np.ndarray:
     """Drive at the ball, or push it at `target` and kick when lined up.
@@ -115,6 +121,7 @@ def _grab_frames(
     max_steps: int,
     smoothing: float,
     demo,
+    wide: bool,
 ) -> list[np.ndarray]:
     """Step `env` until `n_frames` frames are captured, resetting on episode end.
 
@@ -135,8 +142,9 @@ def _grab_frames(
         target = aim_at()
         obs, _, terminated, truncated, _ = env.step(_demo_action(env, obs, target, kick))
         if step % every == 0:
-            _aim(cam, env, smoothing, target)
-            renderer.update_scene(env.data, camera=cam)
+            if not wide:
+                _aim(cam, env, smoothing, target)
+            renderer.update_scene(env.data, camera="overview" if wide else cam)
             frames.append(renderer.render().copy())
             if len(frames) >= n_frames:
                 break
@@ -175,6 +183,12 @@ def main(argv=None) -> int:
     ap.add_argument("--width", type=int, default=640)
     ap.add_argument("--height", type=int, default=360)
     ap.add_argument(
+        "--wide-scale",
+        type=float,
+        default=1.5,
+        help="resolution multiplier for the whole-field clips (%s)" % ", ".join(sorted(WIDE)),
+    )
+    ap.add_argument(
         "--smoothing",
         type=float,
         default=0.12,
@@ -189,8 +203,12 @@ def main(argv=None) -> int:
     for env_id in args.envs:
         env = gym.make(env_id, render_mode="rgb_array").unwrapped
         # base.render() hardcodes 720x1280; build our own renderer so the docs can ask for
-        # a size small enough to commit.
-        renderer = mujoco.Renderer(env.model, args.height, args.width)
+        # a size small enough to commit. The wide clips get more pixels because a fixed
+        # camera leaves most of the frame identical between frames and compresses several
+        # times better -- they come out smaller at 1.5x than the following shots do at 1x,
+        # and a whole-field view needs the resolution to keep a 180 mm robot legible.
+        scale = args.wide_scale if env_id in WIDE else 1.0
+        renderer = mujoco.Renderer(env.model, round(args.height * scale), round(args.width * scale))
         try:
             control_hz = env.metadata.get("render_fps") or round(1.0 / env.dt)
             every = max(1, round(control_hz / args.fps))  # keeps playback at real time
@@ -203,6 +221,7 @@ def main(argv=None) -> int:
                 max_steps=n_frames * every * 4,
                 smoothing=args.smoothing,
                 demo=DEMOS.get(env_id, (None, False)),
+                wide=env_id in WIDE,
             )
         finally:
             renderer.close()
