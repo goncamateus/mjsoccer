@@ -35,6 +35,12 @@ MAX_V = 4.0  # m/s -- the tier-0 chassis servo ctrlrange, used to normalise obse
 MAX_W = 30.0  # rad/s, likewise
 MAX_BALL_V = 8.0  # m/s -- a flat kick leaves at 6-7
 POSSESSION_GRACE = 0.05  # s of no ball/dribbler contact before the ball counts as lost
+# A robot is over when its own +z is more than 60 deg off world +z. Well past anything
+# driving produces -- the roller chassis pitches a couple of degrees under hard
+# acceleration -- and well short of 90, so a robot on its way down does not have to land
+# flat before the episode ends.
+TIPPED_COS = 0.5
+TIPOVER_PENALTY = 10.0  # same order as the task bonuses, so falling is never worth it
 
 
 class BaseEnv(gym.Env):
@@ -116,6 +122,10 @@ class BaseEnv(gym.Env):
         if not S.in_field(*self.ball.pos(self.data)[:2]) and not info.get("goal"):
             terminated = True
             info["ball_out"] = True
+        if self.tipped():
+            reward -= TIPOVER_PENALTY
+            terminated = True
+            info["tipped"] = True
         if self.render_mode == "human":
             self.render()
         return obs, float(reward), bool(terminated), bool(truncated), info
@@ -152,6 +162,20 @@ class BaseEnv(gym.Env):
         self.data.ctrl[r.dribble] = S.DRIBBLER_OMEGA * (a[k + 2] + 1.0) * 0.5
 
     # ------------------------------------------------------------ observation
+
+    def tipped(self) -> bool:
+        """Has any *controlled* robot fallen over?
+
+        Only the controlled ones: a scripted opponent knocked on its side is the agent's
+        problem to exploit, not a reason to end its episode. Read off the body frame's
+        third column, which is the robot's own +z in world coordinates, so it is one dot
+        product rather than a quaternion. Always False on tier 0, whose chassis is a planar
+        joint and cannot leave the ground.
+        """
+        return any(
+            self.data.xmat[r.body].reshape(3, 3)[2, 2] < TIPPED_COS
+            for r in self.robots[: self.n_controlled]
+        )
 
     def holds(self, i: int) -> bool:
         """Is robot `i` carrying the ball? Valid after the last _obs."""

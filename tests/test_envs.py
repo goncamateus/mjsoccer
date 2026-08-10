@@ -237,6 +237,26 @@ def test_chipper_rearms():
 
 
 @pytest.mark.parametrize("env_id", ENV_IDS)
+def test_tipover_ends_episode(env_id):
+    """A controlled robot on its side ends the episode, at a loss.
+
+    Nothing a policy commands tips the chassis, so this rolls it over by hand: a robot
+    that keeps collecting shaping while lying on its back is training a behaviour the real
+    thing cannot perform, and the penalty is what makes falling never worth it.
+    """
+    env = gym.make(env_id, tier=1).unwrapped
+    env.reset(seed=0)
+    assert not env.tipped(), "a fresh reset must be upright"
+    a = env.robots[0].qpos_adr
+    # 90 deg roll about the chassis' own x -- flat on its side.
+    env.data.qpos[a + 3 : a + 7] = (np.cos(np.pi / 4), np.sin(np.pi / 4), 0.0, 0.0)
+    _, reward, terminated, _, info = env.step(np.zeros(env.action_space.shape, dtype=np.float32))
+    assert terminated and info.get("tipped"), f"episode continued: {info}"
+    assert reward < -5.0, f"tipping over paid {reward:+.2f}"
+    env.close()
+
+
+@pytest.mark.parametrize("env_id", ENV_IDS)
 @pytest.mark.parametrize("tier,dim", [(0, 6), (1, 7)])
 def test_action_space_is_uniform(env_id, tier, dim):
     """Every robot exposes drive + kick + chip + dribble, so an action head transfers."""

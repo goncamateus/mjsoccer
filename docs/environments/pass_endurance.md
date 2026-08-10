@@ -161,6 +161,11 @@ drive command, so it coasts if the ball or the passer hits it hard enough.
   `|y| > 4.5 m`); `info["ball_out"]` is set. This env never sets `info["goal"]`, so a
   mis-aimed kick that leaves the field ends the episode as a failure — which is the main
   risk of a full-power pass, since kick strength cannot be modulated.
+- **Controlled robot turned over.** The robot's own +z tilts more than 60 deg off world
+  +z (`cos < 0.5`). The step pays `-10.0` on top of whatever the task scored and
+  `info["tipped"]` is set. Only the robots the policy controls count — a scripted robot on
+  its side is the agent's to exploit. Tier 0 never trips this: its chassis is a planar
+  joint and cannot leave the ground.
 - **Diverged simulation.** If `qpos` or `qvel` stops being finite, `step` raises
   `RuntimeError` rather than returning a NaN observation to train on. This is an error, not
   a normal termination.
@@ -197,6 +202,7 @@ action alone.
 |---|---|---|
 | `is_success` | `bool` | the team-mate received the ball |
 | `ball_out` | `bool` | present only on the step the ball leaves the field |
+| `tipped` | `bool` | present only on the step a controlled robot turned over |
 
 ## Version History
 

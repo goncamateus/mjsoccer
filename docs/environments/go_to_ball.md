@@ -132,6 +132,11 @@ floor; the robot starts at rest at the chassis height the model defines.
 - **Ball out of the field.** `scene.in_field` fails for the ball centre, i.e. `|x| > 6.0 m`
   or `|y| > 4.5 m`. `info["ball_out"]` is set. This env never sets `info["goal"]`, so a ball
   crossing the goal line counts as out here.
+- **Controlled robot turned over.** The robot's own +z tilts more than 60 deg off world
+  +z (`cos < 0.5`). The step pays `-10.0` on top of whatever the task scored and
+  `info["tipped"]` is set. Only the robots the policy controls count — a scripted robot on
+  its side is the agent's to exploit. Tier 0 never trips this: its chassis is a planar
+  joint and cannot leave the ground.
 - **Diverged simulation.** If `qpos` or `qvel` stops being finite, `step` raises
   `RuntimeError` rather than returning a NaN observation to train on. This is an error, not
   a normal termination.
@@ -164,6 +169,7 @@ env = gym.make("GoToBall-v0", tier=0, control_hz=60, horizon_s=20.0, render_mode
 | `is_success` | `bool` | the robot arrived at the ball facing it |
 | `dist` | `float` | robot-to-ball distance in metres after this step |
 | `ball_out` | `bool` | present only on the step the ball leaves the field |
+| `tipped` | `bool` | present only on the step a controlled robot turned over |
 
 ## Version History
 
