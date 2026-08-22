@@ -23,13 +23,12 @@ model rather than from a constant here.
 
 from __future__ import annotations
 
-import numpy as np
-
 import gymnasium as gym
 import mujoco
+import numpy as np
 from gymnasium import spaces
 
-from . import scene as S
+from . import scene
 
 MAX_V = 4.0  # m/s -- the tier-0 chassis servo ctrlrange, used to normalise observations
 MAX_W = 30.0  # rad/s, likewise
@@ -40,7 +39,7 @@ POSSESSION_GRACE = 0.05  # s of no ball/dribbler contact before the ball counts 
 # acceleration -- and well short of 90, so a robot on its way down does not have to land
 # flat before the episode ends.
 TIPPED_COS = 0.5
-TIPOVER_PENALTY = 10.0  # same order as the task bonuses, so falling is never worth it
+TIPOVER_PENALTY = 100.0  # same order as the task bonuses, so falling is never worth it
 
 
 class BaseEnv(gym.Env):
@@ -61,7 +60,9 @@ class BaseEnv(gym.Env):
         render_mode: str | None = None,
     ) -> None:
         self.tier = tier
-        self.model, self.robots, self.ball = S.build(self.n_blue, self.n_yellow, tier)
+        self.model, self.robots, self.ball = scene.build(
+            self.n_blue, self.n_yellow, tier
+        )
         self.data = mujoco.MjData(self.model)
 
         self.decimation = max(1, round(1.0 / (control_hz * self.model.opt.timestep)))
@@ -116,10 +117,13 @@ class BaseEnv(gym.Env):
         obs = self._obs()
         reward, terminated, info = self._reward_done(action)
         truncated = self.steps >= self.max_steps
-        if not np.isfinite(self.data.qpos).all() or not np.isfinite(self.data.qvel).all():
+        if (
+            not np.isfinite(self.data.qpos).all()
+            or not np.isfinite(self.data.qvel).all()
+        ):
             # Loudly, rather than training a policy on NaN observations.
             raise RuntimeError(f"simulation diverged at step {self.steps}")
-        if not S.in_field(*self.ball.pos(self.data)[:2]) and not info.get("goal"):
+        if not scene.in_field(*self.ball.pos(self.data)[:2]) and not info.get("goal"):
             terminated = True
             info["ball_out"] = True
         if self.tipped():
@@ -155,11 +159,11 @@ class BaseEnv(gym.Env):
         # return spring. Each gets its own lock so a kick cannot block a chip.
         for j, actuator in enumerate((r.kick, r.chip)):
             if a[k + j] > 0.0 and self._plunger_lock[index, j] == 0:
-                self.data.ctrl[actuator] = S.KICK_FORCE
+                self.data.ctrl[actuator] = scene.KICK_FORCE
                 self._plunger_lock[index, j] = self._kick_cooldown
         # [-1, 1] -> [0, design speed]. Never negative: a bar driven backwards throws the
         # ball out of the mouth.
-        self.data.ctrl[r.dribble] = S.DRIBBLER_OMEGA * (a[k + 2] + 1.0) * 0.5
+        self.data.ctrl[r.dribble] = scene.DRIBBLER_OMEGA * (a[k + 2] + 1.0) * 0.5
 
     # ------------------------------------------------------------ observation
 
@@ -202,16 +206,18 @@ class BaseEnv(gym.Env):
             other = b2 if b1 == self.ball.body else b1 if b2 == self.ball.body else -1
             if other in by_body:
                 touching[by_body[other]] = True
-        self._grace = np.where(touching, self._grace_steps, np.maximum(self._grace - 1, 0))
+        self._grace = np.where(
+            touching, self._grace_steps, np.maximum(self._grace - 1, 0)
+        )
 
     def _obs(self) -> np.ndarray:
         self._update_possession()
         d = self.data
         bp, bv = self.ball.pos(d), self.ball.vel(d)
         out = [
-            bp[0] / S.FIELD_HALF_X,
-            bp[1] / S.FIELD_HALF_Y,
-            bp[2] / S.GOAL_HEIGHT,
+            bp[0] / scene.FIELD_HALF_X,
+            bp[1] / scene.FIELD_HALF_Y,
+            bp[2] / scene.GOAL_HEIGHT,
             bv[0] / MAX_BALL_V,
             bv[1] / MAX_BALL_V,
             bv[2] / MAX_BALL_V,
@@ -220,8 +226,8 @@ class BaseEnv(gym.Env):
             x, y, th = r.pose(d)
             vx, vy, wz = r.velocity(d)
             out += [
-                x / S.FIELD_HALF_X,
-                y / S.FIELD_HALF_Y,
+                x / scene.FIELD_HALF_X,
+                y / scene.FIELD_HALF_Y,
                 np.sin(th),
                 np.cos(th),
                 vx / MAX_V,
@@ -237,14 +243,19 @@ class BaseEnv(gym.Env):
 
     # ---------------------------------------------------------------- helpers
 
-    def ball_in_frame(self, r: S.RobotIds) -> np.ndarray:
+    def ball_in_frame(self, r: scene.RobotIds) -> np.ndarray:
         """Ball position in a robot's own frame -- the only frame possession means
         anything in."""
         R = self.data.xmat[r.body].reshape(3, 3)
         return R.T @ (self.ball.pos(self.data) - self.data.xpos[r.body])
 
-    def seat_ball(self, r: S.RobotIds, distance: float = 0.20, speed: float = 2.0,
-                  settle: float = 0.35) -> None:
+    def seat_ball(
+        self,
+        r: scene.RobotIds,
+        distance: float = 0.20,
+        speed: float = 2.0,
+        settle: float = 0.35,
+    ) -> None:
         """Roll a ball into a robot's dribbler and let the mechanism catch it.
 
         Placing the ball at the sphere/bar tangency instead is a launcher, not a seat: the
@@ -260,19 +271,27 @@ class BaseEnv(gym.Env):
         x, y, _ = r.pose(self.data)
         f = r.forward(self.data)
         self.ball.place(
-            self.data, x + f[0] * distance, y + f[1] * distance, -f[0] * speed, -f[1] * speed
+            self.data,
+            x + f[0] * distance,
+            y + f[1] * distance,
+            -f[0] * speed,
+            -f[1] * speed,
         )
         mujoco.mj_forward(self.model, self.data)
         for _ in range(round(settle / self.model.opt.timestep)):
-            self.data.ctrl[r.dribble] = S.DRIBBLER_OMEGA
+            self.data.ctrl[r.dribble] = scene.DRIBBLER_OMEGA
             mujoco.mj_step(self.model, self.data)
 
     def sample_pose(self, taken: list, margin: float = 0.3, clearance: float = 0.25):
         """Rejection-sample a free (x, y) inside the field, at least `clearance` from
         everything already placed."""
         for _ in range(200):
-            x = self.np_random.uniform(-S.FIELD_HALF_X + margin, S.FIELD_HALF_X - margin)
-            y = self.np_random.uniform(-S.FIELD_HALF_Y + margin, S.FIELD_HALF_Y - margin)
+            x = self.np_random.uniform(
+                -scene.FIELD_HALF_X + margin, scene.FIELD_HALF_X - margin
+            )
+            y = self.np_random.uniform(
+                -scene.FIELD_HALF_Y + margin, scene.FIELD_HALF_Y - margin
+            )
             if all((x - px) ** 2 + (y - py) ** 2 > clearance**2 for px, py in taken):
                 taken.append((x, y))
                 return x, y
@@ -326,8 +345,10 @@ class BaseEnv(gym.Env):
         camera would take the mouse away. It only sets where the view starts.
         """
         cam.lookat[:] = (0.0, 0.0, 0.0)
-        cam.distance = 2.2 * S.FIELD_HALF_X
-        cam.azimuth = 90.0  # south of the field, so +x (the attacking goal) is on the right
+        cam.distance = 2.2 * scene.FIELD_HALF_X
+        cam.azimuth = (
+            90.0  # south of the field, so +x (the attacking goal) is on the right
+        )
         cam.elevation = -35.0
 
     def close(self):

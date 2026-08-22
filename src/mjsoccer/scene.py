@@ -29,7 +29,9 @@ import numpy as np
 
 # ponytail: models/ sits next to the package rather than inside it, so a checkout can
 # regenerate them in place. Override with MJSOCCER_MODELS to point at another build.
-MODELS_DIR = Path(os.environ.get("MJSOCCER_MODELS", Path(__file__).resolve().parents[2] / "models"))
+MODELS_DIR = Path(
+    os.environ.get("MJSOCCER_MODELS", Path(__file__).resolve().parents[2] / "models")
+)
 
 SCENES = {0: "scene.xml", 1: "scene_rollers.xml"}
 ROBOTS = {0: "robot_kinematic.xml", 1: "robot_rollers.xml"}
@@ -125,7 +127,9 @@ class BallIds:
     qvel_adr: int
     radius: float
 
-    def place(self, data: mujoco.MjData, x: float, y: float, vx: float = 0.0, vy: float = 0.0) -> None:
+    def place(
+        self, data: mujoco.MjData, x: float, y: float, vx: float = 0.0, vy: float = 0.0
+    ) -> None:
         a, d = self.qpos_adr, self.qvel_adr
         data.qpos[a : a + 2] = (x, y)
         data.qpos[a + 3 : a + 7] = (1.0, 0.0, 0.0, 0.0)
@@ -151,7 +155,9 @@ def _robot_ids(model: mujoco.MjModel, prefix: str, team: str, tier: int) -> Robo
     )
     assert min(drive) >= 0, f"missing drive actuators for {prefix!r} on tier {tier}"
     jnt = model.body_jntadr[body]
-    sensor = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SENSOR, prefix + "dribbler_arm_pos")
+    sensor = mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_SENSOR, prefix + "dribbler_arm_pos"
+    )
     return RobotIds(
         prefix=prefix,
         team=team,
@@ -162,7 +168,9 @@ def _robot_ids(model: mujoco.MjModel, prefix: str, team: str, tier: int) -> Robo
         chip=act("chipper_force"),
         dribble=act("dribbler_vel"),
         arm_adr=int(model.sensor_adr[sensor]),
-        dribbler_body=mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, prefix + "dribbler"),
+        dribbler_body=mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_BODY, prefix + "dribbler"
+        ),
         qpos_adr=int(model.jnt_qposadr[jnt]),
         qvel_adr=int(model.jnt_dofadr[jnt]),
         free=model.jnt_type[jnt] == mujoco.mjtJoint.mjJNT_FREE,
@@ -171,7 +179,9 @@ def _robot_ids(model: mujoco.MjModel, prefix: str, team: str, tier: int) -> Robo
 
 
 @lru_cache(maxsize=8)
-def build(n_blue: int, n_yellow: int, tier: int) -> tuple[mujoco.MjModel, tuple[RobotIds, ...], BallIds]:
+def build(
+    n_blue: int, n_yellow: int, tier: int
+) -> tuple[mujoco.MjModel, tuple[RobotIds, ...], BallIds]:
     """Compile a field + n_blue + n_yellow robots + one ball.
 
     ponytail: the MjModel is cached and shared by every env of the same shape, which is
@@ -186,14 +196,22 @@ def build(n_blue: int, n_yellow: int, tier: int) -> tuple[mujoco.MjModel, tuple[
     spec = mujoco.MjSpec.from_file(str(MODELS_DIR / SCENES[tier]))
     # Copy the robot's ball contact pairs before deleting the body takes them with it.
     ball_pairs = [
-        (p.geomname2, p.condim, np.array(p.friction), np.array(p.solref), np.array(p.solimp))
+        (
+            p.geomname2,
+            p.condim,
+            np.array(p.friction),
+            np.array(p.solref),
+            np.array(p.solimp),
+        )
         for p in spec.pairs
         if p.geomname1 == "ball" and p.geomname2 != "floor"
     ]
     assert ball_pairs, f"{SCENES[tier]} defines no ball contact pairs to replicate"
     spec.delete(spec.body("robot"))
 
-    teams = [("blue", f"b{i}_") for i in range(n_blue)] + [("yellow", f"y{i}_") for i in range(n_yellow)]
+    teams = [("blue", f"b{i}_") for i in range(n_blue)] + [
+        ("yellow", f"y{i}_") for i in range(n_yellow)
+    ]
     for i, (_, prefix) in enumerate(teams):
         child = mujoco.MjSpec.from_file(str(MODELS_DIR / ROBOTS[tier]))
         frame = spec.worldbody.add_frame()
@@ -240,7 +258,9 @@ def _check_field(model: mujoco.MjModel) -> None:
             if not match(name) or model.geom_dataid[g] < 0:
                 continue
             k = model.geom_dataid[g]
-            v = model.mesh_vert[model.mesh_vertadr[k] : model.mesh_vertadr[k] + model.mesh_vertnum[k]]
+            v = model.mesh_vert[
+                model.mesh_vertadr[k] : model.mesh_vertadr[k] + model.mesh_vertnum[k]
+            ]
             w = v @ data.geom_xmat[g].reshape(3, 3).T + data.geom_xpos[g]
             lo, hi = np.minimum(lo, w.min(0)), np.maximum(hi, w.max(0))
         assert np.isfinite(lo).all(), "no field geometry matched"
@@ -251,7 +271,9 @@ def _check_field(model: mujoco.MjModel) -> None:
     assert abs(max(-lo[1], hi[1]) - FIELD_HALF_Y) < 0.025, f"field half-width {hi[1]}"
 
     lo, hi = aabb(lambda n: "f_goalpost_1" in n and n.startswith("col"))
-    assert abs(lo[0] - FIELD_HALF_X) < 0.01, f"goal line at {lo[0]}, expected {FIELD_HALF_X}"
+    assert abs(lo[0] - FIELD_HALF_X) < 0.01, (
+        f"goal line at {lo[0]}, expected {FIELD_HALF_X}"
+    )
     assert abs((hi[0] - lo[0]) - GOAL_DEPTH) < 0.03, f"goal depth {hi[0] - lo[0]}"
     # The posts sit outside the mouth, so their outer edge must bracket the 1.8 m opening.
     assert GOAL_HALF_Y < hi[1] < GOAL_HALF_Y + 0.06, f"goal mouth outer edge {hi[1]}"
@@ -263,4 +285,8 @@ def in_field(x: float, y: float, margin: float = 0.0) -> bool:
 
 def in_goal(pos, sign: float = 1.0) -> bool:
     """Ball centre past the goal line, inside the mouth, under the crossbar."""
-    return bool(sign * pos[0] > FIELD_HALF_X and abs(pos[1]) < GOAL_HALF_Y and pos[2] < GOAL_HEIGHT)
+    return bool(
+        sign * pos[0] > FIELD_HALF_X
+        and abs(pos[1]) < GOAL_HALF_Y
+        and pos[2] < GOAL_HEIGHT
+    )

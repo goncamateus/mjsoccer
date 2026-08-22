@@ -43,7 +43,9 @@ class _BallTask(BaseEnv):
 
     def _to_ball(self) -> float:
         r = self._agent()
-        return float(np.linalg.norm(self.ball.pos(self.data)[:2] - self.data.xpos[r.body][:2]))
+        return float(
+            np.linalg.norm(self.ball.pos(self.data)[:2] - self.data.xpos[r.body][:2])
+        )
 
     def _facing(self) -> float:
         """cos of the angle between the robot's front and the direction to the ball."""
@@ -96,7 +98,11 @@ class GoToBallShootEnv(_BallTask):
 
     def _goal_dist(self) -> float:
         p = self.ball.pos(self.data)[:2]
-        return float(np.linalg.norm(p - (S.FIELD_HALF_X, np.clip(p[1], -S.GOAL_HALF_Y, S.GOAL_HALF_Y))))
+        return float(
+            np.linalg.norm(
+                p - (S.FIELD_HALF_X, np.clip(p[1], -S.GOAL_HALF_Y, S.GOAL_HALF_Y))
+            )
+        )
 
     def _reset_task(self) -> None:
         self._prev, self._prev_goal = self._to_ball(), self._goal_dist()
@@ -153,7 +159,9 @@ class DribblingEnv(_BallTask):
         d = self._to_target()
         # Progress only counts while the ball is actually held; otherwise a policy can
         # farm the shaping term by kicking the ball at the waypoint and walking away.
-        reward = (self._prev - d) * float(held) + 0.01 * float(held) + self._energy(action)
+        reward = (
+            (self._prev - d) * float(held) + 0.01 * float(held) + self._energy(action)
+        )
         self._prev = d
         self._lost = 0 if held else self._lost + 1
         if d < self.waypoint_tol and held:
@@ -162,7 +170,14 @@ class DribblingEnv(_BallTask):
             self._target = np.array(self.sample_pose([], clearance=0.0))
             self._prev = self._to_target()
         done = self._reached >= self.n_waypoints or self._lost > round(2.0 / self.dt)
-        return reward, done, {"is_success": self._reached >= self.n_waypoints, "waypoints": self._reached}
+        return (
+            reward,
+            done,
+            {
+                "is_success": self._reached >= self.n_waypoints,
+                "waypoints": self._reached,
+            },
+        )
 
 
 class StaticDefendersEnv(GoToBallShootEnv):
@@ -240,7 +255,9 @@ class PassEnduranceEnv(_BallTask):
 
     def _to_mate(self) -> float:
         return float(
-            np.linalg.norm(self.ball.pos(self.data)[:2] - self.data.xpos[self.robots[1].body][:2])
+            np.linalg.norm(
+                self.ball.pos(self.data)[:2] - self.data.xpos[self.robots[1].body][:2]
+            )
         )
 
     def _script(self) -> None:
@@ -271,9 +288,13 @@ def goto_ball_policy(obs: np.ndarray, kp: float = 2.0, kw: float = 1.5) -> np.nd
     sin, cos = float(obs[8]), float(obs[9])
     delta = ball - pos
     # Actions are body-frame (see base._drive_robot), so rotate the world error into it.
-    local = np.array([cos * delta[0] + sin * delta[1], -sin * delta[0] + cos * delta[1]])
+    local = np.array(
+        [cos * delta[0] + sin * delta[1], -sin * delta[0] + cos * delta[1]]
+    )
     heading = float(np.arctan2(local[1], local[0]))
-    return np.clip([kp * local[0], kp * local[1], kw * heading], -1.0, 1.0).astype(np.float32)
+    return np.clip([kp * local[0], kp * local[1], kw * heading], -1.0, 1.0).astype(
+        np.float32
+    )
 
 
 def main(argv=None) -> int:
@@ -291,7 +312,9 @@ def main(argv=None) -> int:
     ap.add_argument("--tier", type=int, choices=(0, 1), default=0)
     ap.add_argument("--episodes", type=int, default=3)
     ap.add_argument("--view", action="store_true", help="open the MuJoCo viewer")
-    ap.add_argument("--list", action="store_true", help="print the registered ids and exit")
+    ap.add_argument(
+        "--list", action="store_true", help="print the registered ids and exit"
+    )
     args = ap.parse_args(argv)
 
     if args.list:
