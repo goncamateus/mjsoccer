@@ -64,6 +64,13 @@ reverted diagnostic, and must revert.
   static tip threshold by 62 % and `ω_tip` by 25 %. **The robot is direct drive, not 18:60** — so
   rSim's numbers describe the previous robot generation and never transferred. Workings in
   [`research/01-drivetrain-envelope.md`](research/01-drivetrain-envelope.md).
+- [Contact parameters](issues/05-contact-parameters.md): roller↔floor μ 1.0 → **0.25**
+  (reopens `01`'s binding constraint: friction-limited at 2.45 m/s², not torque-limited at 2.98,
+  still clears the tip threshold); ball COR target **0.50** on both floor and wall, `solref`
+  dampratio deferred to new task `17`; ball inertia gets an explicit `diaginertia` for **β = 0.5**.
+  Walls/bumpers `solref`, ball↔dribbler μ = 2.5, and robot↔robot/wall μ all stay unchanged,
+  recorded as deliberate approximations. `impratio` stays at 1, revisit only if `14` finds slip
+  problems.
 
 ## Not yet specified
 
@@ -76,8 +83,9 @@ reverted diagnostic, and must revert.
   forces and friction budgets. Decides itself once `07` fixes the collision topology; only
   matters if a constraint-based turnover fix ever comes back on the table.
 - **Robot↔robot and robot↔wall friction** (`friction="0.5"` on 209 hulls, 0.6 on the walls).
-  No source for either figure yet. Revisit after `05` sets the method for justifying a contact
-  coefficient.
+  No source for either figure. `05` recorded it as a deliberate approximation, unchanged, and
+  established the source-class taxonomy (RULEBOOK > MEASURED > VENDOR > DELIBERATE
+  APPROXIMATION) other rows now use. Revisit only if a source appears.
 - **Transient overcurrent.** A constant `forcerange` cannot express an ESC that allows several
   times `I_nom` for tens of milliseconds; a real torque envelope would. Recorded by `01` as a
   deliberate approximation. Becomes specifiable if anyone needs launch acceleration to be right.

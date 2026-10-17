@@ -1,7 +1,7 @@
 # Decision: contact parameters that are defensible rather than tuned-to-taste
 
 Type: grilling
-Status: open
+Status: resolved
 Blocked by: —
 
 ## Question
@@ -47,3 +47,24 @@ harder and slip less abrupt.
 Constraint from the acceptance gates: possession duration on `Dribbling-v0` must not degrade more
 than 5% against `docs/index.md:199-212`. A contact change that fixes tipping by ruining retention
 is not a fix.
+
+## Answer
+
+Resolved 2026-09-10, by grilling (`mattpocock-skills:grilling`), citing finding ids from
+`docs/research/rsoccer-vs-mjsoccer.md`.
+
+| row | decision | class |
+|---|---|---|
+| roller↔floor μ | 1.0 → **0.25** (Williams et al., IEEE T-RA 18(3) 2002, tilt table) — reopens `01`'s binding constraint: robot goes friction-limited at 2.45 m/s² instead of torque-limited at 2.98, still clears the 7.86 m/s² tip threshold. `C1`, `W3`, `L1`. | MEASURED |
+| ball↔floor COR | 0 (critically damped) → target **0.50** (band 0.47–0.56). MuJoCo has no literal restitution coefficient — bounce is emergent from `solref`'s damping ratio (confirmed against installed MuJoCo 3.1.1; `docs/research/02-physical-constants.md:94-95`) — so the actual `solref` dampratio is found empirically, not derived here. `C2`. | MEASURED (target); dampratio via new task ticket |
+| ball↔wall COR | same target **0.50**, same calibration | MEASURED (target); same ticket |
+| ball inertia | β 0.4 (MuJoCo solid-sphere default) → **declare `diaginertia` explicitly** on `models/ball.xml:7` for β=0.5. No audit id — a gap in the audit itself, not a re-derivation; `02`'s research doc already flags it as "not fixable without an explicit inertia declaration" (`research/02-physical-constants.md:453`). | MEASURED |
+| walls/bumpers `solref` | unchanged (`0.004 1`) — neither that nor MuJoCo's `0.02 1` default is sourced. Closest precedent `C8` (Low): per-pair compliance is "comparable in spirit, not in value" even upstream. | DELIBERATE APPROXIMATION |
+| ball↔dribbler μ = 2.5 | unchanged — no physical retention story, deliberately super-unity to make the bar hold (`C4`). Value stays; the mechanism itself is `08`'s scope, and the §3.2.4 coverage constraint is tracked separately in `map.md`. | DELIBERATE APPROXIMATION |
+| robot↔robot / wall μ (0.5 / 0.6) | unchanged. No audit id — the audit's own table lists both values without flagging either as a finding (rSim's is also just an unexamined `PSurface` default). Value stays open for a future ticket. | DELIBERATE APPROXIMATION |
+| `impratio` | unchanged (1) — a MuJoCo solver knob with no ODE/rSim equivalent, so no finding id and no physical source could exist. Revisit only if `14`'s validation harness shows the roller-μ/COR changes above make slip too abrupt against the Dribbling-v0 possession-duration gate. | DELIBERATE APPROXIMATION |
+
+**Carried forward.** `04` inherits the friction-limited (not torque-limited) conclusion as a fact.
+A new task ticket, [`17-ball-restitution-calibration.md`](17-ball-restitution-calibration.md),
+owns finding the `solref` dampratio that hits the COR band on both surfaces. All edits here still
+gate on `14`'s Dribbling-v0 possession-duration check before landing.
