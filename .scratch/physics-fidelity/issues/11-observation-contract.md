@@ -1,28 +1,28 @@
-# Decision: make the observation contract honest
+# Decisão: tornar honesto o contrato de observação
 
 Type: grilling
 Status: open
 Blocked by: 04
 
-## Question
+## Pergunta
 
-Three defects, all of which need `04`'s final envelope before they can be fixed:
+Três defeitos, e todos precisam do envelope final do `04` antes de poderem ser corrigidos:
 
-1. **`MAX_W = 30.0` is not the tier-1 maximum.** It is documented as "the tier-0 chassis servo
-   `ctrlrange`" (`base.py:34`, `docs/index.md:133`), but tier 1 reaches 59.4 rad/s measured, so
-   the `omega` channel routinely reads ≈2.0 under the robot's own drive. `docs/index.md:135-137`
-   claims the values "sit in roughly [−1, 1]" and blames excursions on "a tier-1 chassis pushed
-   by another robot" — false today (`L9`). After `04` this may fix itself; confirm, and decide
-   whether `MAX_V`/`MAX_W` should be *derived from the model* rather than declared as constants.
-2. **The ball-height channel has a datum error.** `base.py:220` divides the raw world
-   `bp[2]` by `GOAL_HEIGHT = 0.155`, but the floor plane is at z = 0.02
-   (`models/field.xml:42`), so the channel carries a systematic `+0.02/0.155 = +0.129` offset and
-   measures height above the world origin, not above the carpet (`U4`). Fix the observation, or
-   move the floor to z = 0? Moving the floor touches every spawn z in the model; fixing the
-   observation is one subtraction. Decide which, and whether anything else reads a raw z.
-3. **The `Box` is `(−inf, inf)` and nothing clips** (`base.py:79`). rSoccer clips every channel
-   to ±1.2 (`ssl_gym_base.py:27,213-220`). Under fidelity, is an unbounded observation space
-   correct-but-inconvenient, or should the declared `Box` at least be *true*?
+1. **`MAX_W = 30.0` não é o máximo do tier 1.** Está documentado como "the tier-0 chassis servo
+   `ctrlrange`" (`base.py:34`, `docs/index.md:133`), mas o tier 1 chega a 59.4 rad/s medidos, então o
+   canal `omega` rotineiramente lê ≈2.0 sob o próprio acionamento do robô. `docs/index.md:135-137`
+   afirma que os valores "sit in roughly [−1, 1]" e culpa as excursões em "a tier-1 chassis pushed by
+   another robot" — falso hoje (`L9`). Depois do `04` isso pode se resolver sozinho; confirmar, e
+   decidir se `MAX_V`/`MAX_W` devem ser *derivados do modelo* em vez de declarados como constantes.
+2. **O canal de altura da bola tem um erro de referência.** `base.py:220` divide o `bp[2]` bruto do
+   mundo por `GOAL_HEIGHT = 0.155`, mas o plano do piso está em z = 0.02 (`models/field.xml:42`),
+   então o canal carrega um deslocamento sistemático de `+0.02/0.155 = +0.129` e mede a altura acima
+   da origem do mundo, não acima do carpete (`U4`). Corrigir a observação, ou mover o piso para
+   z = 0? Mover o piso mexe em todo z de spawn do modelo; corrigir a observação é uma subtração.
+   Decidir qual, e se mais alguma coisa lê um z bruto.
+3. **O `Box` é `(−inf, inf)` e nada faz clip** (`base.py:79`). O rSoccer faz clip de todo canal em
+   ±1.2 (`ssl_gym_base.py:27,213-220`). Sob fidelidade, um espaço de observação ilimitado é
+   correto-mas-inconveniente, ou o `Box` declarado deveria ao menos ser *verdadeiro*?
 
-Settled together because all three are the same question: does the observation contract describe
-the simulator, or aspire to it.
+Resolvidos juntos porque os três são a mesma pergunta: o contrato de observação descreve o simulador,
+ou aspira a ele.

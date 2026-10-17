@@ -1,33 +1,33 @@
-# Decision: what a dribbler action of 0 should mean
+# Decisão: o que uma ação de dribbler igual a 0 deve significar
 
 Type: grilling
 Status: open
 Blocked by: —
 
-## Question
+## Pergunta
 
-`base.py:166` maps the dribbler action affinely:
+`base.py:166` mapeia a ação do dribbler de forma afim:
 
 ```python
 self.data.ctrl[r.dribble] = scene.DRIBBLER_OMEGA * (a[k + 2] + 1.0) * 0.5
 ```
 
-So `a = 0` spins the bar at **157 rad/s**, and the bar is off only at exactly `a = −1`. The
-comment justifies the non-negativity ("a bar driven backwards throws the ball out of the mouth"),
-which is sound, but not the neutral point. Consequences: every `action_space.sample()` rollout
-dribbles at a mean of 157 rad/s continuously, and a policy must actively push to −1 to stop
-dribbling.
+Então `a = 0` gira a barra a **157 rad/s**, e a barra só fica desligada exatamente em `a = −1`. O
+comentário justifica a não negatividade ("a bar driven backwards throws the ball out of the mouth"),
+o que faz sentido, mas não o ponto neutro. Consequências: todo rollout com `action_space.sample()`
+dribla continuamente a uma média de 157 rad/s, e uma política precisa empurrar ativamente para −1
+para parar de driblar.
 
-Three options:
-1. **Keep the affine map.** Continuous control of bar speed, neutral = half speed. Defensible if
-   real firmware takes a speed, not a switch.
-2. **Half-range map**: `a ≤ 0` → off, `a ∈ (0, 1]` → `[0, 314]`. Neutral means off; still
-   continuous. Costs half the action resolution.
-3. **Boolean**, `a > 0`. What every rSoccer env does — but rSim's is also a latching bug
-   (`sslworld.cpp:320` only ever calls `setDribbler(true)`, so once on it stays on until the
-   world is rebuilt), so this is not an endorsement.
+Três opções:
+1. **Manter o mapa afim.** Controle contínuo da velocidade da barra, neutro = meia velocidade.
+   Defensável se o firmware real recebe uma velocidade, não um liga/desliga.
+2. **Mapa de meia faixa**: `a ≤ 0` → desligado, `a ∈ (0, 1]` → `[0, 314]`. Neutro significa
+   desligado; continua contínuo. Custa metade da resolução da ação.
+3. **Booleano**, `a > 0`. O que todo env do rSoccer faz — mas o do rSim também é um bug de trava
+   (`sslworld.cpp:320` só chama `setDribbler(true)`, então uma vez ligado fica ligado até o mundo ser
+   reconstruído), então isso não é um endosso.
 
-What settles it: what the real robot's dribbler interface accepts — a duty cycle/speed or an
-on/off — and whether 314 rad/s is itself a sourced figure (`scene.py:43`) or a guess. Note this
-changes the action contract, so it must land before `15` documents it, and it interacts with `05`
-(bar speed and contact μ jointly set the retention budget).
+O que resolve: o que a interface do dribbler do robô real aceita — um duty cycle/velocidade ou um
+liga/desliga — e se 314 rad/s é em si um valor com fonte (`scene.py:43`) ou um chute. Note que isso
+muda o contrato de ações, então precisa entrar antes que o `15` o documente, e interage com o `05`
+(velocidade da barra e μ do contato definem juntos o orçamento de retenção).

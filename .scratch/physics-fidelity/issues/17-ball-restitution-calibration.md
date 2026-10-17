@@ -1,35 +1,36 @@
-# Task: find the `solref` that gives the ball its measured COR
+# Tarefa: encontrar o `solref` que dá à bola o seu COR medido
 
 Type: task
 Status: open
 Blocked by: —
 
-## Question
+## Pergunta
 
-`05` set the target: ball↔floor and ball↔wall coefficient of restitution ≈ 0.50 (measured band
-0.47–0.56, ER-Force/TIGERs). MuJoCo has no literal restitution coefficient — bounce is emergent
-from `solref`'s damping ratio — so no closed-form formula hands you the value; it has to be found
-by measurement, the same shape as `03`'s diagnostic.
+O `05` definiu o alvo: coeficiente de restituição bola↔piso e bola↔parede ≈ 0.50 (faixa medida
+0.47–0.56, ER-Force/TIGERs). O MuJoCo não tem um coeficiente de restituição literal — o quique emerge
+da razão de amortecimento do `solref` — então nenhuma fórmula fechada entrega o valor; ele precisa ser
+encontrado por medição, no mesmo formato do diagnóstico do `03`.
 
-Today both surfaces are critically damped (`solref="0.006 1"` on `models/scene_rollers.xml:23`,
-`solref="0.004 1"` on `models/field.xml:44`), i.e. COR ≈ 0.
+Hoje as duas superfícies são criticamente amortecidas (`solref="0.006 1"` em
+`models/scene_rollers.xml:23`, `solref="0.004 1"` em `models/field.xml:44`), ou seja, COR ≈ 0.
 
-Deliver:
-1. A drop-test harness: release the ball from a known height above the floor (and separately,
-   toward the wall at a known normal speed), measure the rebound speed, compute
-   `COR = v_rebound / v_impact`.
-2. Sweep `solref`'s damping ratio (holding the reference time constant, or sweeping both, whichever
-   converges faster) until the measured COR lands in 0.47–0.56, target 0.50.
-3. Report the `solref` pair for each surface (they need not end up identical, since floor and wall
-   are separate geoms), and whether one value serves both to the required tolerance or they must
-   diverge.
-4. Note any speed-dependence observed (the source measurements show COR falling with impact speed
-   — `docs/research/02-physical-constants.md` §2.1) and whether that matters at the impact speeds
-   this simulator actually produces (kick exit speed ≤ 6.5 m/s, per `02`).
+Entregar:
+1. Um harness de teste de queda: soltar a bola de uma altura conhecida acima do piso (e,
+   separadamente, em direção à parede a uma velocidade normal conhecida), medir a velocidade de
+   rebote, calcular `COR = v_rebound / v_impact`.
+2. Varrer a razão de amortecimento do `solref` (mantendo a constante de tempo de referência, ou
+   varrendo as duas, o que convergir mais rápido) até o COR medido cair em 0.47–0.56, alvo 0.50.
+3. Reportar o par `solref` de cada superfície (não precisam ficar idênticos, já que piso e parede são
+   geoms separadas), e se um único valor serve às duas dentro da tolerância exigida ou se precisam
+   divergir.
+4. Registrar qualquer dependência de velocidade observada (as medições de origem mostram o COR caindo
+   com a velocidade de impacto — `docs/research/02-physical-constants.md` §2.1) e se isso importa nas
+   velocidades de impacto que este simulador de fato produz (velocidade de saída do chute ≤ 6.5 m/s,
+   segundo o `02`).
 
-This is a `task` ticket: touches `models/` only as a reverted diagnostic. Revert after measuring;
-the actual edit lands when the map closes, per `map.md`'s Mode note.
+Este é um ticket `task`: mexe em `models/` só como diagnóstico revertido. Reverter depois de medir; a
+edição real entra quando o mapa fechar, conforme a nota de Mode do `map.md`.
 
 ## Answer
 
-<!-- fill in when resolved -->
+<!-- preencher quando resolvido -->

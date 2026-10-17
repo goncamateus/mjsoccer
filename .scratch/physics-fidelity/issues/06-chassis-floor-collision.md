@@ -1,29 +1,31 @@
-# Decision: should the chassis collide with the floor at all?
+# Decisão: o chassi deve colidir com o piso?
 
 Type: grilling
 Status: open
 Blocked by: —
 
-## Question
+## Pergunta
 
-Today it cannot. The chassis geoms are `contype="1" conaffinity="1"` and the floor is
-`contype="4" conaffinity="4"` (`models/field.xml:42`), and MuJoCo requires
-`(contype1 & conaffinity2) | (contype2 & conaffinity1) ≠ 0` — which is zero. rSim has the same
-gap for a different reason: `sslworld.cpp:171-197` never creates a chassis/ground surface (`B5`).
+Hoje ele não consegue. As geoms do chassi são `contype="1" conaffinity="1"` e o piso é
+`contype="4" conaffinity="4"` (`models/field.xml:42`), e o MuJoCo exige
+`(contype1 & conaffinity2) | (contype2 & conaffinity1) ≠ 0` — que dá zero. O rSim tem a mesma lacuna
+por outro motivo: `sslworld.cpp:171-197` nunca cria uma superfície chassi/chão (`B5`).
 
-**Only the wheels touch the floor, on both sides.** So a tipped robot has nothing to land on: it
-hangs on a wheel rim or its chassis passes through the carpet.
+**Só as rodas tocam o piso, nos dois simuladores.** Então um robô tombado não tem onde cair: fica
+pendurado no aro de uma roda ou o chassi atravessa o carpete.
 
-Under a hardware-fidelity destination this looks like a defect, not a choice — a real chassis
-resting on its side is in contact with the carpet. But:
+Com um destino de fidelidade ao hardware isso parece um defeito, não uma escolha — um chassi real
+deitado de lado está em contato com o carpete. Mas:
 
-1. Is a tipped robot's post-fall behaviour something this simulator needs to represent at all?
-   The episode terminates at 60° today (`TO1`), so the state is only ever a fraction of a second
-   long. If termination stays, the fall is never simulated and the gap is free.
-2. What does enabling it cost? 209 chassis hulls × a plane test every step, per robot, up to 7
-   robots. `03`'s wall-clock baseline bounds the answer, and `07` may prune the hulls anyway.
-3. Is there a cheap middle: one convex hull or a single primitive as a *floor-only* collision
-   proxy for the chassis, on its own contype bit, leaving the 209 hulls for robot↔robot?
+1. O comportamento pós-queda de um robô tombado é algo que este simulador precisa representar? Hoje
+   o episódio termina em 60° (`TO1`), então esse estado nunca dura mais que uma fração de segundo.
+   Se a terminação ficar, a queda nunca é simulada e a lacuna sai de graça.
+2. Quanto custa habilitar? 209 cascos (hulls) do chassi × um teste contra o plano a cada step, por
+   robô, até 7 robôs. A linha de base de tempo de relógio do `03` limita a resposta, e o `07` pode
+   podar os cascos de qualquer forma.
+3. Existe um meio-termo barato: um único casco convexo ou uma primitiva única como proxy de colisão
+   *só com o piso* para o chassi, em seu próprio bit de contype, deixando os 209 cascos para
+   robô↔robô?
 
-This ticket is unblocked because it is a scoping question, not a tuning one — and its answer
-shapes `07`'s geom-mask design.
+Este ticket está desbloqueado porque é uma questão de escopo, não de ajuste — e a resposta molda o
+design da máscara de geoms do `07`.

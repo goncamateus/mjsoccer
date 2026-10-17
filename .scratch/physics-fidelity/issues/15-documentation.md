@@ -1,55 +1,56 @@
-# Documentation: record the numbers and fix the drift
+# Documentação: registrar os números e corrigir o desvio
 
 Type: task
 Status: open
 Blocked by: 04, 05, 08, 10, 11, 12, 13
 
-## Question
+## Pergunta
 
-Last ticket. Nothing to decide; write down what the map settled, and fix what is already wrong.
+Último ticket. Nada a decidir; escrever o que o mapa resolveu, e corrigir o que já está errado.
 
-**Existing drift, independent of every other ticket:**
-1. All six environment pages state the tipping step pays `-10.0`
-   (`docs/environments/go_to_ball.md:136` and the same line in the other five). The constant was
-   10.0 when `3e19dc4` landed and is **100.0** today, changed in `cd495d7`.
-2. `docs/index.md` never mentions tipping: absent from the "terminates on" column of the
-   environment index (`docs/index.md:37-47`) and from the Timing and Observation sections. Add it
-   at `docs/index.md:46`.
-3. `docs/index.md:135-137` claims observation values "sit in roughly [−1, 1]" and attributes
-   excursions to "a tier-1 chassis pushed by another robot". False today: tier 1's own drive
-   exceeds `MAX_V` and `MAX_W` (`L9`). Whether the sentence becomes true or gets corrected
-   depends on `11`.
-4. The tier-1 wheel-to-chassis matrix is **never stated anywhere** — `docs/index.md:69-77` gives
-   only the `ctrlrange`. Add it, with the measured `r_eff = 30.089` mm and `R = 0.0796` m, the
-   wheel angles 60/135/225/300°, and a note that the sign convention is the mirror of rSim's
-   (`W2`) so a ported wheel vector drives backwards.
+**Desvio existente, independente de todos os outros tickets:**
+1. As seis páginas de ambiente dizem que o step de tombamento paga `-10.0`
+   (`docs/environments/go_to_ball.md:136` e a mesma linha nas outras cinco). A constante era 10.0
+   quando o `3e19dc4` entrou e hoje é **100.0**, mudada no `cd495d7`.
+2. `docs/index.md` nunca menciona tombamento: ausente da coluna "terminates on" do índice de ambientes
+   (`docs/index.md:37-47`) e das seções Timing e Observation. Adicionar em `docs/index.md:46`.
+3. `docs/index.md:135-137` afirma que os valores de observação "sit in roughly [−1, 1]" e atribui as
+   excursões a "a tier-1 chassis pushed by another robot". Falso hoje: o próprio acionamento do tier 1
+   ultrapassa `MAX_V` e `MAX_W` (`L9`). Se a frase passa a ser verdadeira ou é corrigida depende do
+   `11`.
+4. A matriz roda-chassi do tier 1 **nunca é declarada em lugar nenhum** — `docs/index.md:69-77` dá só
+   o `ctrlrange`. Adicioná-la, com o `r_eff = 30.089` mm e o `R = 0.0796` m medidos, os ângulos das
+   rodas 60/135/225/300°, e uma nota de que a convenção de sinais é o espelho da do rSim (`W2`), então
+   um vetor de rodas portado anda para trás.
 
-**New material from this map:** the derived drivetrain envelope and the acceleration it implies
-(`01`, `04`) stated alongside the action table, as `docs/index.md:79-82` promises; the contact
-coefficients and their source class (`05`); the dribbler's action semantics (`08`); the turnover
-handler and what `info` reports (`10`); the observation normalisers and the ball-height datum
-(`11`); tier 0's matched envelope and what it does *not* match (`12`); the timestep rationale and
-the real control rate (`13`).
+**Material novo deste mapa:** o envelope derivado do drivetrain e a aceleração que ele implica (`01`,
+`04`) declarados junto da tabela de ações, como `docs/index.md:79-82` promete; os coeficientes de
+contato e a classe de suas fontes (`05`); a semântica da ação do dribbler (`08`); o tratamento de
+capotamento e o que o `info` reporta (`10`); os normalizadores de observação e a referência da altura
+da bola (`11`); o envelope igualado do tier 0 e o que ele *não* iguala (`12`); a justificativa do
+timestep e a taxa de controle real (`13`).
 
-**Corrections owed to the audit documents themselves** (found while resolving `01`):
-- `docs/research/rsoccer-vs-mjsoccer.md` `W3` and the §7 limits table give rSim's acceleration
-  ceiling as 4.67 m/s². That assumes all four wheels project at unit force; the 60/135/225/300°
-  geometry caps the projection at `Σ|sin α| = 3.14626` forward and `Σ|cos α| = 2.41421` lateral.
-  The real figure is **3.68 m/s² forward / 2.82 lateral** — which vindicates rSim's own "reduced
-  to 3m/s2 accel" comment on the weak axis. `W3`'s conclusion is unaffected.
-- The same projection factors apply to any future statement of *this* robot's acceleration, so
-  state them once alongside the wheel matrix rather than per-number.
-- `B9` calls rSim's 0.043 kg ball "a 7 % mass difference". `02` shows it is a **transcription
-  error** — rulebook §2.2's diameter in metres pasted into the mass field, with `ballRadius`
-  derived by halving it. Re-label.
-- `P4` implies mjsoccer's ball is too lively against rSim's 0.49 m/s². `02` traces that 0.49 to
-  ER-Force's `hackFactor = 1.4` Bullet workaround and puts the measured band at 0.26–0.31, so
-  **mjsoccer's 0.293 is right and rSim is wrong**. Invert the framing.
-- `C2` presents the bounce difference neutrally. `02` measures COR on carpet at 0.47–0.56, so
-  rSim's `bounce = 0.5` is its one defensible contact constant and **the zero-COR ball here is the
-  fidelity gap**. Invert.
-- `docs/analysis/ssl-simulator-rsoccer-comparison.md`'s CoM comparison (see the map's Notes).
+**Correções devidas aos próprios documentos de auditoria** (encontradas ao resolver o `01`):
+- O `W3` de `docs/research/rsoccer-vs-mjsoccer.md` e a tabela de limites da §7 dão o teto de
+  aceleração do rSim como 4.67 m/s². Isso supõe que as quatro rodas projetam força unitária; a
+  geometria 60/135/225/300° limita a projeção a `Σ|sin α| = 3.14626` frontal e `Σ|cos α| = 2.41421`
+  lateral. O valor real é **3.68 m/s² frontal / 2.82 lateral** — o que confirma o próprio comentário
+  "reduced to 3m/s2 accel" do rSim no eixo fraco. A conclusão do `W3` não é afetada.
+- Os mesmos fatores de projeção se aplicam a qualquer declaração futura da aceleração *deste* robô,
+  então declará-los uma vez junto da matriz de rodas em vez de a cada número.
+- O `B9` chama a bola de 0.043 kg do rSim de "a 7 % mass difference". O `02` mostra que é um **erro
+  de transcrição** — o diâmetro em metros da §2.2 do livro de regras colado no campo de massa, com o
+  `ballRadius` derivado dividindo-o por dois. Reclassificar.
+- O `P4` dá a entender que a bola do mjsoccer é viva demais frente aos 0.49 m/s² do rSim. O `02`
+  rastreia esse 0.49 até o contorno do Bullet `hackFactor = 1.4` da ER-Force e coloca a faixa medida
+  em 0.26–0.31, então **o 0.293 do mjsoccer está certo e o rSim está errado**. Inverter o
+  enquadramento.
+- O `C2` apresenta a diferença de quique de forma neutra. O `02` mede o COR no carpete em 0.47–0.56,
+  então o `bounce = 0.5` do rSim é a sua única constante de contato defensável e **a bola com COR
+  zero aqui é a lacuna de fidelidade**. Inverter.
+- A comparação de CoM de `docs/analysis/ssl-simulator-rsoccer-comparison.md` (ver as Notes do mapa).
 
-Also decide where the two audit documents live long-term: `docs/research/` and `docs/analysis/`
-are both untracked today. They are the justification for every number in this map, so they should
-be committed, and the analysis doc's CoM comparison corrected (see the map's Notes).
+Também decidir onde os dois documentos de auditoria vivem a longo prazo: `docs/research/` e
+`docs/analysis/` estão ambos fora do controle de versão hoje. Eles são a justificativa de todo número
+deste mapa, então deveriam ser commitados, e a comparação de CoM do documento de análise corrigida
+(ver as Notes do mapa).

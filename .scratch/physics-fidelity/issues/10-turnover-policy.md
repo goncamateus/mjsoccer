@@ -1,37 +1,38 @@
-# Decision: turnover handling once the actuation is bounded
+# Decisão: tratamento de capotamento quando a atuação estiver limitada
 
 Type: grilling
 Status: open
 Blocked by: 04
 
-## Question
+## Pergunta
 
-`04` removes the *cause* of turnover (a 59 rad/s reachable yaw acting on a 3.459 mm CoM offset).
-What should the *handler* then be?
+O `04` remove a *causa* do capotamento (um yaw alcançável de 59 rad/s agindo sobre um deslocamento do
+CoM de 3.459 mm). Qual deve ser então o *tratamento*?
 
-Today: `TIPPED_COS = 0.5` (60°), `TIPOVER_PENALTY = 100.0`, terminate the episode, controlled
-robots only, `info["tipped"] = True` (`base.py:41-42,129-132,170-182`). Tier 0 is structurally
-immune.
+Hoje: `TIPPED_COS = 0.5` (60°), `TIPOVER_PENALTY = 100.0`, terminar o episódio, só para robôs
+controlados, `info["tipped"] = True` (`base.py:41-42,129-132,170-182`). O tier 0 é estruturalmente
+imune.
 
-Decide:
-1. **Keep terminate-and-penalise?** The research doc's recommendation is yes — as a *safety net*
-   with a bounded, logged rate, not as the primary mechanism. Confirm, or argue for
-   log-and-continue now that a tip means something has genuinely gone wrong.
-2. **Is 100.0 still right?** At the current rate one tip erases 5-10 successful episodes of
-   return, which makes the gradient for everything else noisy. Once `04` drops the rate, a
-   smaller penalty may be both sufficient and better-conditioned. Do **not** lower it to make
-   training smoother before `04` lands — that teaches the policy tipping is affordable.
-3. **Keep 60°?** Not rSim's 0.9/25.84° (that would fire on a marginal coning spin), but is 60°
-   the recoverable/unrecoverable boundary, or is it arbitrary? `base.py:37-41` argues it; check
-   the argument against `03`'s measured tilt distribution.
-4. **What gets logged?** `info["tipped"]` exists; add the tilt angle and the step index so the
-   rate and the time-to-tip distribution are measurable from the env rather than from a bespoke
-   harness (§12.5 step 4).
-5. **Does a righting moment ever get built?** Only if turnover persists after `04`, `05` and
-   `07`. If it does: hard saturation, a deadband above the normal driving lean, a first-order
-   time constant, and the applied impulse logged — an unsaturated righting torque is a free
-   reaction moment against the world and a policy will harvest it. Saturating on more than 0.1%
-   of steps means the real cause is still unfixed.
+Decidir:
+1. **Manter terminar-e-penalizar?** A recomendação do documento de pesquisa é sim — como *rede de
+   segurança* com uma taxa limitada e registrada, não como mecanismo principal. Confirmar, ou
+   argumentar por registrar-e-continuar agora que um tombamento significa que algo deu realmente
+   errado.
+2. **100.0 ainda está certo?** Na taxa atual, um tombamento apaga o retorno de 5-10 episódios bem
+   sucedidos, o que deixa ruidoso o gradiente de todo o resto. Quando o `04` derrubar a taxa, uma
+   penalidade menor pode ser suficiente e mais bem condicionada. **Não** baixar para suavizar o
+   treino antes de o `04` entrar — isso ensina à política que tombar é barato.
+3. **Manter 60°?** Não o 0.9/25.84° do rSim (que dispararia em um giro cônico marginal), mas 60° é a
+   fronteira recuperável/irrecuperável, ou é arbitrário? `base.py:37-41` argumenta a favor; checar o
+   argumento contra a distribuição de inclinação medida no `03`.
+4. **O que é registrado?** `info["tipped"]` existe; adicionar o ângulo de inclinação e o índice do step
+   para que a taxa e a distribuição do tempo até tombar sejam mensuráveis a partir do env, e não de um
+   harness feito sob medida (§12.5 passo 4).
+5. **Algum dia se constrói um momento endireitador?** Só se o capotamento persistir depois do `04`,
+   `05` e `07`. Se persistir: saturação rígida, uma zona morta acima da inclinação normal de direção,
+   uma constante de tempo de primeira ordem, e o impulso aplicado registrado — um torque endireitador
+   não saturado é um momento de reação grátis contra o mundo e uma política vai explorá-lo. Saturar em
+   mais de 0.1% dos steps significa que a causa real continua sem correção.
 
-Explicitly out of scope: teleporting, welding roll/pitch, and swapping the free joint for a
-planar chain (that is tier 0, and `W5` shows tier 0 is not equivalent).
+Explicitamente fora de escopo: teletransportar, soldar roll/pitch, e trocar a junta livre por uma
+cadeia planar (isso é o tier 0, e o `W5` mostra que o tier 0 não é equivalente).

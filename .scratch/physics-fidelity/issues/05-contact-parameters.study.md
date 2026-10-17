@@ -1,90 +1,90 @@
 Type: study
 Source: [`05-contact-parameters.md`](05-contact-parameters.md)
 
-# Study guide: Contact parameters that are defensible rather than tuned-to-taste
+# Guia de estudo: Parâmetros de contato defensáveis em vez de ajustados a gosto
 
-Two of this ticket's numbers are ready to type in today: the roller's grip on the floor was too
-high by 4x (nobody had measured it, so it defaulted to "high enough to never slip"), and the
-ball's moment of inertia has been silently wrong since the model was built (MuJoCo assumes a
-solid, uniform sphere unless you tell it otherwise, and a real ball isn't one). A third number —
-how bouncy the ball is — got a *target*, not a value, because MuJoCo has no literal "coefficient
-of restitution" setting; that one becomes its own hands-on project in ticket `17`. This guide
-covers the two you can actually go edit right now, plus enough of MuJoCo's contact model that the
-"why" behind each isn't a black box.
+Dois dos números deste ticket estão prontos para serem digitados hoje: a aderência do rolete no piso
+estava 4x alta demais (ninguém tinha medido, então ficou no padrão "alto o bastante para nunca
+escorregar"), e o momento de inércia da bola está silenciosamente errado desde que o modelo foi
+construído (o MuJoCo assume uma esfera sólida e uniforme a menos que você diga o contrário, e uma
+bola real não é isso). Um terceiro número — o quanto a bola quica — recebeu um *alvo*, não um valor,
+porque o MuJoCo não tem uma configuração literal de "coeficiente de restituição"; esse vira um
+projeto prático próprio no ticket `17`. Este guia cobre os dois que você pode de fato editar agora,
+mais o suficiente do modelo de contato do MuJoCo para que o "porquê" de cada um não seja uma caixa
+preta.
 
-## Before you touch anything
+## Antes de mexer em qualquer coisa
 
-- **The `friction` 5-tuple and `condim`.** A MuJoCo geom's friction isn't one number: it's
-  `(sliding, sliding, torsional, rolling, rolling)`, and how many of those actually apply is set
-  by `condim` on the contact (1 = frictionless, 3 = sliding only, 4 = + torsional, 6 = + rolling).
-  The roller↔floor contact here uses `condim="4"` — sliding and torsional, no rolling resistance
-  modeled at that contact — so changing the *first* number is what actually changes the grip
-  budget. [XML Reference — MuJoCo Documentation](https://mujoco.readthedocs.io/en/stable/XMLreference.html)
-- **How two geoms' contact parameters combine when there's no explicit `<pair>`.** This model
-  relies on default mixing for robot↔ball and robot↔robot contacts (only the two dribbler pairs
-  and ball↔floor are explicit `<pair>` elements in `models/scene_rollers.xml`) — MuJoCo takes the
-  *elementwise maximum* of the two geoms' `friction` values and a `solmix`-weighted average of
-  `solref`, not an average of everything. [Modeling — MuJoCo Documentation](https://mujoco.readthedocs.io/en/latest/modeling.html)
-- **`solref`'s two numbers are a time-constant and a damping ratio, not a stiffness and a
-  restitution.** `dampratio = 1` is critically damped (what this model uses almost everywhere,
-  including the roller contact you're about to edit) — it settles into contact with no rebound.
-  Restitution/bounce is what happens when you go *below* 1 (underdamped), which is exactly the
-  knob `17`'s calibration will need, but isn't what you're touching in this ticket.
-  [XML Reference — MuJoCo Documentation](https://mujoco.readthedocs.io/en/stable/XMLreference.html)
-- **The moment-of-inertia factor, β = I / (m·r²).** For a uniform solid sphere β = 0.4 exactly —
-  that's what MuJoCo computes automatically from `mass` + `size` on a sphere geom with no
-  `inertial` element, which is silently what this ball has today. A real ball (layered, dimpled,
-  not uniform density) has a different mass distribution and therefore a different β; declaring
-  `diaginertia` explicitly is how you override the automatic solid-sphere assumption.
-  [Moment of inertia factor — Wikipedia](https://en.wikipedia.org/wiki/Moment_of_inertia_factor)
-  (the same β used for planets and moons — the physics is identical, only the body changes)
-- **Setting `diaginertia` by hand.** MuJoCo will compile a body's inertia from its geoms
-  automatically unless you give it an explicit `<inertial>` element with `mass` and `diaginertia`
-  (or `fullinertia`) — once you do, your numbers win outright, no averaging with the geom's
-  implicit value. [Auto Inertia Computation discussion — mujoco#318](https://github.com/google-deepmind/mujoco/discussions/318)
+- **A 5-tupla `friction` e o `condim`.** O atrito de uma geom no MuJoCo não é um número só: é
+  `(sliding, sliding, torsional, rolling, rolling)`, e quantos deles de fato se aplicam é definido
+  pelo `condim` do contato (1 = sem atrito, 3 = só deslizamento, 4 = + torcional, 6 = + rolamento).
+  O contato rolete↔piso aqui usa `condim="4"` — deslizamento e torcional, sem resistência ao
+  rolamento modelada nesse contato — então mudar o *primeiro* número é o que de fato muda o orçamento
+  de aderência. [XML Reference — MuJoCo Documentation](https://mujoco.readthedocs.io/en/stable/XMLreference.html)
+- **Como os parâmetros de contato de duas geoms se combinam quando não há `<pair>` explícito.** Este
+  modelo depende da mistura padrão para os contatos robô↔bola e robô↔robô (só os dois pares do
+  dribbler e bola↔piso são elementos `<pair>` explícitos em `models/scene_rollers.xml`) — o MuJoCo
+  usa o *máximo elemento a elemento* dos valores de `friction` das duas geoms e uma média ponderada
+  por `solmix` do `solref`, não uma média de tudo. [Modeling — MuJoCo Documentation](https://mujoco.readthedocs.io/en/latest/modeling.html)
+- **Os dois números do `solref` são uma constante de tempo e uma razão de amortecimento, não uma
+  rigidez e uma restituição.** `dampratio = 1` é criticamente amortecido (o que este modelo usa quase
+  em todo lugar, incluindo o contato do rolete que você vai editar) — ele assenta no contato sem
+  ricochete. Restituição/quique é o que acontece quando você vai *abaixo* de 1 (subamortecido), que é
+  exatamente o controle de que a calibração do `17` vai precisar, mas não é o que você mexe neste
+  ticket. [XML Reference — MuJoCo Documentation](https://mujoco.readthedocs.io/en/stable/XMLreference.html)
+- **O fator de momento de inércia, β = I / (m·r²).** Para uma esfera sólida uniforme β = 0.4
+  exatamente — é o que o MuJoCo calcula automaticamente a partir de `mass` + `size` em uma geom
+  esférica sem elemento `inertial`, que é silenciosamente o que esta bola tem hoje. Uma bola real (em
+  camadas, com covinhas, densidade não uniforme) tem outra distribuição de massa e, portanto, outro β;
+  declarar `diaginertia` explicitamente é como você sobrescreve a suposição automática de esfera
+  sólida. [Moment of inertia factor — Wikipedia](https://en.wikipedia.org/wiki/Moment_of_inertia_factor)
+  (o mesmo β usado para planetas e luas — a física é idêntica, só o corpo muda)
+- **Definir `diaginertia` à mão.** O MuJoCo compila a inércia de um corpo a partir das suas geoms
+  automaticamente, a menos que você forneça um elemento `<inertial>` explícito com `mass` e
+  `diaginertia` (ou `fullinertia`) — quando você faz isso, os seus números valem integralmente, sem
+  média com o valor implícito da geom. [Auto Inertia Computation discussion — mujoco#318](https://github.com/google-deepmind/mujoco/discussions/318)
 
-## Real example
+## Exemplo real
 
 **[dm_control: `soccer_ball.py`](https://github.com/google-deepmind/dm_control/blob/main/dm_control/locomotion/soccer/soccer_ball.py)** —
-Google DeepMind's own multi-agent MuJoCo soccer environment. Its ball module hard-codes
-`_REGULATION_RADIUS = 0.117`, `_REGULATION_MASS = 0.45`, `_DEFAULT_FRICTION = (0.7, 0.05, 0.04)`
-and `_DEFAULT_DAMP_RATIO = 0.4`, each commented as **"FIFA regulation parameters for a size 5
-ball"** — i.e. sourced from the sport's own rulebook, exactly the move `02`/`05` make for this SSL
-ball. The `damp_ratio` is passed straight into `solref=[0.02, damp_ratio]` with the comment "lower
-implies less dampening upon contacts" — the same dampratio-controls-bounciness relationship this
-ticket's COR discussion (and `17`'s calibration) leans on, stated in DeepMind's own words instead
-of this project's.
+o próprio ambiente de futebol multiagente em MuJoCo do Google DeepMind. O módulo da bola fixa no
+código `_REGULATION_RADIUS = 0.117`, `_REGULATION_MASS = 0.45`, `_DEFAULT_FRICTION = (0.7, 0.05, 0.04)`
+e `_DEFAULT_DAMP_RATIO = 0.4`, cada um comentado como **"FIFA regulation parameters for a size 5
+ball"** — ou seja, com fonte no próprio livro de regras do esporte, exatamente o movimento que o
+`02`/`05` fazem para esta bola da SSL. O `damp_ratio` é passado direto para
+`solref=[0.02, damp_ratio]` com o comentário "lower implies less dampening upon contacts" — a mesma
+relação dampratio-controla-o-quique em que a discussão de COR deste ticket (e a calibração do `17`)
+se apoia, dita nas palavras do próprio DeepMind em vez das deste projeto.
 
-## Hands-on steps
+## Passos práticos
 
-1. Open `models/robot_rollers.xml` and find the roller collision geoms (search for
-   `friction="1.0 0.005 0.0001"` — there are 80 of them, one per roller, e.g.
-   `col_wheel1_roller_1_c00`). Change the first number in each from `1.0` to `0.25`. Yes, all 80 —
-   this is a good moment to reach for a project-wide find/replace rather than hand-editing each,
-   but look at a couple first so you know exactly what you're replacing.
-2. Load the model afterward (this repo's own scene loader, or a bare `mujoco.viewer.launch`) and
-   drive the robot in a straight line at a saturating wheel command. Compare the achieved
-   acceleration against the ticket's two numbers: before this change it should clip near
-   `μ·g = 9.81` m/s² (with the old μ=1.0 effective from geom mixing); after, near `2.45` m/s².
-   If you don't see the drop, check whether the wall/robot contacts are still handled by geom
-   mixing rather than the pair you edited — mixing takes the *max* of both geoms' friction, so an
-   unrelated geom with a higher value can mask your edit.
-3. Open `models/ball.xml` and look at the single ball `<geom>` — notice it has `mass="0.046"` but
-   no `<inertial>` sibling element at all, which is why MuJoCo is filling in the solid-sphere
-   default today. Add an `<inertial>` element with `pos="0 0 0"`, `mass="0.046"`, and
-   `diaginertia` computed from `β = 0.5` (work the arithmetic yourself: `I = β·m·r²` with
-   `r = 0.0215` m, same value on all three diagonal entries since a sphere has no preferred axis).
-4. Verify the inertia actually changed: `mujoco.MjModel.from_xml_path` the ball model, run
-   `mj_forward`, and read `model.body_inertia` for the ball body — it should now show your value,
-   not `0.4·m·r²`. Then think about what a higher rotational inertia (relative to mass) *does* to
-   the ball physically — it means more torque is needed to spin it up, and it retains backspin/
-   sidespin longer once given some. That's the behavior this change is actually buying.
+1. Abra `models/robot_rollers.xml` e encontre as geoms de colisão dos roletes (pesquise por
+   `friction="1.0 0.005 0.0001"` — são 80, uma por rolete, ex.: `col_wheel1_roller_1_c00`). Mude o
+   primeiro número de cada uma de `1.0` para `0.25`. Sim, todas as 80 — é um bom momento para usar um
+   localizar/substituir no projeto inteiro em vez de editar uma por uma, mas olhe algumas antes para
+   saber exatamente o que está substituindo.
+2. Depois carregue o modelo (o carregador de cena do próprio repositório, ou um
+   `mujoco.viewer.launch` puro) e dirija o robô em linha reta com um comando de roda saturante.
+   Compare a aceleração obtida com os dois números do ticket: antes desta mudança ela deve saturar
+   perto de `μ·g = 9.81` m/s² (com o antigo μ=1.0 efetivo pela mistura de geoms); depois, perto de
+   `2.45` m/s². Se você não vir a queda, verifique se os contatos de parede/robô ainda são tratados
+   pela mistura de geoms em vez do par que você editou — a mistura usa o *máximo* do atrito das duas
+   geoms, então uma geom não relacionada com valor maior pode mascarar a sua edição.
+3. Abra `models/ball.xml` e olhe a única `<geom>` da bola — repare que ela tem `mass="0.046"` mas
+   nenhum elemento irmão `<inertial>`, e é por isso que o MuJoCo preenche hoje o padrão de esfera
+   sólida. Adicione um elemento `<inertial>` com `pos="0 0 0"`, `mass="0.046"`, e `diaginertia`
+   calculado a partir de `β = 0.5` (faça a aritmética você mesmo: `I = β·m·r²` com `r = 0.0215` m,
+   mesmo valor nas três entradas da diagonal, já que uma esfera não tem eixo preferido).
+4. Verifique que a inércia realmente mudou: `mujoco.MjModel.from_xml_path` no modelo da bola, rode
+   `mj_forward`, e leia `model.body_inertia` do corpo da bola — agora deve mostrar o seu valor, não
+   `0.4·m·r²`. Depois pense no que uma inércia rotacional maior (relativa à massa) *faz* com a bola
+   fisicamente — significa que é preciso mais torque para fazê-la girar, e ela retém backspin/sidespin
+   por mais tempo depois que ganha algum. Esse é o comportamento que esta mudança de fato compra.
 
-## If you get stuck
+## Se você travar
 
-`docs/research/02-physical-constants.md` has the full sourcing chain for β = 0.5 and the roller μ
-= 0.25 measurement (Williams et al., tilt-table study) if the "why 0.25 and not something else"
-isn't clear from the ticket alone. For the MuJoCo mechanics specifically, the
-`google-deepmind/mujoco` GitHub *Discussions* tab (not Issues) has the maintainers answering
-contact/inertia questions directly — search it for `diaginertia` or `condim` before opening a new
-thread.
+`docs/research/02-physical-constants.md` tem a cadeia completa de fontes para β = 0.5 e para a medição
+de μ = 0.25 do rolete (Williams et al., estudo com mesa inclinável) se o "por que 0.25 e não outra
+coisa" não ficar claro só pelo ticket. Para a mecânica do MuJoCo especificamente, a aba *Discussions*
+do GitHub do `google-deepmind/mujoco` (não Issues) tem os mantenedores respondendo perguntas de
+contato/inércia diretamente — pesquise por `diaginertia` ou `condim` antes de abrir uma thread nova.

@@ -1,75 +1,76 @@
 Type: study
 Source: [`03-com-spin-diagnostic.md`](03-com-spin-diagnostic.md)
 
-# Study guide: Diagnostic — confirm the CoM-offset tipping mechanism
+# Guia de estudo: Diagnóstico — confirmar o mecanismo de tombamento por deslocamento do CoM
 
-The robot's chassis has its center of mass sitting 3.459 mm off the spin axis (a manufacturing/CAD
-reality, not a bug). Spin the robot fast enough on the spot and that tiny offset creates enough
-sideways force to tip it over — like an unbalanced washing-machine drum shaking itself across the
-floor when it spins up. This ticket isn't asking you to fix anything yet: it's asking you to prove
-that story is actually what's happening, and measure how bad it is today, before anyone touches
-the model.
+O chassi do robô tem o centro de massa 3.459 mm fora do eixo de giro (uma realidade de
+fabricação/CAD, não um bug). Gire o robô rápido o bastante no lugar e esse deslocamento minúsculo
+gera força lateral suficiente para tombá-lo — como o tambor desbalanceado de uma máquina de lavar
+que sai andando pelo chão quando acelera. Este ticket ainda não pede para você consertar nada: pede
+para você provar que essa história é de fato o que está acontecendo, e medir o quão ruim está hoje,
+antes que alguém mexa no modelo.
 
-## Before you touch anything
+## Antes de mexer em qualquer coisa
 
-- **Subtree center of mass in MuJoCo (`subtree_com`)** — this is the number the ticket compares
-  against `xpos` to get the 3.459 mm offset; it's computed by mass-weighting every body's position
-  up the kinematic tree. [MuJoCo Computation docs](https://mujoco.readthedocs.io/en/stable/computation.html)
-- **The `inertial`/`ipos` element** — the attribute the ticket tells you to temporarily zero out
-  (`models/robot_rollers.xml:153`) to falsify the mechanism. If a body has no explicit `inertial`
-  child, MuJoCo infers mass/inertia from its geoms instead — good to know before you go editing it.
+- **Centro de massa da subárvore no MuJoCo (`subtree_com`)** — é o número que o ticket compara com
+  `xpos` para obter o deslocamento de 3.459 mm; é calculado ponderando pela massa a posição de cada
+  corpo subindo a árvore cinemática. [MuJoCo Computation docs](https://mujoco.readthedocs.io/en/stable/computation.html)
+- **O elemento `inertial`/`ipos`** — o atributo que o ticket manda zerar temporariamente
+  (`models/robot_rollers.xml:153`) para falsear o mecanismo. Se um corpo não tem um filho `inertial`
+  explícito, o MuJoCo infere massa/inércia a partir das suas geoms — bom saber antes de sair editando.
   [MuJoCo XML Reference](https://mujoco.readthedocs.io/en/stable/XMLreference.html)
-- **Gyroscopic/centrifugal tipping from an off-axis mass while spinning** — the general physics
-  behind why an off-center spinning mass produces a tipping torque, explained through combat
-  robots with spinning weapons (same phenomenon, more intuitive scale).
+- **Tombamento giroscópico/centrífugo por uma massa fora do eixo durante o giro** — a física geral
+  por trás de por que uma massa girando fora do centro produz um torque de tombamento, explicada
+  através de robôs de combate com armas giratórias (mesmo fenômeno, escala mais intuitiva).
   [Designing Around the Gyroscopic Effect — T.i. Combat Robotics](https://runamok.tech/insanity/gyroscopiceffect.html)
 
-**No primary source found:** I could not find a published derivation matching the ticket's
-`ω_tip = sqrt(g·d_edge/(h·d_com))` exactly — it looks like an ad-hoc tipping analysis (gravity's
-restoring torque about the contact edge vs. the centrifugal torque from the off-center mass),
-plausible but not a named textbook formula. Worth re-deriving it yourself from the gravity torque
-around the contact edge vs. the centripetal force `m·ω²·d_com·h` — good mechanics exercise before
-you run the experiment.
+**Nenhuma fonte primária encontrada:** não consegui achar uma derivação publicada que bata exatamente
+com o `ω_tip = sqrt(g·d_edge/(h·d_com))` do ticket — parece uma análise de tombamento ad hoc (torque
+restaurador da gravidade em torno da borda de contato vs. torque centrífugo da massa fora do centro),
+plausível mas não uma fórmula de livro-texto com nome. Vale a pena rederivá-la você mesmo a partir do
+torque da gravidade em torno da borda de contato vs. a força centrípeta `m·ω²·d_com·h` — bom exercício
+de mecânica antes de rodar o experimento.
 
-## Real example
+## Exemplo real
 
 **[Designing Around the Gyroscopic Effect](https://runamok.tech/insanity/gyroscopiceffect.html)** —
-combat-robot builders hit exactly this class of problem: a spinning mass whose axis isn't
-perfectly aligned with the frame creates a torque that fights the chassis. Their fix path is the
-same shape as this ticket's diagnostic: identify the torque direction via the cross product of the
-angular momentum and the imposed rotation, confirm it experimentally, then design the mass
-distribution (or control response) around it rather than guessing.
+construtores de robôs de combate esbarram exatamente nessa classe de problema: uma massa girando cujo
+eixo não está perfeitamente alinhado com a estrutura cria um torque que briga com o chassi. O caminho
+de correção deles tem o mesmo formato do diagnóstico deste ticket: identificar a direção do torque
+pelo produto vetorial entre o momento angular e a rotação imposta, confirmar experimentalmente, e
+então projetar a distribuição de massa (ou a resposta de controle) em torno disso em vez de chutar.
 
 > "The gyroscopic effect is what causes robots with vertically spinning weapons to tip up when
 > turning... the vector cross product of the torque from gravity acting through the center of mass
 > with the force establishes a gyroscopic torque acting tangentially."
 
-## Hands-on steps
+## Passos práticos
 
-1. Open `models/robot_rollers.xml` near line 153 — find the `inertial` element (or the body
-   without one) and read the current `ipos`. Don't change anything yet, just confirm it matches
-   the 3.459 mm cited in the ticket.
-2. Write a small script (Python + `mujoco` + your `env`) that `place`s one tier-1 robot at the
-   origin and commands `w = [k,k,k,k]` for each `k` in `[0.2, 0.4, 0.6, 0.8, 1.0]` of `ctrlrange`,
-   5 s of physics each time, no other body nearby. Record peak yaw rate and peak tilt per `k` —
-   check whether it's close to 42.1 rad/s → 6.0°, ..., 59.4 → 46.6°.
-3. Temporarily zero the x/y components of `ipos` (local edit, don't commit it) and re-run the same
-   sweep. If the tilt nearly disappears, the `M1` hypothesis is confirmed — revert the XML
-   immediately (`git diff` must come back clean).
-4. Run `env.action_space.sample()` on tier 1, seeds 0–49, and count tips per episode-minute, plus
-   the p50/p95/p99 of chassis tilt — this is the baseline future tickets will be measured against.
-5. Measure your environment's steps/s during this process, to compare against the number already
-   documented in `docs/index.md:157-160`.
-6. Fill in the `## Answer` section of the original ticket with your numbers — that part is your
-   deliverable, not this guide's.
+1. Abra `models/robot_rollers.xml` perto da linha 153 — encontre o elemento `inertial` (ou o corpo
+   sem um) e leia o `ipos` atual. Não mude nada ainda, só confirme que bate com os 3.459 mm citados
+   no ticket.
+2. Escreva um script pequeno (Python + `mujoco` + o seu `env`) que faça `place` de um robô tier-1 na
+   origem e comande `w = [k,k,k,k]` para cada `k` em `[0.2, 0.4, 0.6, 0.8, 1.0]` do `ctrlrange`,
+   5 s de física a cada vez, nenhum outro corpo por perto. Registre pico de taxa de yaw e pico de
+   inclinação por `k` — confira se fica perto de 42.1 rad/s → 6.0°, ..., 59.4 → 46.6°.
+3. Zere temporariamente as componentes x/y de `ipos` (edição local, não faça commit) e rode a mesma
+   varredura de novo. Se a inclinação quase desaparecer, a hipótese `M1` está confirmada — reverta o
+   XML imediatamente (`git diff` precisa voltar limpo).
+4. Rode `env.action_space.sample()` no tier 1, seeds 0–49, e conte tombamentos por minuto de
+   episódio, além de p50/p95/p99 da inclinação do chassi — essa é a linha de base contra a qual os
+   tickets futuros serão medidos.
+5. Meça os steps/s do seu ambiente durante esse processo, para comparar com o número já documentado
+   em `docs/index.md:157-160`.
+6. Preencha a seção `## Answer` do ticket original com os seus números — essa parte é o seu
+   entregável, não o deste guia.
 
-## If you get stuck
+## Se você travar
 
-- If the sweep doesn't match the expected degrees: check whether your actuator's `ctrlrange`
-  matches what the ticket assumes, and whether "tilt" is being measured the same way (angle of the
-  chassis's z-axis from vertical, not yaw).
-- To understand `subtree_com` vs `xipos` vs `xpos` better, the frames section of the MuJoCo
-  Computation doc linked above covers the different frame conventions MuJoCo uses.
-- For comparable implementations, search "MuJoCo center of mass offset tipping" in the
-  `google-deepmind/mujoco` GitHub Discussions — that's where this kind of modeling question tends
-  to show up.
+- Se a varredura não bater com os graus esperados: verifique se o `ctrlrange` do seu atuador é o que
+  o ticket assume, e se a "inclinação" está sendo medida do mesmo jeito (ângulo do eixo z do chassi
+  em relação à vertical, não yaw).
+- Para entender melhor `subtree_com` vs `xipos` vs `xpos`, a seção de frames do doc MuJoCo
+  Computation linkado acima cobre as diferentes convenções de referencial que o MuJoCo usa.
+- Para implementações comparáveis, pesquise "MuJoCo center of mass offset tipping" no GitHub
+  Discussions do `google-deepmind/mujoco` — é onde esse tipo de pergunta de modelagem costuma
+  aparecer.

@@ -1,122 +1,128 @@
-# Map: physics fidelity for the mjsoccer SSL simulator
+# Mapa: fidelidade física do simulador SSL mjsoccer
 
-## Destination
+## Destino
 
-A settled, ordered **fix specification**: every behaviourally significant MuJoCo parameter in
-`models/*.xml` and every actuation/observation constant in `src/mjsoccer/` either justified by
-hardware/first principles, or explicitly recorded as a deliberate approximation — with the
-acceptance gates that prove it. The map is done when nothing is left to decide and someone can
-execute the edits without re-opening a question.
+Uma **especificação de correções** resolvida e ordenada: todo parâmetro do MuJoCo com efeito relevante
+no comportamento em `models/*.xml` e toda constante de atuação/observação em `src/mjsoccer/` ou
+justificada por hardware/primeiros princípios, ou explicitamente registrada como aproximação
+deliberada — com os critérios de aceitação que comprovam isso. O mapa está pronto quando não sobrar
+nada a decidir e alguém puder executar as edições sem reabrir nenhuma pergunta.
 
-Reaching it does **not** mean rSoccer parity. It means the numbers are defensible.
+Chegar lá **não** significa paridade com o rSoccer. Significa que os números são defensáveis.
 
 ## Notes
 
-**Domain.** RoboCup SSL Division A omni robot in MuJoCo (`mjsoccer`), 6 Gymnasium tasks, two
-physics tiers. Reference audits, both cited to source, validated against each other:
-- `docs/research/rsoccer-vs-mjsoccer.md` — 80 differences vs `robocin/rSoccer` + `robocin/rSim`, ids `P*`/`U*`/`B*`/`M*`/`C*`/`W*`/`L*`/`O*`/`T*`/`R*`/`X*`/`TO*`. Cite these ids.
-- `docs/analysis/ssl-simulator-rsoccer-comparison.md` — independent audit. Sound except its CoM
-  comparison, which omits the 20 mm floor riser (`models/field.xml:42`, floor plane at z=0.02):
-  mjsoccer's CoM is 53.99 mm above the carpet against rSim's 72.25 mm, i.e. **18.3 mm lower**,
-  not 2 mm higher. Its two findings the other audit missed are real and verified: the dribbler's
-  affine action map, and rSim's latching dribbler.
-- Upstream clones for citation: `/tmp/rsim-upstream` (`b413932`), `/tmp/rsoccer-upstream` (`3adf7c3`).
+**Domínio.** Robô omni da Divisão A da RoboCup SSL em MuJoCo (`mjsoccer`), 6 tarefas Gymnasium, dois
+tiers de física. Auditorias de referência, ambas citadas na fonte, validadas uma contra a outra:
+- `docs/research/rsoccer-vs-mjsoccer.md` — 80 diferenças vs `robocin/rSoccer` + `robocin/rSim`, ids `P*`/`U*`/`B*`/`M*`/`C*`/`W*`/`L*`/`O*`/`T*`/`R*`/`X*`/`TO*`. Cite esses ids.
+- `docs/analysis/ssl-simulator-rsoccer-comparison.md` — auditoria independente. Correta, exceto pela
+  comparação de CoM, que omite o degrau de 20 mm do piso (`models/field.xml:42`, plano do piso em
+  z=0.02): o CoM do mjsoccer fica 53.99 mm acima do carpete contra 72.25 mm do rSim, ou seja,
+  **18.3 mm mais baixo**, não 2 mm mais alto. Os dois achados dela que a outra auditoria perdeu são
+  reais e verificados: o mapa de ação afim do dribbler, e o dribbler com trava do rSim.
+- Clones upstream para citação: `/tmp/rsim-upstream` (`b413932`), `/tmp/rsoccer-upstream` (`3adf7c3`).
 
-**Skills every session should consult.** `mattpocock-skills:grilling` and
-`mattpocock-skills:domain-modeling` for the `grilling` tickets; `mattpocock-skills:research` for
-the `research` tickets. CodeGraph (`codegraph_*`) before reading source by hand.
+**Skills que toda sessão deve consultar.** `mattpocock-skills:grilling` e
+`mattpocock-skills:domain-modeling` para os tickets `grilling`; `mattpocock-skills:research` para os
+tickets `research`. CodeGraph (`codegraph_*`) antes de ler código-fonte à mão.
 
-**Standing constraints, settled while charting (2026-09-08).**
-1. **Destination is hardware fidelity, not rSoccer parity.** rSoccer/rSim is a differential
-   reference only. Of rSim's numbers only two are physically sourced —
-   `wheelMotorMaxTorque = 0.070` and `wheelMotorMaxRPM = 1557` (`sslconfig.h:159-160`, "Maxon
-   EC45 flat 50w with 18:60 gear ratio, reduced to 3m/s2 accel"). Everything else in rSim is an
-   ODE workaround and is not a target.
-2. **Motor envelope: Maxon EC 45 flat 50 W, direct drive.** ~~18:60 gearing~~ — **superseded by
-   `01`**, which found a real drivetrain spec after all. RobôCIn's 2024 ETDP §1.2 records the move
-   to direct drive on a 62 mm wheel at ~10 % of stall torque, and this CAD's wheel meshes are
-   named `Direct_Transmission_*` with `r_eff = 30.089` mm = a 60.18 mm wheel. rSim's 0.070 N·m
-   and 1557 rpm describe the *previous, geared* generation. The charting answer picked 18:60 only
-   because no spec was thought to exist; the spec exists, so this is the upgrade that answer
-   asked for first. Reversible — say so and `01` re-derives on 18:60.
-3. **Existing trained policies are invalidated.** No compatibility tier, no second tier-1
-   physics. `models/` and `runs/` checkpoints get retrained.
-4. **Tier 0 is kept** as the ideal-kinematics debug tier and gets the *same speed/acceleration
-   envelope* as tier 1 (not the same mechanism), so one action head still means one thing.
+**Restrições permanentes, resolvidas durante o mapeamento (2026-09-08).**
+1. **O destino é fidelidade ao hardware, não paridade com o rSoccer.** rSoccer/rSim é só uma
+   referência diferencial. Dos números do rSim, só dois têm fonte física —
+   `wheelMotorMaxTorque = 0.070` e `wheelMotorMaxRPM = 1557` (`sslconfig.h:159-160`, "Maxon
+   EC45 flat 50w with 18:60 gear ratio, reduced to 3m/s2 accel"). Todo o resto do rSim é contorno do
+   ODE e não é alvo.
+2. **Envelope do motor: Maxon EC 45 flat 50 W, acionamento direto.** ~~redução 18:60~~ —
+   **substituído pelo `01`**, que afinal encontrou uma especificação real do drivetrain. O ETDP 2024
+   da RobôCIn, §1.2, registra a mudança para acionamento direto em uma roda de 62 mm a ~10 % do torque
+   de stall, e as malhas de roda deste CAD se chamam `Direct_Transmission_*` com `r_eff = 30.089` mm =
+   uma roda de 60.18 mm. Os 0.070 N·m e 1557 rpm do rSim descrevem a geração *anterior, com redução*.
+   A resposta do mapeamento escolheu 18:60 só porque se achava que não existia especificação; a
+   especificação existe, então esta é a atualização que aquela resposta pedia em primeiro lugar.
+   Reversível — é só dizer e o `01` rederiva com 18:60.
+3. **Políticas já treinadas ficam invalidadas.** Sem tier de compatibilidade, sem segunda física de
+   tier 1. Os checkpoints de `models/` e `runs/` são retreinados.
+4. **O tier 0 é mantido** como tier de depuração com cinemática ideal e recebe o *mesmo envelope de
+   velocidade/aceleração* do tier 1 (não o mesmo mecanismo), para que uma cabeça de ação continue
+   significando uma coisa só.
 
-**Mode.** Planning. Tickets produce decisions; the edits happen after the map closes. The
-exceptions are the `task` tickets, which run measurements — those may touch `models/` only as a
-reverted diagnostic, and must revert.
+**Mode.** Planejamento. Os tickets produzem decisões; as edições acontecem depois que o mapa fechar.
+As exceções são os tickets `task`, que rodam medições — esses podem mexer em `models/` só como
+diagnóstico revertido, e precisam reverter.
 
 ## Decisions so far
 
-<!-- one line per closed ticket -->
+<!-- uma linha por ticket fechado -->
 
-- [Physical constants](issues/02-physical-constants.md): ball mass 0.046 kg and radius 0.0215 m
-  are rulebook-fixed and already right; ball↔floor μ 0.35 and `μ_roll` 0.0009 are measured-correct
-  and were merely unjustified; the ball needs **COR ≈ 0.50** (it has none) and **β = 0.5** (it has
-  MuJoCo's 0.4 default); roller↔floor μ should be **0.25**, not 1.0; kicks are capped at
-  **6.5 m/s** by §8.4.2. rSim's ball mass is a typo, its ball drag a copied Bullet hack, its
-  bounce its one right number. Workings in
+- [Constantes físicas](issues/02-physical-constants.md): massa da bola 0.046 kg e raio 0.0215 m são
+  fixados pelo livro de regras e já estão certos; μ bola↔piso 0.35 e `μ_roll` 0.0009 estão corretos
+  pela medição e só não tinham justificativa; a bola precisa de **COR ≈ 0.50** (não tem nenhum) e
+  **β = 0.5** (tem o padrão 0.4 do MuJoCo); μ rolete↔piso deve ser **0.25**, não 1.0; chutes são
+  limitados a **6.5 m/s** pela §8.4.2. A massa da bola do rSim é um erro de digitação, o arrasto da
+  bola é um hack do Bullet copiado, o bounce é o seu único número certo. Desenvolvimento em
   [`research/02-physical-constants.md`](research/02-physical-constants.md).
-- [Drivetrain envelope](issues/01-drivetrain-envelope.md): `forcerange="-0.078 0.078"` N·m,
-  `ctrlrange="-95 95"` rad/s → `a_max` 2.98 m/s², `v_max` 3.30 m/s, `ω_max` 35.9 rad/s; clears the
-  static tip threshold by 62 % and `ω_tip` by 25 %. **The robot is direct drive, not 18:60** — so
-  rSim's numbers describe the previous robot generation and never transferred. Workings in
+- [Envelope do drivetrain](issues/01-drivetrain-envelope.md): `forcerange="-0.078 0.078"` N·m,
+  `ctrlrange="-95 95"` rad/s → `a_max` 2.98 m/s², `v_max` 3.30 m/s, `ω_max` 35.9 rad/s; passa pelo
+  limiar estático de tombamento com 62 % de folga e por `ω_tip` com 25 %. **O robô é de acionamento
+  direto, não 18:60** — então os números do rSim descrevem a geração anterior do robô e nunca se
+  transferiram. Desenvolvimento em
   [`research/01-drivetrain-envelope.md`](research/01-drivetrain-envelope.md).
-- [Contact parameters](issues/05-contact-parameters.md): roller↔floor μ 1.0 → **0.25**
-  (reopens `01`'s binding constraint: friction-limited at 2.45 m/s², not torque-limited at 2.98,
-  still clears the tip threshold); ball COR target **0.50** on both floor and wall, `solref`
-  dampratio deferred to new task `17`; ball inertia gets an explicit `diaginertia` for **β = 0.5**.
-  Walls/bumpers `solref`, ball↔dribbler μ = 2.5, and robot↔robot/wall μ all stay unchanged,
-  recorded as deliberate approximations. `impratio` stays at 1, revisit only if `14` finds slip
-  problems.
+- [Parâmetros de contato](issues/05-contact-parameters.md): μ rolete↔piso 1.0 → **0.25** (reabre a
+  restrição dominante do `01`: limitado por atrito em 2.45 m/s², não por torque em 2.98, e ainda passa
+  pelo limiar de tombamento); alvo de COR da bola **0.50** no piso e na parede, dampratio do `solref`
+  adiada para a nova tarefa `17`; a inércia da bola ganha um `diaginertia` explícito para **β = 0.5**.
+  `solref` de paredes/para-choques, μ bola↔dribbler = 2.5 e μ robô↔robô/parede ficam inalterados,
+  registrados como aproximações deliberadas. `impratio` fica em 1, revisitar só se o `14` encontrar
+  problemas de escorregamento.
 
 ## Not yet specified
 
-- **Sim-to-real gaps neither simulator addresses** (`O6`, `R6`): no observation noise, no
-  actuation or vision latency, no domain randomisation — and `scene.py:187-189` notes the
-  `lru_cache`d `MjModel` blocks randomisation until the cache is dropped. In scope for
-  "defensible parameters", but not phrasable as a decision until the deterministic envelope is
-  settled.
-- **Per-wheel slip fidelity.** Whether anything downstream needs physical per-wheel normal
-  forces and friction budgets. Decides itself once `07` fixes the collision topology; only
-  matters if a constraint-based turnover fix ever comes back on the table.
-- **Robot↔robot and robot↔wall friction** (`friction="0.5"` on 209 hulls, 0.6 on the walls).
-  No source for either figure. `05` recorded it as a deliberate approximation, unchanged, and
-  established the source-class taxonomy (RULEBOOK > MEASURED > VENDOR > DELIBERATE
-  APPROXIMATION) other rows now use. Revisit only if a source appears.
-- **Transient overcurrent.** A constant `forcerange` cannot express an ESC that allows several
-  times `I_nom` for tens of milliseconds; a real torque envelope would. Recorded by `01` as a
-  deliberate approximation. Becomes specifiable if anyone needs launch acceleration to be right.
-- **`kv` for the wheel servos.** `01` left `kv = 0.103696` untouched and flagged that it was never
-  derived from the motor's 8.77 rpm/mN·m speed/torque gradient. Under the new `forcerange` the
-  servo saturates above 0.75 rad/s of error instead of 28.9, so `kv` now governs the whole
-  proportional region. `04` may absorb this or it may graduate into its own ticket.
-- **Oblique and ball-off-robot restitution.** `02` found only unbacked config values, and the two
-  published redirect figures differ by 3× (TIGERs 0.2, ER-Force ~0.60). Nothing to decide until
-  someone measures or a source appears.
-- **Dribbler ball-coverage compliance.** Rulebook §3.2.4 caps coverage at 20 %, which `02`
-  converts to ≤10.9 mm of hull penetration. Whether this model complies is unmeasured, and it
-  constrains the dribbler geometry rather than any parameter — so it is not yet a decision.
-- **Cost of scale.** 100 DOF and 209 collision geoms per robot × up to 7 robots
-  (`StaticDefenders-v0`). Whether the fidelity is affordable at match sizes; needs `07`'s and
-  `13`'s numbers first.
-- **The 1 mm spawn drop** (`X8`): deterministic 0.14 m/s impact every reset. Probably harmless,
-  unquantified.
+- **Lacunas sim-to-real que nenhum dos simuladores trata** (`O6`, `R6`): sem ruído de observação, sem
+  latência de atuação ou de visão, sem randomização de domínio — e `scene.py:187-189` nota que o
+  `MjModel` em `lru_cache` bloqueia a randomização até o cache ser descartado. Dentro do escopo de
+  "parâmetros defensáveis", mas não formulável como decisão até o envelope determinístico estar
+  resolvido.
+- **Fidelidade de escorregamento por roda.** Se algo a jusante precisa de forças normais e orçamentos
+  de atrito físicos por roda. Decide-se sozinho quando o `07` fixar a topologia de colisão; só importa
+  se uma correção de capotamento baseada em restrições voltar à mesa.
+- **Atrito robô↔robô e robô↔parede** (`friction="0.5"` em 209 cascos, 0.6 nas paredes). Nenhuma fonte
+  para nenhum dos dois valores. O `05` registrou isso como aproximação deliberada, sem mudança, e
+  estabeleceu a taxonomia de classes de fonte (RULEBOOK > MEASURED > VENDOR > DELIBERATE
+  APPROXIMATION) que as outras linhas agora usam. Revisitar só se aparecer uma fonte.
+- **Sobrecorrente transitória.** Um `forcerange` constante não consegue expressar um ESC que permite
+  várias vezes `I_nom` por dezenas de milissegundos; um envelope de torque real conseguiria.
+  Registrado pelo `01` como aproximação deliberada. Torna-se especificável se alguém precisar que a
+  aceleração de arrancada esteja certa.
+- **`kv` dos servos das rodas.** O `01` deixou `kv = 0.103696` intocado e sinalizou que ele nunca foi
+  derivado do gradiente velocidade/torque do motor de 8.77 rpm/mN·m. Com o novo `forcerange`, o servo
+  satura acima de 0.75 rad/s de erro em vez de 28.9, então `kv` agora governa toda a região
+  proporcional. O `04` pode absorver isso ou pode virar um ticket próprio.
+- **Restituição oblíqua e bola-saindo-do-robô.** O `02` encontrou só valores de configuração sem
+  respaldo, e os dois valores publicados de redirecionamento diferem em 3× (TIGERs 0.2, ER-Force
+  ~0.60). Nada a decidir até alguém medir ou aparecer uma fonte.
+- **Conformidade da cobertura da bola pelo dribbler.** A §3.2.4 do livro de regras limita a cobertura a
+  20 %, que o `02` converte em ≤10.9 mm de penetração no casco. Se este modelo está em conformidade não
+  foi medido, e isso restringe a geometria do dribbler em vez de algum parâmetro — então ainda não é
+  uma decisão.
+- **Custo de escala.** 100 DOF e 209 geoms de colisão por robô × até 7 robôs
+  (`StaticDefenders-v0`). Se a fidelidade é viável em tamanhos de partida; precisa primeiro dos
+  números do `07` e do `13`.
+- **A queda de 1 mm no spawn** (`X8`): impacto determinístico de 0.14 m/s a cada reset.
+  Provavelmente inofensivo, não quantificado.
 
-## Out of scope
+## Fora de escopo
 
-The destination rules these beyond this effort. They return only if the destination is redrawn.
+O destino exclui estes itens deste esforço. Só voltam se o destino for redesenhado.
 
-- **Adopting rSoccer's field, goal test, tasks, rewards or horizons.** 6×4 m field, 0.70 m
-  goal, 2-D `ball.x > half_len` goal test, per-env rule terminations, 25/30/120 s horizons
-  (`U1`, `U2`, `X3`, `X4`, `T1`). Division A stays.
-- **Reproducing rSim's ball-handling model.** Hinge-weld possession (`L3`), boolean dribbler,
-  velocity-assignment kick (`L4`), the chassis-suppression callback (`C5`). All are ODE
-  workarounds; mjsoccer's mechanisms are the higher-fidelity side.
-- **Teleport turnover** (`TO1`, §12.3 of the research doc): discontinuous, non-Markov,
-  exploitable, invisible.
-- **Matching rSim's wheel-matrix sign convention** (`W2`). Tier 1's matrix is self-consistent;
-  the inversion only matters for porting, which is not a goal. It gets *documented*, not changed.
-- **Return comparability with published rSoccer results.** Follows from destination (1a).
+- **Adotar o campo, teste de gol, tarefas, recompensas ou horizontes do rSoccer.** Campo de 6×4 m, gol
+  de 0.70 m, teste de gol 2-D `ball.x > half_len`, terminações por regra em cada env, horizontes de
+  25/30/120 s (`U1`, `U2`, `X3`, `X4`, `T1`). A Divisão A fica.
+- **Reproduzir o modelo de manipulação de bola do rSim.** Posse por solda com hinge (`L3`), dribbler
+  booleano, chute por atribuição de velocidade (`L4`), o callback de supressão do chassi (`C5`). Todos
+  são contornos do ODE; os mecanismos do mjsoccer são o lado de maior fidelidade.
+- **Capotamento por teletransporte** (`TO1`, §12.3 do documento de pesquisa): descontínuo, não
+  markoviano, explorável, invisível.
+- **Igualar a convenção de sinais da matriz de rodas do rSim** (`W2`). A matriz do tier 1 é
+  autoconsistente; a inversão só importa para portar, o que não é objetivo. Ela é *documentada*, não
+  alterada.
+- **Comparabilidade de retorno com resultados publicados do rSoccer.** Decorre do destino (1a).
