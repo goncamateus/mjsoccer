@@ -50,7 +50,29 @@ DRIBBLER_OMEGA = 314.0
 # that sensor reports "no ball" forever. Contact is unambiguous and is what the mjssl
 # retention benchmarks score against too.
 
-KICK_FORCE = 200.0  # N on the plunger; the joint's own spring does the return stroke
+# Kicker and chipper take a *speed*, as the firmware does (ticket 09): a in (0, 1] asks for
+# KICK_SPEED_MAX * a, the §8.4.2 cap at a = 1 (ticket 02). The plunger is still a force
+# actuator against its return spring; KICK_TABLE_MS maps the asked-for speed back to a
+# one-step force on KICK_TABLE_N, per (tier, plunger), the way the firmware's own
+# calibration table maps speed to pulse width. Measured with a seated, settled ball, robot
+# and dribbler stopped, by .scratch/physics-fidelity/candidate-09/calibrate.py -- rerun it
+# whenever the plunger, the ball or the contact parameters change.
+KICK_SPEED_MAX = 6.5
+KICK_TABLE_N = tuple(np.arange(0.0, 501.0, 25.0))  # the actuators' ctrlrange is 0..500
+# m/s at each force, (tier, plunger) -> a prefix of KICK_TABLE_N, cut at the first point
+# past the cap: the full curves still saw a little above it. The cap takes ~290-345 N.
+KICK_TABLE_MS = {
+    (0, 0): (0.0, 0.34, 2.01, 2.9, 3.48, 3.99, 4.35, 4.73, 5.09, 5.56, 5.76, 6.1, 6.45, 6.68),
+    (0, 1): (0.0, 0.95, 1.91, 2.79, 3.51, 4.07, 4.52, 4.91, 5.31, 5.61, 5.97, 6.32, 6.58),
+    (1, 0): (0.0, 0.38, 2.02, 2.91, 3.5, 3.99, 4.38, 4.72, 5.09, 5.56, 5.76, 6.1, 6.39, 6.68),
+    (1, 1): (0.0, 0.95, 1.89, 2.7, 3.32, 3.84, 4.27, 4.67, 4.99, 5.27, 5.64, 5.73, 6.08, 6.2, 6.59),
+}
+# The 2 ms step cannot resolve the plate hitting the ball: the plate closes ~9 mm per step,
+# so exit speed swung +-35 % with force. The control step a plunger fires on is run at
+# timestep / FIRING_SUBSTEPS, which matches a global 0.25 ms step to ~3-7 % (tier 1
+# chip up to ~11 %, absorbed by the table). Delete this if the global step ever gets that small (13).
+FIRING_SUBSTEPS = 8
+assert all(np.all(np.diff(v) > 0) for v in KICK_TABLE_MS.values()), "np.interp needs it rising"
 
 # RoboCup SSL Division A, from the rulebook. Asserted against the CAD in `_check_field`
 # rather than measured out of it: the mesh gives the *painted line* extents, and which

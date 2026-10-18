@@ -41,8 +41,8 @@ scaled internally by the actuator's own `ctrlrange`.
 | 1 | wheel 2 speed (`wheel2_vel`) | -200 | 200 | rad/s |
 | 2 | wheel 3 speed (`wheel3_vel`) | -200 | 200 | rad/s |
 | 3 | wheel 4 speed (`wheel4_vel`) | -200 | 200 | rad/s |
-| 4 | kicker plunger force (`kicker_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
-| 5 | chipper plunger force (`chipper_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
+| 4 | kicker plunger force (`kicker_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
+| 5 | chipper plunger force (`chipper_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
 | 6 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
 
 On tier 0 the action is a `Box(-1, 1, (6,), float32)`: the four wheel servos are replaced by
@@ -53,14 +53,14 @@ the three chassis rows, and kicker, chipper and dribbler shift down to indices 3
 | 0 | body-frame forward velocity (`vel_x`) | -4 | 4 | m/s |
 | 1 | body-frame lateral velocity (`vel_y`) | -4 | 4 | m/s |
 | 2 | yaw rate (`vel_yaw`) | -30 | 30 | rad/s |
-| 3 | kicker plunger force (`kicker_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
-| 4 | chipper plunger force (`chipper_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
+| 3 | kicker plunger force (`kicker_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
+| 4 | chipper plunger force (`chipper_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
 | 5 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
 
 The chipper (row 5 on the default tier 1, row 4 on tier 0) is the control this task exists
 to motivate.
-Like the kicker it is a trigger, not a proportional command: any action above zero writes
-the full 200 N for one control step and then locks that plunger out for 250 ms. The two
+Like the kicker it asks for a speed: `a <= 0` does not fire, `(0, 1]` sends the ball out at
+`6.5 * a` m/s, and each shot locks that plunger out for 250 ms. The two
 locks are independent, so a kick cannot block a chip. See
 [the action space contract](../index.md#action-space).
 

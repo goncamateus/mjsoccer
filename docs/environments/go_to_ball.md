@@ -34,8 +34,8 @@ below come from the model, not from a constant in the environment.
 | 1 | wheel 2 speed (`wheel2_vel`) | -200 | 200 | rad/s |
 | 2 | wheel 3 speed (`wheel3_vel`) | -200 | 200 | rad/s |
 | 3 | wheel 4 speed (`wheel4_vel`) | -200 | 200 | rad/s |
-| 4 | kicker plunger force (`kicker_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
-| 5 | chipper plunger force (`chipper_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
+| 4 | kicker plunger force (`kicker_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
+| 5 | chipper plunger force (`chipper_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
 | 6 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
 
 On tier 0 the action is a `Box(-1, 1, (6,), float32)`: the four wheel servos are replaced by
@@ -46,16 +46,16 @@ the three chassis rows, and kicker, chipper and dribbler shift down to indices 3
 | 0 | body-frame forward velocity (`vel_x`) | -4 | 4 | m/s |
 | 1 | body-frame lateral velocity (`vel_y`) | -4 | 4 | m/s |
 | 2 | yaw rate (`vel_yaw`) | -30 | 30 | rad/s |
-| 3 | kicker plunger force (`kicker_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
-| 4 | chipper plunger force (`chipper_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
+| 3 | kicker plunger force (`kicker_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
+| 4 | chipper plunger force (`chipper_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
 | 5 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
 
 Rows 0-3 on tier 1 are wheel speeds written straight to the servos; what the chassis does
 with them is left to the roller contacts, which can slip. Rows 0-2 on tier 0 are instead a
 *body-frame* velocity that is rotated into the world-axis chassis slides before being
 written, which is what makes the two tiers mean the same thing. The
-kicker and chipper are triggers, not proportional: any action above zero writes the full
-200 N for one control step and then locks that plunger out for 250 ms. The dribbler is
+kicker and chipper ask for a speed: `a <= 0` does not fire, `(0, 1]` sends the ball out at
+`6.5 * a` m/s, and each shot locks that plunger out for 250 ms. The dribbler is
 off for `a <= 0`, maps `(0, 1]` onto `(0, 314] rad/s` and is never driven backwards. See
 [the action space contract](../index.md#action-space) for why each of those is the way it
 is.

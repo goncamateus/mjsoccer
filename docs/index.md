@@ -72,8 +72,8 @@ it, which is what keeps a single action head transferable across the suite.
 | `vx` | — | `vel_x` | -4 .. 4 m/s | `a * 4` |
 | `vy` | — | `vel_y` | -4 .. 4 m/s | `a * 4` |
 | `omega` | — | `vel_yaw` | -30 .. 30 rad/s | `a * 30` |
-| `kick` | `kicker_force` | `kicker_force` | 0 .. 200 N | 200 N pulse if `a > 0` |
-| `chip` | `chipper_force` | `chipper_force` | 0 .. 200 N | 200 N pulse if `a > 0` |
+| `kick` | `kicker_force` | `kicker_force` | 0 .. 500 N | pulse for `6.5 * a` m/s if `a > 0` |
+| `chip` | `chipper_force` | `chipper_force` | 0 .. 500 N | pulse for `6.5 * a` m/s if `a > 0` |
 | `dribble` | `dribbler_vel` | `dribbler_vel` | -1500 .. 1500 rad/s | `314 * max(a, 0)` |
 
 Everything is in `[-1, 1]` and scaled by the actuator's own `ctrlrange`, so the bounds come
@@ -88,9 +88,19 @@ chassis orientation before writing it, which is what makes the two tiers mean th
 thing. A diagonal tier-0 command can therefore ask for `4 * sqrt(2)` on one world axis;
 MuJoCo clamps it to `ctrlrange`, exactly as a real servo would.
 
-**Kicker and chipper.** `kick > 0` and `chip > 0` each fire a solenoid pulse: full
-`KICK_FORCE = 200 N` on the plunger for one control step, then a 250 ms lockout on that
-plunger. Held continuously the plunger pins against its 30 mm stop and never releases the
+**Kicker and chipper.** Half range, like the dribbler: `a <= 0` never fires, and
+`a in (0, 1]` asks for an exit speed of `KICK_SPEED_MAX * a` = `6.5 * a` m/s, the §8.4.2 cap
+at `a = 1`. That is what SSL firmware takes, a speed, not a trigger. The plunger is still a
+force actuator against its return spring: a per-tier, per-plunger table
+(`scene.KICK_TABLE_MS`) turns the asked-for speed into a one-step force, the way the
+firmware's calibration table turns it into a pulse width. The cap takes ~290-345 N. Speeds
+are relative to a standing robot with the ball settled in the mouth (within ±4 % across
+seatings); a moving robot adds its own speed, as a real one does. The control step a
+plunger fires on runs at an eighth of the timestep (`scene.FIRING_SUBSTEPS`): at 2 ms the
+plate closes ~9 mm per step and the exit speed swung ±35 % with force. That costs ~1.6-1.7x in
+throughput under random actions, which fire at every re-arm, and nothing for a policy that
+kicks rarely. Each shot is followed by a 250 ms lockout on that plunger, a deliberate
+approximation (no capacitor recharge time is known). Held continuously the plunger pins against its 30 mm stop and never releases the
 ball, so the lockout is what makes the mechanism usable at all. The two locks are
 independent — a kick must not be able to block a chip. At the default control rate the
 lockout is 16 control steps.
@@ -132,7 +142,7 @@ Every entry is normalised by a constant from `base.py` or `scene.py`:
 | ball x, robot x | `scene.FIELD_HALF_X` | 6.0 m |
 | ball y, robot y | `scene.FIELD_HALF_Y` | 4.5 m |
 | ball z | `scene.GOAL_HEIGHT` | 0.155 m |
-| ball vx, vy, vz | `base.MAX_BALL_V` | 8.0 m/s (a flat kick leaves at 6-7) |
+| ball vx, vy, vz | `base.MAX_BALL_V` | 8.0 m/s (kicks are capped at 6.5 off a standing robot) |
 | robot vx, vy | `base.MAX_V` | 4.0 m/s (the tier-0 chassis servo ctrlrange) |
 | robot omega | `base.MAX_W` | 30.0 rad/s (likewise) |
 

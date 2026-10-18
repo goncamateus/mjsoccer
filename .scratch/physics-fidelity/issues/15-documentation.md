@@ -62,3 +62,9 @@ deste mapa, então deveriam ser commitados, e a comparação de CoM do documento
   dizem 209; o `B6` deve dizer que quem desvia a bola é o cubo da roda, não o rolete.
 - 2026-10-17, do `08`: o dribbler é `314 * max(a, 0)` — `a ≤ 0` desligado, ação zero não dribla.
   314 rad/s é suposição, não setpoint do firmware; documentar como tal. `docs/index.md` já atualizado.
+- 2026-10-18, do `09`: chute/chip pedem velocidade, `6.5 * a` m/s, meia faixa; `ctrlrange` 0..500 N;
+  substeps no step de disparo; bloqueio de 250 ms é aproximação deliberada. `docs/index.md` e as
+  seis páginas de ambiente já atualizadas. Fora do `09`: as tabelas de ação das páginas de ambiente
+  ainda dão as rodas como ±200 rad/s (é ±95 desde o `04`); e
+  `docs/research/rsoccer-vs-mjsoccer.md:66,524,525,558` ainda diz pulso de 200 N e "6-7 m/s
+  emergente (`base.py:35`)".

@@ -50,7 +50,7 @@ tickets `research`. CodeGraph (`codegraph_*`) antes de ler código-fonte à mão
 As exceções são os tickets `task`, que rodam medições — esses podem mexer em `models/` só como
 diagnóstico revertido, e precisam reverter.
 **Exceção registrada (2026-10-17):** a pedido explícito, as edições do `04` e do `05` já entraram em
-`models/` antes do mapa fechar — ver os Comments do `05`. O `06` e o `07` entraram do mesmo jeito, também a pedido explícito.
+`models/` antes do mapa fechar — ver os Comments do `05`. O `06`, o `07`, o `08` e o `09` entraram do mesmo jeito, também a pedido explícito.
 
 ## Decisions so far
 
@@ -111,6 +111,13 @@ diagnóstico revertido, e precisam reverter.
   (confirmado pela equipe). **314 rad/s não tem fonte** — suposição declarada em `scene.py` e
   `docs/index.md`. Testes de retenção seguram `dribble = 0.5` (= 157 rad/s, o neutro antigo), então os
   números do `05` não mudam.
+- [Calibração do chute e do chip](issues/09-kick-chip-calibration.md): o chute/chip **pede velocidade**,
+  `6.5 * a` m/s em meia faixa (`a ≤ 0` não dispara), via tabela velocidade → força por (tier, êmbolo)
+  medida com a bola assentada; `ctrlrange` 0..500 N (o teto pede ~290-345). Os 7.06 m/s do tier 0
+  eram **artefato do dt de 2 ms** (±35 %, não monotônico): o step de disparo agora roda a `dt / 8`
+  (1.64-1.72× com ação aleatória, ~1× para quem chuta pouco). Bloqueio de 250 ms e chute que levanta a bola
+  4-6 cm: aproximações deliberadas. Recuo físico (−0.085 m/s no tier 1). Números em
+  [`candidate-09/`](candidate-09/).
 
 ## Not yet specified
 

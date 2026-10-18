@@ -45,8 +45,8 @@ below come from the model, not from a constant in the environment.
 | 1 | wheel 2 speed (`wheel2_vel`) | -200 | 200 | rad/s |
 | 2 | wheel 3 speed (`wheel3_vel`) | -200 | 200 | rad/s |
 | 3 | wheel 4 speed (`wheel4_vel`) | -200 | 200 | rad/s |
-| 4 | kicker plunger force (`kicker_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
-| 5 | chipper plunger force (`chipper_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
+| 4 | kicker plunger force (`kicker_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
+| 5 | chipper plunger force (`chipper_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
 | 6 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
 
 On tier 0 the action is a `Box(-1, 1, (6,), float32)`: the four wheel servos are replaced by
@@ -57,8 +57,8 @@ the three chassis rows, and kicker, chipper and dribbler shift down to indices 3
 | 0 | body-frame forward velocity (`vel_x`) | -4 | 4 | m/s |
 | 1 | body-frame lateral velocity (`vel_y`) | -4 | 4 | m/s |
 | 2 | yaw rate (`vel_yaw`) | -30 | 30 | rad/s |
-| 3 | kicker plunger force (`kicker_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
-| 4 | chipper plunger force (`chipper_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
+| 3 | kicker plunger force (`kicker_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
+| 4 | chipper plunger force (`chipper_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
 | 5 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
 
 Row 6 on the default tier 1 — row 5 on tier 0 — is the one the task actually turns on:

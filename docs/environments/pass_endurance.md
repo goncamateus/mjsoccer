@@ -39,8 +39,8 @@ only. The team-mate is scripted and never appears in the action, which is why th
 | 1 | wheel 2 speed (`wheel2_vel`) | -200 | 200 | rad/s |
 | 2 | wheel 3 speed (`wheel3_vel`) | -200 | 200 | rad/s |
 | 3 | wheel 4 speed (`wheel4_vel`) | -200 | 200 | rad/s |
-| 4 | kicker plunger force (`kicker_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
-| 5 | chipper plunger force (`chipper_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
+| 4 | kicker plunger force (`kicker_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
+| 5 | chipper plunger force (`chipper_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
 | 6 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
 
 On tier 0 the action is a `Box(-1, 1, (6,), float32)`, 6 wide for the same reason: the four
@@ -52,16 +52,13 @@ down to indices 3, 4 and 5.
 | 0 | body-frame forward velocity (`vel_x`) | -4 | 4 | m/s |
 | 1 | body-frame lateral velocity (`vel_y`) | -4 | 4 | m/s |
 | 2 | yaw rate (`vel_yaw`) | -30 | 30 | rad/s |
-| 3 | kicker plunger force (`kicker_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
-| 4 | chipper plunger force (`chipper_force`) | 0 | 200 | N, fired as a pulse when the action > 0 |
+| 3 | kicker plunger force (`kicker_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
+| 4 | chipper plunger force (`chipper_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
 | 5 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
 
 The kicker — row 4 on tier 1, row 3 on tier 0 — is the natural control for this task, and it
-is a trigger rather than a
-proportional command: any action above zero writes the full 200 N for one control step and
-then locks that plunger out for 250 ms, so pass strength cannot be modulated through the
-action — a flat kick always leaves the mouth at 6-7 m/s, and the distance the ball travels
-is set by the field friction. The chipper is the alternative over an obstacle, though there
+asks for a speed: `a in (0, 1]` sends the ball out at `6.5 * a` m/s, so pass strength is
+the action, and `a <= 0` does not kick. Each shot locks that plunger out for 250 ms. The chipper is the alternative over an obstacle, though there
 are no obstacles here. See [the action space contract](../index.md#action-space).
 
 ## Observation Space

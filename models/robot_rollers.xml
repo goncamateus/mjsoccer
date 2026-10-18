@@ -806,8 +806,8 @@
   </worldbody>
   <actuator>
     <velocity name="dribbler_vel" joint="dribbler_spin" kv="0.000146792" ctrlrange="-1500 1500" forcerange="-0.05 0.05" />
-    <motor name="kicker_force" joint="kicker_slide" gear="1" ctrlrange="0 200" />
-    <motor name="chipper_force" joint="chipper_slide" gear="1" ctrlrange="0 200" />
+    <motor name="kicker_force" joint="kicker_slide" gear="1" ctrlrange="0 500" />
+    <motor name="chipper_force" joint="chipper_slide" gear="1" ctrlrange="0 500" />
     <velocity name="wheel1_vel" joint="wheel1_spin" kv="0.103696" ctrlrange="-95 95" forcerange="-0.078 0.078" />
     <velocity name="wheel2_vel" joint="wheel2_spin" kv="0.103696" ctrlrange="-95 95" forcerange="-0.078 0.078" />
     <velocity name="wheel3_vel" joint="wheel3_spin" kv="0.103696" ctrlrange="-95 95" forcerange="-0.078 0.078" />

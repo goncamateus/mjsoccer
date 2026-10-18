@@ -1,0 +1,4 @@
+110 N  3:b0_kicker 4:b0_kicker 5:b0_kicker 6:b0_kicker 36:world  ball 3.96 m/s
+120 N  3:b0_kicker 4:b0_kicker 5:b0_kicker 6:b0_kicker 36:world  ball 4.41 m/s
+130 N  3:b0_kicker 4:b0_kicker+b0_kicker 5:b0_kicker 6:b0_kicker 36:world  ball 3.75 m/s
+140 N  3:b0_kicker+b0_kicker 4:b0_kicker+b0_kicker 5:b0_kicker+b0_kicker 6:b0_kicker 36:world  ball 4.11 m/s

@@ -294,6 +294,49 @@ def test_dribbler_neutral_is_off(a, omega):
     assert ctrl == pytest.approx(omega)
 
 
+@pytest.mark.parametrize("tier", TIERS)
+@pytest.mark.parametrize("plunger", (0, 1), ids=("kick", "chip"))
+@pytest.mark.parametrize("a", (0.5, 1.0))
+def test_kick_exit_speed(tier, plunger, a):
+    """Ticket 09: a in (0, 1] asks for 6.5 * a m/s, the §8.4.2 cap at a = 1.
+
+    Seated and settled ball, robot standing, dribbler off -- the conditions the table is
+    calibrated in. Peak 3-D ball speed over half a second. The stock 2 ms step left this at 7.06 m/s
+    on tier 0 and wandered +-35 % with force, which is what the 6.5 bound catches.
+    """
+    env = gym.make("Dribbling-v0", tier=tier).unwrapped
+    env.reset(seed=0)
+    action = np.zeros(env.action_space.shape, dtype=np.float32)
+    for _ in range(30):  # let the seated ball settle, as calibrate.py does
+        env.step(action)
+    action[env.drive_dim + plunger] = a
+    best = 0.0
+    for _ in range(31):
+        env.step(action)
+        action[env.drive_dim + plunger] = 0.0
+        best = max(best, float(np.linalg.norm(env.ball.vel(env.data))))
+    env.close()
+    assert best == pytest.approx(S.KICK_SPEED_MAX * a, abs=0.3)
+
+
+@pytest.mark.parametrize("tier", TIERS)
+@pytest.mark.parametrize("a", (-1.0, -0.3, 0.0))
+def test_kick_neutral_never_fires(tier, a):
+    """Half range (ticket 09, like the dribbler's 08): a <= 0 asks for no kick at all, so
+    neither plunger leaves its seat and the ball stays in the mouth."""
+    env = gym.make("Dribbling-v0", tier=tier).unwrapped
+    env.reset(seed=0)
+    action = np.zeros(env.action_space.shape, dtype=np.float32)
+    action[env.drive_dim : env.drive_dim + 2] = a
+    action[-1] = 0.5  # dribble, or the seated ball drifts out with no kick at all (08)
+    for _ in range(30):
+        env.step(action)
+        assert not env._plunger_lock.any()
+    held = env.holds(0)
+    env.close()
+    assert held
+
+
 def test_chipper_rearms():
     """The chipper is the kicker's twin and needs its own independent pulse.
 

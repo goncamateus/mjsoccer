@@ -1,0 +1,12 @@
+tier 0 kick chassis -0.01 m/s: ball 6.61 abs, 6.62 rel; dv robot -0.001 (1 step) -0.028 (5 steps), ball p 0.304 N s vs robot p -0.076
+tier 0 kick chassis 1.48 m/s: ball 8.08 abs, 6.60 rel; dv robot -0.006 (1 step) -0.030 (5 steps), ball p 0.303 N s vs robot p -0.079
+tier 0 kick chassis 2.39 m/s: ball 8.48 abs, 6.09 rel; dv robot +0.002 (1 step) -0.034 (5 steps), ball p 0.280 N s vs robot p -0.090
+tier 0 chip chassis -0.01 m/s: ball 6.41 abs, 6.42 rel; dv robot +0.015 (1 step) -0.026 (5 steps), ball p 0.296 N s vs robot p -0.070
+tier 0 chip chassis 1.48 m/s: ball 8.30 abs, 6.82 rel; dv robot +0.006 (1 step) -0.029 (5 steps), ball p 0.314 N s vs robot p -0.077
+tier 0 chip chassis 2.39 m/s: ball 7.70 abs, 5.31 rel; dv robot +0.029 (1 step) -0.027 (5 steps), ball p 0.244 N s vs robot p -0.073
+tier 1 kick chassis -0.00 m/s: ball 6.66 abs, 6.66 rel; dv robot -0.081 (1 step) -0.085 (5 steps), ball p 0.307 N s vs robot p -0.229
+tier 1 kick chassis 0.57 m/s: ball 6.88 abs, 6.31 rel; dv robot -0.104 (1 step) -0.148 (5 steps), ball p 0.290 N s vs robot p -0.399
+tier 1 kick chassis 0.68 m/s: ball 6.73 abs, 6.05 rel; dv robot -0.091 (1 step) -0.113 (5 steps), ball p 0.279 N s vs robot p -0.303
+tier 1 chip chassis -0.00 m/s: ball 6.45 abs, 6.45 rel; dv robot -0.055 (1 step) -0.091 (5 steps), ball p 0.297 N s vs robot p -0.244
+tier 1 chip chassis 0.57 m/s: ball 7.25 abs, 6.68 rel; dv robot -0.090 (1 step) -0.143 (5 steps), ball p 0.307 N s vs robot p -0.386
+tier 1 chip chassis 0.68 m/s: ball 7.14 abs, 6.46 rel; dv robot -0.085 (1 step) -0.109 (5 steps), ball p 0.297 N s vs robot p -0.295

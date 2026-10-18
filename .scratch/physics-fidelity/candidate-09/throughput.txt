@@ -1,0 +1,6 @@
+substeps 1,GoToBall-v0,754.0
+substeps 1,ContestedPossession-v0,364.5
+substeps 1,StaticDefenders-v0,136.4
+substeps 8,GoToBall-v0,460.1
+substeps 8,ContestedPossession-v0,222.7
+substeps 8,StaticDefenders-v0,79.5

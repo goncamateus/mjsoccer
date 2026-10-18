@@ -32,7 +32,7 @@ from . import scene
 
 MAX_V = 4.0  # m/s -- the tier-0 chassis servo ctrlrange, used to normalise observations
 MAX_W = 30.0  # rad/s, likewise
-MAX_BALL_V = 8.0  # m/s -- a flat kick leaves at 6-7
+MAX_BALL_V = 8.0  # m/s -- kicks are capped at 6.5 (scene.KICK_SPEED_MAX) off a standing robot
 POSSESSION_GRACE = 0.05  # s of no ball/dribbler contact before the ball counts as lost
 # A robot is over when its own +z is more than 60 deg off world +z. Well past anything
 # driving produces -- the roller chassis pitches a couple of degrees under hard
@@ -109,8 +109,18 @@ class BaseEnv(gym.Env):
         self.data.ctrl[:] = 0.0
         self._apply(action.reshape(self.n_controlled, self.act_dim))
         self._script()
-        for _ in range(self.decimation):
-            mujoco.mj_step(self.model, self.data)
+        n, dt = self.decimation, self.model.opt.timestep
+        if (self._plunger_lock == self._kick_cooldown).any():  # a plunger fired this step
+            # ponytail: mutates the shared, cached MjModel for the length of this loop. Safe
+            # while envs sharing it step one at a time (Sync/Async vector envs both do);
+            # threads would need their own model.
+            n *= scene.FIRING_SUBSTEPS
+            self.model.opt.timestep = dt / scene.FIRING_SUBSTEPS
+        try:
+            for _ in range(n):
+                mujoco.mj_step(self.model, self.data)
+        finally:  # never leave the cached model at dt / 8 for every other env
+            self.model.opt.timestep = dt
         self.steps += 1
         np.maximum(self._plunger_lock - 1, 0, out=self._plunger_lock)
 
@@ -156,10 +166,16 @@ class BaseEnv(gym.Env):
         self.data.ctrl[list(r.drive)] = cmd
         k = self.drive_dim
         # Kicker and chipper are the same mechanism twice over: a force actuator against a
-        # return spring. Each gets its own lock so a kick cannot block a chip.
+        # return spring. Each gets its own lock so a kick cannot block a chip. Half range
+        # like the dribbler: a <= 0 never fires, (0, 1] asks for (0, KICK_SPEED_MAX] m/s.
         for j, actuator in enumerate((r.kick, r.chip)):
             if a[k + j] > 0.0 and self._plunger_lock[index, j] == 0:
-                self.data.ctrl[actuator] = scene.KICK_FORCE
+                speeds = scene.KICK_TABLE_MS[self.tier, j]
+                self.data.ctrl[actuator] = np.interp(
+                    scene.KICK_SPEED_MAX * float(a[k + j]),
+                    speeds,
+                    scene.KICK_TABLE_N[: len(speeds)],
+                )
                 self._plunger_lock[index, j] = self._kick_cooldown
         # Half range (ticket 08): a <= 0 is off, (0, 1] is (0, design speed], so a neutral or
         # sampled action does not dribble. Still a speed, not a switch, because that is what

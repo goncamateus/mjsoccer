@@ -26,3 +26,9 @@ Decidir:
    são bem mais rápidos. Se a taxa do env pretende representar a taxa da *política*, 60-62.5 Hz está
    certo e os substeps representam o firmware. Dizer qual, porque isso determina se `decimation` é um
    ajuste de fidelidade ou de desempenho.
+
+## Comments
+- 2026-10-18, do `09`: 2 ms **não** resolve o impacto da placa do chutador (±35 % na velocidade de
+  saída, não monotônica). O `09` contornou rodando só o step de disparo a `dt / 8`
+  (`scene.FIRING_SUBSTEPS`, 1.64-1.72× de custo com ação aleatória). Se o dt global cair para ≤ 0.25 ms,
+  apagar o contorno; a varredura de resolução daqui deve declarar se inclui o step de disparo.

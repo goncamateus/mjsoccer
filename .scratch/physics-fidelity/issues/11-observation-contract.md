@@ -26,3 +26,7 @@ Três defeitos, e todos precisam do envelope final do `04` antes de poderem ser 
 
 Resolvidos juntos porque os três são a mesma pergunta: o contrato de observação descreve o simulador,
 ou aspira a ele.
+
+## Comments
+- 2026-10-18, do `09`: chutes são limitados a 6.5 m/s **relativos ao robô parado**; um robô em
+  movimento soma a própria velocidade e a bola sai a até ~8.5 m/s, acima de `MAX_BALL_V = 8`.

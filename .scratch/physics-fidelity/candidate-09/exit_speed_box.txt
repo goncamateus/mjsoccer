@@ -1,0 +1,4 @@
+tier 0 kick dribble 0.0: v_xy 7.05 [7.05, 7.05] m/s, apex 59 mm, recoil -0.124 m/s
+tier 0 chip dribble 0.0: v_xy 4.91 [4.91, 4.91] m/s, apex 342 mm, recoil -0.100 m/s
+tier 1 kick dribble 0.0: v_xy 5.86 [5.86, 5.86] m/s, apex 42 mm, recoil -0.140 m/s
+tier 1 chip dribble 0.0: v_xy 3.94 [3.94, 3.94] m/s, apex 211 mm, recoil -0.109 m/s
