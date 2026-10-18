@@ -132,13 +132,16 @@ diagnóstico revertido, e precisam reverter.
   sin/cos, `has_ball`, z ≥ 0, waypoint); bola x/y e velocidades ilimitadas. 0 observações fora em ~152
   mil steps. `MAX_BALL_V` fica 8 (chute em movimento lê ~1.06). Números em
   [`candidate-11/`](candidate-11/).
-- [Envelope do tier 0](issues/12-tier0-envelope.md) (**reaberto pelo `18`**, espera o `20`): **"o mesmo envelope" = os quatro limites por
-  eixo**, isotrópicos, o menor entre frontal e lateral do envelope *derivado* do tier 1: `v_max`
-  3.30 m/s (`ctrlrange`, era 4), `a_max` 2.30 m/s² (`forcerange` ±6.1918 N, era 19.1261),
-  `α_max` 55.1 rad/s² (±0.5273 N·m, era 3.427), `ω_max` 30 (fica, teto que o tier 1 garante).
+- [Envelope do tier 0](issues/12-tier0-envelope.md) (reaberto pelo `18`, resolvido de novo depois
+  do `20`): **"o mesmo envelope" = os quatro limites por eixo**, isotrópicos, o menor entre frontal e
+  lateral do envelope *derivado* do tier 1, tudo em torno do CoM: `v_max` 3.30 m/s (`ctrlrange`, era
+  4), **`a_max` 1.30 m/s²** (`forcerange` ±3.5129 N; era 19.1261, depois 6.1918 para 2.30, o torque
+  lateral, mas o atrito liga antes: sem momento em torno do CoM, as traseiras, mais leves, chegam ao
+  atrito primeiro; programa linear, `lp.py`), `α_max` 55.0 rad/s² (±0.5263 N·m, era 3.427),
+  **`ω_max` 37.1** (teto do giro em torno do CoM, 3.45 mm atrás do centro; o tier 1 mede 36.2).
   Escorregamento, tração, peso e acoplamento entre eixos ficam de fora: são o tier 1. Amortecimento
-  das juntas do chassi → 0; `MAX_V` → 3.3. Medido 2.30 / 3.30 / 55.2 / 29.97. Números em
-  [`candidate-12/`](candidate-12/).
+  das juntas do chassi → 0; `MAX_V` → 3.3, `MAX_W` → 37.1. Critério 5 do `14` centra em 1.95 / 1.30.
+  Medido 1.30 / 3.30 / 55.1 / 37.07. Números em [`candidate-12/`](candidate-12/).
 - [Timestep e taxa de controle](issues/13-timestep-and-rate.md): **passo 1/960 s, 60 Hz exatos**
   (`decimation` 16, 20 s = 1200 steps); taxa inalcançável levanta `ValueError`. 2 ms subresolvia os
   contatos de 4-6 ms: contra 0.25 ms, retenção −24 %, chip −11 %, aceleração −12 %; a ~1 ms tudo
@@ -191,8 +194,8 @@ diagnóstico revertido, e precisam reverter.
 - [Correção dos roletes](issues/20-roller-fix.md): aplicada em `models/` (elipsoide, `condim 3`,
   `damping` 0, 80 roletes). Tier 1 mede `v_max` 3.29 / 4.02 m/s, a vazão sobe de 3 % a 16 % no tier 1 e
   a bola continua batendo nos roletes. O giro cheio chega a **36.2 rad/s, acima do `MAX_W` 35.9**: rola sem
-  escorregar em torno do CoM, 3 mm atrás do centro. Três testes de yaw ficam `xfail(strict)` e o
-  [`12`](issues/12-tier0-envelope.md) decide `ω_max` e `a_max`. Números em [`candidate-20/`](candidate-20/).
+  escorregar em torno do CoM, 3 mm atrás do centro. Três testes de yaw ficaram `xfail(strict)` até o
+  [`12`](issues/12-tier0-envelope.md) decidir `ω_max` (37.1) e `a_max` (1.30). Números em [`candidate-20/`](candidate-20/).
 
 ## Not yet specified
 

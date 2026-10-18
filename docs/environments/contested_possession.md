@@ -85,7 +85,7 @@ controlled blue robot first and the yellow opponent second.
 | 9 | cos of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
 | 10 | world-frame x velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
 | 11 | world-frame y velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
-| 12 | yaw rate of the controlled blue robot | -Inf | Inf | `b0_robot` | rad/s, / 35.9 (`MAX_W`) |
+| 12 | yaw rate of the controlled blue robot | -Inf | Inf | `b0_robot` | rad/s, / 37.1 (`MAX_W`) |
 | 13 | whether the controlled blue robot has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
 | 14 | x position of the yellow opponent | -1.05 | 1.05 | `y0_robot` | m, / 6.0 (`FIELD_HALF_X`) |
 | 15 | y position of the yellow opponent | -1.067 | 1.067 | `y0_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
@@ -93,7 +93,7 @@ controlled blue robot first and the yellow opponent second.
 | 17 | cos of the yaw of the yellow opponent | -1 | 1 | `y0_robot` | unitless |
 | 18 | world-frame x velocity of the yellow opponent | -Inf | Inf | `y0_robot` | m/s, / 3.3 (`MAX_V`) |
 | 19 | world-frame y velocity of the yellow opponent | -Inf | Inf | `y0_robot` | m/s, / 3.3 (`MAX_V`) |
-| 20 | yaw rate of the yellow opponent | -Inf | Inf | `y0_robot` | rad/s, / 35.9 (`MAX_W`) |
+| 20 | yaw rate of the yellow opponent | -Inf | Inf | `y0_robot` | rad/s, / 37.1 (`MAX_W`) |
 | 21 | whether the yellow opponent has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
 
 Element 21 is the one the task turns on: it is the opponent's possession flag, computed the

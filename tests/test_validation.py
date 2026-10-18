@@ -26,12 +26,7 @@ from validation_sweep import SCENARIOS, episode  # noqa: E402
 
 pytestmark = pytest.mark.validation
 
-# Ticket 20: with free rollers a full spin rolls without slip, about the CoM 3 mm behind the
-# wheel centre, at 36.2 rad/s -- past MAX_W = 35.9, which assumes the centre. Ticket 12 owns
-# w_max; strict, so these flip to failures the moment it moves.
-OVER_MAX_W = pytest.mark.xfail(strict=True, raises=AssertionError, reason="ticket 12: w_max")
-SCRIPTED = [pytest.param(n, e, t, p, marks=OVER_MAX_W) if (n, p) in (("spin", 1.0), ("dribble_turn", 50))
-            else (n, e, t, p)
+SCRIPTED = [(n, e, t, p)
             for n in ("spin", "head_on", "wall", "dribble_turn", "kick_recoil")
             for e, t, p in SCENARIOS[n][1]]
 
@@ -41,8 +36,9 @@ def test_scripted_scenario(scenario, env_id, tier, param):
     """Criteria 2 and 3: yaw p99 under MAX_W in every scenario, roll/pitch p99 under 15 deg
     in the dribbling turn and the kick recoil. And nothing scripted tips.
 
-    Measured (ticket 20): worst tilt 6.3 deg (head-on at 4 m/s), worst yaw 33.5 rad/s
-    (6 m/s grazing the wall at 30 deg) outside the full spins, which pass MAX_W (above).
+    Measured (ticket 20): worst tilt 6.3 deg (head-on at 4 m/s), worst yaw 36.2 rad/s in
+    the full spins (MAX_W = 37.1, ticket 12), 33.5 rad/s (6 m/s grazing the wall at 30 deg)
+    outside them.
     """
     row = episode(scenario, env_id, tier, param, 0)["row"]
     assert not row["tipped"], row
@@ -96,16 +92,16 @@ def _drive(axis: int, seconds: float, ramp: float = np.inf) -> tuple[np.ndarray,
     return np.array(v), env.dt
 
 
-@pytest.mark.parametrize("axis", (0, 1), ids=("forward", "lateral"))
-def test_achievable_acceleration(axis):
-    """Criterion 5: tier 1 accelerates within 1.5x of the derived 2.30 m/s^2 (tickets 01/05,
-    the figure tier 0 is given by ticket 12). Measured 2.24 forward, 1.63 lateral (ticket
-    20), best 0.1 s window from rest along the commanded axis: the launch transient. The
-    sustained, friction-bound figure is lower, 1.95 / 1.33 (ticket 19)."""
+@pytest.mark.parametrize("axis,a_max", ((0, 1.95), (1, 1.30)), ids=("forward", "lateral"))
+def test_achievable_acceleration(axis, a_max):
+    """Criterion 5: tier 1 accelerates within 1.5x of its derived, friction-bound figure on
+    each axis, 1.95 forward and 1.30 lateral (tickets 19, 12; tier 0 gets the 1.30).
+    Measured 2.24 / 1.63 (ticket 20), best 0.1 s window from rest along the commanded axis:
+    the launch transient, above the sustained figure the band is centred on."""
     v, dt = _drive(axis, 0.5)
     k = round(0.1 / dt)
     acc = (v[k:] - v[:-k]).max() / (k * dt)
-    assert 2.30 / 1.5 < acc < 2.30 * 1.5, f"{acc:.2f} m/s^2"
+    assert a_max / 1.5 < acc < a_max * 1.5, f"{acc:.2f} m/s^2"
 
 
 @pytest.mark.parametrize("axis,ramp,v_kin", ((0, np.inf, 3.30), (1, 1.0, 4.04)),

@@ -108,7 +108,7 @@ def test_roller_floor_friction_is_measured():
 
     There is no explicit pair for it, so MuJoCo takes the elementwise max of the two geoms:
     setting only the roller leaves the floor's own value in charge. That is what bounds the
-    chassis to ~2.45 m/s^2, friction-limited rather than torque-limited.
+    chassis to 1.30-1.95 m/s^2, friction-limited rather than torque-limited (ticket 12).
     """
     import mujoco
 
@@ -122,17 +122,16 @@ def test_roller_floor_friction_is_measured():
         assert mu == pytest.approx(0.25), f"{mj_geom_name(model, g)}: roller/floor mu {mu}"
 
 
-# Ticket 20: free rollers spin the chassis about its CoM, 3 mm behind the wheel centre, at
-# 36.2 rad/s with no slip. Ticket 12 owns w_max; strict, so this fails the moment it moves.
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="ticket 12: w_max")
 def test_full_spin_stays_under_max_w():
     """Every wheel at the top of its ctrlrange must spin the chassis slower than MAX_W.
 
     Nothing clips yaw in Python (ticket 04): the bound comes from the motor envelope
-    (+-95 rad/s, +-0.078 N*m) slipping on mu = 0.25 rollers. MAX_W is the kinematic
-    ceiling, 35.9, which slip can only stay under (ticket 13). The measured peak is
-    resolution-dependent -- 29.2 at 2 ms, 30.1 at 1/960 s, 31.8 at 0.25 ms -- which is why
-    the bound is the derived one, not a measured one with a few percent of margin.
+    (+-95 rad/s, +-0.078 N*m). With free rollers (ticket 20) a full spin rolls without slip
+    about the CoM, 3.45 mm behind the wheel centre, at 36.2 rad/s: past the 35.9 about the
+    centre, because the front wheels are dragged past 95 rad/s by the rear ones. MAX_W =
+    37.1 is where the wheel nearest the CoM reaches 95 rad/s (ticket 12): faster, every
+    wheel brakes the spin. The bound is the derived one, not a measured one with a few
+    percent of margin.
     """
     import mujoco
 
@@ -562,13 +561,16 @@ def test_velocity_normalisers_are_the_tier0_servo_range():
 def test_tier0_has_the_tier1_envelope():
     """Tier 0 keeps its ideal-kinematics mechanism but gets tier 1's per-axis envelope
     (ticket 12), so a tier-0 command asks for what a tier-1 robot could do. Isotropic, the
-    smaller of tier 1's frontal and lateral figure, from tickets 01/04/05:
+    smaller of tier 1's frontal and lateral figure, from tickets 01/04/05/19/20:
 
-      v_max 3.30 m/s    frontal (lateral is 4.04)
-      a_max 2.30 m/s^2  lateral wheel-torque limit (frontal is min(2.98, mu*g = 2.45))
-      alpha 55.1 rad/s^2  roller friction: mu*m*g*R / Izz = 6.602 N * 0.0796 m / 0.009545
-      w_max 35.9 rad/s  wheel no-load: 95 rad/s * r_eff / R (ticket 01), the kinematic
-                        ceiling tier 1 cannot pass whatever dt or mu (ticket 13)
+      v_max 3.30 m/s    frontal kinematic (lateral is 4.04); tier 1 reaches 3.29 / 4.02
+      a_max 1.30 m/s^2  lateral roller friction: the wheel forces that leave no moment about
+                        the CoM put the lighter rear wheels at their grip first (ticket 19,
+                        exact by linear programme); frontal is 1.87-1.95
+      alpha 55.0 rad/s^2  roller friction about the CoM: mu*sum(N*d) / Izz = 0.5245 / 0.009545
+      w_max 37.1 rad/s  a full spin turns about the CoM, 3.45 mm behind the wheel centre
+                        (ticket 20): 95 rad/s * r_eff / 77.04 mm, the arm of the wheel nearest
+                        the CoM. Faster, every wheel brakes the spin; tier 1 measures 36.2
 
     Not matched, because they are what tier 1 is for: slip, traction, weight transfer,
     and the coupling between axes (tier 1 at full forward speed has no wheel left to yaw).
@@ -578,7 +580,7 @@ def test_tier0_has_the_tier1_envelope():
     model, robots, ball = S.build(1, 0, tier=0)
     r = robots[0]
     dt = model.opt.timestep
-    for axis, (a_max, v_max) in enumerate(((2.30, 3.30), (2.30, 3.30), (55.1, 35.9))):
+    for axis, (a_max, v_max) in enumerate(((1.30, 3.30), (1.30, 3.30), (55.0, 37.1))):
         data = mujoco.MjData(model)
         r.place(data, -5.0, -4.0, 0.0)  # room for 7 m before a wall
         ball.place(data, 4.0, 3.0)
@@ -586,7 +588,7 @@ def test_tier0_has_the_tier1_envelope():
         cmd = np.zeros(3)
         cmd[axis] = r.drive_range[axis, 1]
         vel = []
-        for _ in range(round(2.0 / dt)):
+        for _ in range(round(3.0 / dt)):  # 3.30 m/s at 1.30 m/s^2 takes 2.54 s
             data.ctrl[list(r.drive)] = cmd
             mujoco.mj_step(model, data)
             vel.append(data.qvel[r.qvel_adr + axis])

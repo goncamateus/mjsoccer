@@ -47,8 +47,8 @@ this table and a section disagree about mjsoccer's *current* state, this table w
 
 | ids | at `147d2af` | now | ticket |
 |---|---|---|---|
-| `L1`, `W3`, `W4`, `W7`, §7 limits | wheel ±200 rad/s, ±3 N·m; friction-limited at ~1 g | ±95 rad/s, ±0.078 N·m from the motor (Maxon EC 45 flat 50 W, **direct drive**, not 18:60); derived 2.45 / 2.30 m/s² forward/lateral, 3.30 / 4.04 m/s, 35.9 rad/s; `kv` kept | 01, 04, 16 |
-| `L2`, `M1`, `TO1`, `TO2` | full spin 59.4 rad/s; 35.9 turnovers/min under random action | full spin ~30 rad/s measured (35.9 kinematic); **0 turnovers in 101 min**. The turnovers came from wheel torque authority, not from the 3.459 mm CoM offset (unchanged, harmless). Terminate at 60° with -100 kept; `info` gains `tilt_deg`, `tip_step` | 03, 04, 10 |
+| `L1`, `W3`, `W4`, `W7`, §7 limits | wheel ±200 rad/s, ±3 N·m; friction-limited at ~1 g | ±95 rad/s, ±0.078 N·m from the motor (Maxon EC 45 flat 50 W, **direct drive**, not 18:60); derived 1.95 / 1.30 m/s² forward/lateral (roller friction), 3.30 / 4.04 m/s, 37.1 rad/s; `kv` kept | 01, 04, 12, 16, 19 |
+| `L2`, `M1`, `TO1`, `TO2` | full spin 59.4 rad/s; 35.9 turnovers/min under random action | full spin 36.2 rad/s measured (37.1 ceiling); **0 turnovers in 101 min**. The turnovers came from wheel torque authority, not from the 3.459 mm CoM offset (unchanged, harmless). Terminate at 60° with -100 kept; `info` gains `tilt_deg`, `tip_step` | 03, 04, 10, 12, 20 |
 | `B5` | chassis does not collide with the floor | collided (floor `contype/conaffinity` 5), touches from 9.5° of tilt | 06 |
 | `B1`, `C7` | 209 collision geoms per robot | 193 (16 buried hulls pruned); no hull contact gives a trip impulse in normal play | 07 |
 | `C1`, §5 wheel↔ground | roller μ 1.0, floor 0.8 | 0.25 on both (measured, Williams et al. 2002) | 05 |
@@ -56,8 +56,8 @@ this table and a section disagree about mjsoccer's *current* state, this table w
 | §3 ball | MuJoCo default inertia, β = 0.4 | explicit `diaginertia`, β = 0.5 (measured) | 05 |
 | `L5`, §7 dribbler | `314 * (a + 1) / 2`: a zero action dribbles at 157 rad/s | `314 * max(a, 0)`: `a ≤ 0` off; 314 rad/s is an assumption | 08 |
 | `L4`, `L7`, `L8`, `B4`, §7 kick | 200 N for one control step, exit speed emergent (6-7 m/s) | the action asks for `6.5 * a` m/s, half range; a per-tier force table, `ctrlrange` 0..500 N; the firing step runs at `dt / 4`; 250 ms lockout = 15 steps | 09, 13 |
-| `L9`, `U2`, `U4` | `Box(-inf, inf)`; ball z and the goal test on world z | `Box` finite where physics bounds it, nothing clipped; `MAX_V` 3.3, `MAX_W` 35.9; ball height and `in_goal` measured above the carpet (`FLOOR_Z = 0.02`), so the goal is 0.155 m tall over the carpet, not 0.135 | 11, 12, 13 |
-| `W5`, `W6`, `P3` (tier 0) | `forcerange` ±19.1261 N / ±3.427 N·m, `ctrlrange` 4.0 m/s, damping 0.1/0.005 | tier 1's derived per-axis envelope: ±6.1918 N (2.30 m/s²), ±0.5273 N·m (55.1 rad/s²), ±3.3 m/s, ±35.9 rad/s; damping 0 | 12, 13 |
+| `L9`, `U2`, `U4` | `Box(-inf, inf)`; ball z and the goal test on world z | `Box` finite where physics bounds it, nothing clipped; `MAX_V` 3.3, `MAX_W` 37.1; ball height and `in_goal` measured above the carpet (`FLOOR_Z = 0.02`), so the goal is 0.155 m tall over the carpet, not 0.135 | 11, 12, 13 |
+| `W5`, `W6`, `P3` (tier 0) | `forcerange` ±19.1261 N / ±3.427 N·m, `ctrlrange` 4.0 m/s, damping 0.1/0.005 | tier 1's derived per-axis envelope: ±3.5129 N (1.30 m/s²), ±0.5263 N·m (55.0 rad/s²), ±3.3 m/s, ±37.1 rad/s; damping 0 | 12, 13 |
 | `P2`, `T1`, `T2`, `T4`, §9 | 2 ms step, decimation 8, 62.5 Hz, 1250/1875/2500 steps | 1/960 s step, decimation 16, **exactly 60 Hz**, 1200/1800/2400 steps; an unreachable `control_hz` raises `ValueError` | 13 |
 | `W1` | no kinematic matrix anywhere in the Python | the action is still raw wheel speeds, but `tasks.wheel_command` converts a body velocity to them | 14 |
 | `W2` | matrix undocumented | stated in `docs/index.md`, with the sign inversion | 15 |

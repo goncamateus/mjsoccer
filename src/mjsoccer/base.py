@@ -31,7 +31,7 @@ from gymnasium import spaces
 from . import scene
 
 MAX_V = 3.3  # m/s -- the tier-0 chassis servo ctrlrange (ticket 12), used to normalise observations
-MAX_W = 35.9  # rad/s, likewise: wheel no-load, the kinematic yaw ceiling (ticket 13)
+MAX_W = 37.1  # rad/s, likewise: the yaw ceiling of a spin about the CoM (ticket 12)
 MAX_BALL_V = 8.0  # m/s -- kicks cap at 6.5 (scene.KICK_SPEED_MAX) off a standing robot, ~8.5 moving
 POSSESSION_GRACE = 0.05  # s of no ball/dribbler contact before the ball counts as lost
 # A robot is over when its own +z is more than 60 deg off world +z. Well past anything

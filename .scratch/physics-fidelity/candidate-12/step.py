@@ -2,7 +2,7 @@
 
     uv run python .scratch/physics-fidelity/candidate-12/step.py > .scratch/physics-fidelity/candidate-12/step_<before|after>.txt
 
-Peak acceleration over the first 50 ms, steady speed after 2 s, for world x, world y and yaw (the robot starts at yaw 0, so these are its body axes too).
+Peak acceleration over the first 50 ms, steady speed after 3 s, for world x, world y and yaw (the robot starts at yaw 0, so these are its body axes too).
 """
 
 import mujoco
@@ -22,7 +22,7 @@ for axis, name in enumerate(("x", "y", "yaw")):
     cmd[axis] = r.drive_range[axis, 1]
     dt = model.opt.timestep
     vel = []
-    for _ in range(round(2.0 / dt)):
+    for _ in range(round(3.0 / dt)):
         data.ctrl[list(r.drive)] = cmd
         mujoco.mj_step(model, data)
         vel.append(data.qvel[r.qvel_adr + axis])

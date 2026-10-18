@@ -1,0 +1,7 @@
+loads (N) [7.53  5.648 6.245 6.986]
+a_x LP bound 1.866 m/s^2, wheel forces [ 1.753  1.412 -1.408 -1.747] N, grip used [0.931 1.    0.902 1.   ]
+a_y LP bound 1.305 m/s^2, wheel forces [-1.35   1.412  1.561 -1.471] N, grip used [0.717 1.    1.    0.842]
+yaw: mu sum(N d) about CoM 0.5245 N*m, / Izz 0.009545 = 54.96 rad/s^2
+symmetric loads (N) [7.258 5.947 5.947 7.258]
+a_x LP bound 1.945 m/s^2, grip used [1.    1.    0.997 0.997]
+a_y LP bound 1.305 m/s^2, grip used [0.777 1.    1.    0.777]

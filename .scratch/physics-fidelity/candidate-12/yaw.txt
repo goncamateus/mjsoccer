@@ -1,0 +1,10 @@
+mass 2.69207 kg, CoM -3.45 +0.16 mm from the chassis origin
+arm about centre (mm) [79.6 79.6 79.6 79.6]  about CoM [81.19 77.04 77.27 81.47]
+w ceiling about centre   v_rim / R         = 35.91 rad/s
+w balance about CoM      v_rim sum d/sum d2 = 36.05 rad/s
+w ceiling about CoM      v_rim / min d      = 37.10 rad/s  (past it every wheel brakes the spin)
+static wheel loads (N) [7.53  5.648 6.245 6.986] sum 26.409, mg 26.409
+a_x friction bound  mu sum(cos N) / m          = 1.948 m/s^2
+a_y friction bound  mu sum(cos) N_rear / m      = 1.333 m/s^2 (F equal at every wheel, no moment)
+yaw friction torque mu sum(N d) about CoM      = 0.5245 N*m
+tier 1 full spin: alpha over the first 50 ms 54.9 rad/s^2, best 50 ms window 59.8, peak 36.20 rad/s, mean of the last second 36.11

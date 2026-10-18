@@ -89,7 +89,7 @@ extras (`extra_obs = 2`).
 | 9 | cos of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
 | 10 | world-frame x velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
 | 11 | world-frame y velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
-| 12 | yaw rate of the controlled blue robot | -Inf | Inf | `b0_robot` | rad/s, / 35.9 (`MAX_W`) |
+| 12 | yaw rate of the controlled blue robot | -Inf | Inf | `b0_robot` | rad/s, / 37.1 (`MAX_W`) |
 | 13 | whether the controlled blue robot has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
 | 14 | waypoint x in the robot's own frame | -2.57 | 2.57 | `DribblingEnv._target` | m, / 6.0 (`FIELD_HALF_X`) |
 | 15 | waypoint y in the robot's own frame | -3.427 | 3.427 | `DribblingEnv._target` | m, / 4.5 (`FIELD_HALF_Y`) |

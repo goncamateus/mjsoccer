@@ -1,7 +1,7 @@
 # Decisão: o que "o mesmo envelope" significa para o tier 0
 
 Type: grilling
-Status: open
+Status: resolved
 Blocked by: 04, 20
 
 ## Pergunta
@@ -88,6 +88,70 @@ e a resposta é não monotônica (pior seed 82 / 75 / 69 / 75 com amortecimento 
 É ruído do contato bola↔dribbler, não efeito do envelope. O limite foi para 60. Uma bola de fato
 perdida pontua perto de zero, então o teste continua pegando o que deve pegar. `Dribbling` tier 0
 continua 119/120.
+
+### Reaberto e resolvido de novo (2026-10-18, depois do `20`)
+
+Medições em [`candidate-12/`](../candidate-12/): `yaw.py` (braços das rodas contra o CoM, cargas
+estáticas, giro cheio do tier 1 → `yaw.txt`), `lp.py` (o limite por atrito como programa linear →
+`lp.txt`), `step.py` com 3 s (→ `step_reopen.txt`), `extremes.py` e `bounds.py` do `11` (→
+`extremes_reopen_t{0,1}.csv`, `bounds_reopen_t0.csv`), o sweep do `14` em seeds 0-4 (→ `sweep/`)
+e `kw.py` (→ `kw.txt`).
+
+A definição do item 1 não muda: quatro limites por eixo, isotrópicos, o menor entre frontal e
+lateral do envelope *derivado*. Muda a derivação, agora toda em torno do CoM, 3.45 mm atrás do
+centro das rodas. **O tier 0 desce até o tier 1 em `a_max`, `v_max` fica, `α_max` perde 0.2 % na
+troca de base, e `ω_max` sobe para o teto do giro em torno do CoM.**
+
+1. **`v_max` fica 3.30 m/s.** O tier 1 mede 3.29 em x e 4.02 em y (`20`).
+2. **`a_max` 2.30 → 1.30 m/s², `forcerange` linear ±6.1918 → ±3.5129 N** (2.69207 · 1.3049). O
+   2.30 era o torque de roda lateral, e o atrito liga antes. O limite exato é um programa linear
+   (`lp.py`): uma força por roda ao longo do seu rolamento, |f| ≤ μN com as cargas estáticas, e
+   força fora do eixo e momento em torno do CoM nulos.
+   - **Lateral: 1.305**, com as cargas do solver (7.53 / 5.65 / 6.25 / 6.99 N) ou com cada eixo
+     dividido igual entre esquerda e direita. As dianteiras levam 22 % mais carga, e as traseiras,
+     mais leves e atrás do CoM, precisam empurrar mais para não sobrar momento, então chegam ao
+     atrito primeiro. O 1.33 do `19` (μ Σ cos · N_traseira / m) supunha as quatro empurrando
+     igual, o que deixa momento em torno do CoM.
+   - **Frontal: 1.95** com cargas simétricas, **1.87** com o split diagonal do solver (rodas 1 e 3
+     mais pesadas). Quatro rodas num chassi rígido são estaticamente indeterminadas, então esse
+     split é do solver, não do robô. O "μg = 2.45" esquecia o cosseno das rodas.
+   - O `20` mede o mesmo: rampa frontal de 1.6 acompanha e 2.0 não; lateral de 1.2 acompanha e
+     1.4 vira giro. Isotrópico, o menor: 1.30.
+3. **`α_max` 55.1 → 55.0 rad/s², ±0.5273 → ±0.5263 N·m** (0.009577 · 54.96). Mesma física na base
+   do CoM: μ Σ N d = 0.5245 N·m sobre 0.009545 (era μmgR em torno do centro, 0.5255). O giro cheio
+   do tier 1 mede 54.9 rad/s² nos primeiros 50 ms. A melhor janela de 50 ms, já girando, chega a
+   59.8 (8 % acima); é um transiente cuja causa não foi isolada, e o tier 0 não o copia.
+4. **`ω_max` 35.9 → 37.1 rad/s, `MAX_W` segue.** O giro cheio do tier 1 rola sem escorregar em
+   torno do CoM e chega a 36.2 (o equilíbrio v_aro Σd / Σd² é 36.05): as traseiras arrastam as
+   dianteiras acima de 95 rad/s. 37.1 = v_aro / d_min, com d_min = 77.04 mm a roda mais perto do
+   CoM; acima disso toda roda freia o giro. É o teto que o tier 1 não passa, o papel que o 35.9
+   tinha antes do `20`. Os três `xfail(strict)` do `20` viram testes normais. `goto_ball_policy`
+   `kw` 1.25 → 1.21 (os mesmos 45 rad/s por rad abaixo da saturação; saturado, pede 37.1).
+5. **Testes.** `test_tier0_has_the_tier1_envelope` passa a 1.30 / 55.0 / 37.1, com 3 s de degrau
+   (3.30 m/s a 1.30 m/s² leva 2.54 s). `test_achievable_acceleration` (critério 5 do `14`) centra
+   a banda de 1.5× no limite por atrito de cada eixo, 1.95 / 1.30, não em 2.30; mede 2.24 / 1.63.
+
+`step.py`, comando cheio a partir do repouso:
+
+| eixo | a / regime | alvo |
+|---|---|---|
+| x | **1.30 / 3.30** | 1.30 / 3.30 |
+| y | **1.31 / 3.30** | 1.30 / 3.30 |
+| yaw | **55.1 / 37.07** | 55.0 / 37.1 |
+
+Sweep, seeds 0-4 (`sweep/`): 0 tombamentos, e nenhum step acima de `MAX_W` em cenário nenhum
+(máximo 36.25; o giro cheio tinha 86 % dos steps acima do 35.9, e o `dribble_turn` a 50 rad/s
+65 %). No tier 0 sob ação aleatória o yaw p99 vai de 7.6-9.9 para 7.5-10.2 rad/s. A posse do
+`competent` mexe onde um episódio decide tudo: `PassEndurance` 158 → 75 no tier 1 e 407 → 146 no
+tier 0, `StaticDefenders` tier 0 3 → 303. É sensibilidade de um episódio, não efeito do envelope:
+com `kw` de 1.19 a 1.25 (±1 % em torno de 1.21), a seed 1 do `PassEndurance` tier 1 segura 79 a
+275 passos (`kw.txt`). Extremos sob ação aleatória, seeds 0-19: `|v|`/`MAX_V` e `|ω|`/`MAX_W`
+chegam a 0.30 / 0.43 no tier 0 (eram 0.42 / 0.45) e 0.45 / 0.18 no tier 1. `bounds.py` no
+tier 0: 0 observações fora do `Box`.
+
+Documentação: `docs/index.md` (tabela de ação, tabela do envelope do tier 1 re-derivada, o
+parágrafo do tier 1, `MAX_W`, extremos, tabela do tier 0, critério 5), `README.md`, a tabela de
+status da auditoria e as seis páginas de ambiente (`/ 37.1`).
 
 ## Comments
 

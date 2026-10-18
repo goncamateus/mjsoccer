@@ -135,3 +135,6 @@ giro com posse. (b) O raspão a 6 m/s gera 33 rad/s de yaw; é o único cenário
   é 1.95 / 1.33. O critério 2 falha nos giros cheios (36.2 > 35.9) por causa da geometria, não por
   defeito. Os três testes ficam `xfail(strict)` até o `12` decidir `MAX_W`. O critério 7 sobe de 3 %
   a 16 % no tier 1. Sweep com seeds 0-4 em [`../candidate-20/sweep/`](../candidate-20/sweep/).
+- 2026-10-18, do `12` (reaberto): o critério 5 centra a banda de 1.5× no limite por atrito de cada
+  eixo, 1.95 frontal e 1.30 lateral, não em 2.30. O critério 2 usa `MAX_W` = 37.1, o teto do giro
+  em torno do CoM; os três `xfail(strict)` viram testes normais.

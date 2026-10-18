@@ -40,11 +40,11 @@ or not its reward uses it, so one action head transfers across all six.
 
 Tier 1 drives four wheels through 80 rollers that really slip, at the envelope of the
 robot's motor (Maxon EC 45 flat 50 W, direct drive): ±95 rad/s and ±0.078 N·m per wheel,
-which derives to 3.30 m/s, 2.30-2.45 m/s² and 35.9 rad/s at the chassis. Measured, it
-reaches that acceleration but not yet that speed (~2.1 m/s forward, ~0.4 lateral, ~30 rad/s
-of spin): the rollers lose floor contact while driving, an open issue. Tier 0 is the same
-envelope on an ideal kinematic chassis — the same four per-axis limits, `v_max` 3.30 m/s,
-`a_max` 2.30 m/s², `ω_max` 35.9 rad/s, `α_max` 55.1 rad/s², isotropic — and deliberately
+which derives to 3.30 m/s, 1.30-1.95 m/s² (roller friction) and a 37.1 rad/s yaw ceiling at
+the chassis. Measured, it drives at 3.29 m/s forward and 4.02 lateral and spins at 36.2
+rad/s, with sustained acceleration at the friction bound. Tier 0 is the same envelope on an
+ideal kinematic chassis — the same four per-axis limits, `v_max` 3.30 m/s,
+`a_max` 1.30 m/s², `ω_max` 37.1 rad/s, `α_max` 55.0 rad/s², isotropic — and deliberately
 not the same mechanism: no slip, no traction budget, no weight transfer, no coupling between
 axes. A robot that tips past 60° ends the episode at `-100`; under random action on tier 1
 that has not happened once in 101 minutes of episode. Physics steps at 1/960 s, so the

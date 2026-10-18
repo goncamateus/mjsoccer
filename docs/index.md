@@ -38,7 +38,7 @@ The `validation` suite is excluded from the default run (`pyproject.toml`). It i
 regression check for the physics acceptance criteria: no turnover, yaw p99 under `MAX_W` and
 tilt p99 under 15° in every scripted scenario, in one random-action episode per env and tier,
 and in five `goto_ball_policy` episodes per tier; tier-1 acceleration within 1.5× of the
-derived 2.30 m/s². The pooled criteria — under 1 turnover per episode-minute, tilt p95/p99
+derived, friction-bound 1.95 m/s² forward and 1.30 lateral. The pooled criteria — under 1 turnover per episode-minute, tilt p95/p99
 under 4°/5° under random action — need `validation_sweep.py`, which runs the same scenarios
 over seeds 0-49 and writes per-episode, summary, contact-impulse and throughput CSVs; its
 docstring lists the scenarios. The
@@ -82,9 +82,9 @@ it, which is what keeps a single action head transferable across the suite.
 | control | tier 1 actuator (default) | tier 0 actuator | ctrlrange | commanded |
 |---|---|---|---|---|
 | `w1..w4` | `wheel{1..4}_vel` | — | -95 .. 95 rad/s, ±0.078 N·m | `a * 95` |
-| `vx` | — | `vel_x` | -3.3 .. 3.3 m/s, ±6.19 N | `a * 3.3` |
-| `vy` | — | `vel_y` | -3.3 .. 3.3 m/s, ±6.19 N | `a * 3.3` |
-| `omega` | — | `vel_yaw` | -35.9 .. 35.9 rad/s, ±0.527 N·m | `a * 35.9` |
+| `vx` | — | `vel_x` | -3.3 .. 3.3 m/s, ±3.51 N | `a * 3.3` |
+| `vy` | — | `vel_y` | -3.3 .. 3.3 m/s, ±3.51 N | `a * 3.3` |
+| `omega` | — | `vel_yaw` | -37.1 .. 37.1 rad/s, ±0.526 N·m | `a * 37.1` |
 | `kick` | `kicker_force` | `kicker_force` | 0 .. 500 N | pulse for `6.5 * a` m/s if `a > 0` |
 | `chip` | `chipper_force` | `chipper_force` | 0 .. 500 N | pulse for `6.5 * a` m/s if `a > 0` |
 | `dribble` | `dribbler_vel` | `dribbler_vel` | -1500 .. 1500 rad/s | `314 * max(a, 0)` |
@@ -129,25 +129,28 @@ drive** on a ~60 mm wheel — the CAD's hubs are `Direct_Transmission_*`, and rS
 |---|---|---|---|---|
 | wheel torque | ±0.078 N·m | | | `I_nom · k_M`, the motor's continuous rating (VENDOR) |
 | wheel speed | ±95 rad/s | | | a design choice: 25 % under the spin tip-over rate `ω_tip = 47.7` rad/s, far under the motor's ~702 rad/s no-load (DELIBERATE APPROXIMATION) |
-| acceleration | **2.45** m/s² (torque alone: 2.98) | **2.30** m/s² | **55.1** rad/s² | forward and yaw by roller friction `μ = 0.25` (`μg`, `μmgR / I_zz`), lateral by torque |
-| speed | **3.30** m/s | **4.04** m/s | **35.9** rad/s | wheel speed through the matrix |
+| acceleration | **1.95** m/s² (torque alone: 2.98) | **1.30** m/s² (torque alone: 2.30) | **55.0** rad/s² | roller friction `μ = 0.25`: each wheel pushes along its own tangent (`μ Σ N cos / m`); lateral, no moment about the CoM puts the lighter rear wheels at their grip first; yaw `μ Σ N d / I_zz` about the CoM |
+| speed | **3.30** m/s | **4.04** m/s | **37.1** rad/s | wheel speed through the matrix; yaw about the CoM, 3.45 mm behind the wheel centre (35.9 about the centre) |
 
 The forward acceleration clears the static forward tip threshold (`g · 0.04325 / 0.05399 =
-7.86` m/s²) by a factor of three. The `velocity` actuators' `kv = 0.103696` is kept: it
+7.86` m/s²) by a factor of four. The `velocity` actuators' `kv = 0.103696` is kept: it
 saturates above 0.75 rad/s of error, which approximates a firmware speed loop with a current
 clamp (DELIBERATE APPROXIMATION). A constant `forcerange` cannot express an ESC's transient
 overcurrent, so launch acceleration may be low.
 
-**Tier 1 reaches its derived speed, not its derived acceleration.** Measured (ticket 20):
-3.29 m/s forward at full command, 2 s from rest, and 4.02 m/s lateral with the command
-ramped at 1 m/s². The rollers' collision shape is a smooth ellipsoid with no torsional
-friction and no joint damping, so they spin free and slide nothing along the wheel axle.
-Sustained acceleration is friction-bound below the table, because each wheel pushes along its
-own tangent, 30° or 45° off the motion: ~1.9 m/s² forward and ~1.3 lateral with `μ = 0.25`.
-The launch transient, best 0.1 s window, reads 2.35 forward and 1.85 lateral, inside 1.5× of
-2.30, which the `validation` suite asserts. Past ~1.3 m/s² lateral the chassis turns into a spin:
-the front wheels carry 22 % more load, and the command is body-frame with no heading
-feedback. Ticket 12 re-derives the table from these numbers.
+**Tier 1 reaches the table.** Measured (ticket 20): 3.29 m/s forward at full command, 2 s
+from rest, and 4.02 m/s lateral with the command ramped at 1 m/s². The rollers' collision
+shape is a smooth ellipsoid with no torsional friction and no joint damping, so they spin free
+and slide nothing along the wheel axle. Sustained acceleration sits at the friction bound,
+because each wheel pushes along its own tangent, 30° or 45° off the motion: a forward ramp
+of 1.6 m/s² is tracked and 2.0 is not, a lateral one of 1.2 is and 1.4 is not. The launch
+transient, best 0.1 s window, reads 2.24 forward and 1.63 lateral, inside 1.5× of 1.95 and
+1.30, which the `validation` suite asserts. Past 1.30 m/s² lateral the chassis turns into a
+spin: the front wheels carry 22 % more load, so once the rear ones slip the front ones push
+harder, and the command is body-frame with no heading feedback. A full spin rolls without
+slip about the CoM at 36.2 rad/s, not about the wheel centre: the rear wheels drag the front
+ones past 95 rad/s. The ceiling is 37.1, where the wheel nearest the CoM reaches 95 rad/s;
+faster, every wheel brakes the spin.
 
 **Body frame.** Tier 1's wheel speeds inherently produce a *body-frame* motion, which is
 also how SSL firmware is commanded. Tier 0 has to be made to agree: its chassis joints are
@@ -215,7 +218,7 @@ Every entry is normalised by a constant from `base.py` or `scene.py`:
 | ball z above the carpet (`z - scene.FLOOR_Z`) | `scene.GOAL_HEIGHT` | 0.155 m |
 | ball vx, vy, vz | `base.MAX_BALL_V` | 8.0 m/s (kicks are capped at 6.5 off a standing robot) |
 | robot vx, vy | `base.MAX_V` | 3.3 m/s (the tier-0 chassis servo ctrlrange) |
-| robot omega | `base.MAX_W` | 35.9 rad/s (likewise; the wheels' kinematic yaw ceiling) |
+| robot omega | `base.MAX_W` | 37.1 rad/s (likewise; the ceiling of tier 1's spin about its CoM) |
 
 Nothing clips these. The declared `Box` is finite only where the simulator guarantees a
 bound, so `observation_space.contains` is true of every observation:
@@ -231,11 +234,9 @@ bound, so `observation_space.contains` is true of every observation:
 | Dribbling waypoint | ±2.57, ±3.427 | an in-field waypoint seen from a robot inside the walls |
 
 Measured under random action, seeds 0-19, six envs: tier 1 robot `|v|` peaks at 0.45 and
-`|omega|` at 0.14 of their divisors; tier 0 at 0.42 and 0.45. Under its own full command
-the tier-1 chassis spins at 36.2 rad/s, 1 % past `MAX_W`: it rolls about its CoM, 3 mm behind
-the wheel centre the derived 35.9 assumes, so `|omega|` reads up to 1.01 (ticket 12 decides
-`MAX_W`; `test_full_spin_stays_under_max_w` is an expected failure until then). It drives at
-3.29 m/s, 1.00 of `MAX_V`. `MAX_V` and `MAX_W` are the tier-0 servo `ctrlrange`, pinned by
+`|omega|` at 0.18 of their divisors; tier 0 at 0.30 and 0.43. Under its own full command
+the tier-1 chassis spins at 36.2 rad/s, 0.98 of `MAX_W`, which is the ceiling of a spin about
+its CoM. It drives at 3.29 m/s, 1.00 of `MAX_V`. `MAX_V` and `MAX_W` are the tier-0 servo `ctrlrange`, pinned by
 `test_velocity_normalisers_are_the_tier0_servo_range`, and the same on both tiers so one
 observation means one speed. The channels that do leave `[-1, 1]` are physical: a chipped
 ball reads up to ~3 in height, a kick off a moving robot reaches ~8.5 m/s (1.06 of
@@ -276,9 +277,9 @@ envelope above, each isotropic at the smaller of tier 1's forward and lateral va
 | limit | tier 0 | from |
 |---|---|---|
 | `v_max` | 3.30 m/s (`ctrlrange`) | tier-1 forward speed |
-| `a_max` | 2.30 m/s² (`forcerange` ±6.1918 N = m·a) | tier-1 lateral acceleration |
-| `ω_max` | 35.9 rad/s (`ctrlrange`) | the wheels' kinematic yaw ceiling |
-| `α_max` | 55.1 rad/s² (`forcerange` ±0.5273 N·m = `I_zz`·α) | tier-1 friction-limited yaw |
+| `a_max` | 1.30 m/s² (`forcerange` ±3.5129 N = m·a) | tier-1 lateral, friction-bound acceleration |
+| `ω_max` | 37.1 rad/s (`ctrlrange`) | the ceiling of tier 1's spin about its CoM |
+| `α_max` | 55.0 rad/s² (`forcerange` ±0.5263 N·m = `I_zz`·α) | tier-1 friction-limited yaw |
 
 Isotropic because tier 0's slides are world axes: a body-frame limit would need a clip in
 the Python, and the limits come from the model. The chassis joint damping is 0, so nothing

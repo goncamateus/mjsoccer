@@ -1,0 +1,13 @@
+env,tier,steps_per_s
+GoToBall-v0,0,1507.0
+GoToBall-v0,1,330.8
+GoToBallShoot-v0,0,1504.8
+GoToBallShoot-v0,1,330.0
+Dribbling-v0,0,1227.3
+Dribbling-v0,1,286.4
+StaticDefenders-v0,0,351.5
+StaticDefenders-v0,1,63.5
+ContestedPossession-v0,0,727.8
+ContestedPossession-v0,1,166.6
+PassEndurance-v0,0,835.8
+PassEndurance-v0,1,180.5
