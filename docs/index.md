@@ -30,7 +30,19 @@ env.close()
 uv run python examples/random.py --env GoToBall-v0 --tier 0
 uv run python examples/random.py --list
 uv run python -m pytest tests -q
+uv run python -m pytest tests -m validation -q                  # acceptance criteria, ~2 min
+uv run python scripts/validation_sweep.py --out runs/validation  # the distributions behind them, CSV
 ```
+
+The `validation` suite is excluded from the default run (`pyproject.toml`). It is the
+regression check for the physics acceptance criteria: no turnover, yaw p99 under `MAX_W` and
+tilt p99 under 15° in every scripted scenario, in one random-action episode per env and tier,
+and in five `goto_ball_policy` episodes per tier; tier-1 acceleration within 1.5× of the
+derived 2.30 m/s². The pooled criteria — under 1 turnover per episode-minute, tilt p95/p99
+under 4°/5° under random action — need `validation_sweep.py`, which runs the same scenarios
+over seeds 0-49 and writes per-episode, summary, contact-impulse and throughput CSVs; its
+docstring lists the scenarios. The
+reference outputs are in `.scratch/physics-fidelity/candidate-14/`.
 
 ## Environment index
 
@@ -43,8 +55,9 @@ uv run python -m pytest tests -q
 | [`ContestedPossession-v0`](environments/contested_possession.md) | 1 blue + 1 yellow | 22 | 7 / 6 | 20 | blue holds the ball for 0.5 s |
 | [`PassEndurance-v0`](environments/pass_endurance.md) | 2 blue (1 controlled) | 22 | 7 / 6 | 20 | team-mate receives the pass |
 
-Every environment also terminates when the ball leaves the field, and truncates at its
-horizon. All six controls exactly one blue robot; the remaining robots are scripted.
+Every environment also terminates when the ball leaves the field or when a controlled robot
+tips over (more than 60° off vertical, `-100.0`, see [Turnover](#turnover)), and truncates at
+its horizon. All six controls exactly one blue robot; the remaining robots are scripted.
 
 ## Action space
 
@@ -80,6 +93,56 @@ Everything is in `[-1, 1]` and scaled by the actuator's own `ctrlrange`, so the 
 from the model rather than from a constant in the Python. The drive scale is
 `max(hi, -lo)` over the actuator's range, which is symmetric, so a zero action is a zero
 command rather than the midpoint of the range.
+
+**Tier-1 wheel matrix.** What a wheel vector does to the chassis, in the body frame (x
+forward, y left, ω counter-clockwise), at the measured geometry:
+
+```
+w_i = (1 / r_eff) * ( vx * sin(a_i) - vy * cos(a_i) - R * omega )
+
+a_i   = 60, 135, 225, 300 deg       wheel1..wheel4, mount angle from +x
+r_eff = 0.030089 m                  measured: axle height minus the lowest roller vertex
+R     = 0.0796 m                    measured: hub mount radius
+```
+
+`w_i` is positive about each hub's own joint axis. `tasks.wheel_command(env, i, vx, vy, w)`
+reads the same rolling constraint off the compiled model and returns the four actions. All
+four wheels at `-1` (`-95` rad/s) asks for a pure spin of `+35.9` rad/s (kinematic; the
+chassis measures ~30-32 rad/s, the rest is roller slip). **The sign convention is
+the mirror of rSim's** (`sslrobot.cpp:383-386` is `-vx sin a + vy cos a + R w`, with
+`r = 0.02475`, `R = 0.090`), so a wheel vector ported from rSoccer drives backwards and yaws
+the wrong way (`W2` in [the audit](research/rsoccer-vs-mjsoccer.md)).
+
+The geometry also fixes how much of the four wheels' force a translation can use. A
+forward push projects each wheel by `|sin a|` and a sideways one by `|cos a|`, so the sums
+are **`Σ|sin a| = 3.14626` forward** and **`Σ|cos a| = 2.41421` lateral**, not 4 (the
+force-maximising sign pattern has `Σ f_i = 0`, so it costs no yaw). Every acceleration
+quoted for this robot, or for rSim's, is the per-wheel force times these factors.
+
+**Drive envelope.** The wheel bounds in the action table are a motor, not a guess (tickets
+01, 04, 05, 16; development in `.scratch/physics-fidelity/research/01-drivetrain-envelope.md`).
+The robot is a Maxon EC 45 flat 50 W (winding 251601, 24 V, `k_M` 33.5 mN·m/A) in **direct
+drive** on a ~60 mm wheel — the CAD's hubs are `Direct_Transmission_*`, and rSim's
+`0.070 N·m`/`1557 rpm` describe the team's earlier geared robot.
+
+| | forward (x) | lateral (y) | yaw | binding limit |
+|---|---|---|---|---|
+| wheel torque | ±0.078 N·m | | | `I_nom · k_M`, the motor's continuous rating (VENDOR) |
+| wheel speed | ±95 rad/s | | | a design choice: 25 % under the spin tip-over rate `ω_tip = 47.7` rad/s, far under the motor's ~702 rad/s no-load (DELIBERATE APPROXIMATION) |
+| acceleration | **2.45** m/s² (torque alone: 2.98) | **2.30** m/s² | **55.1** rad/s² | forward and yaw by roller friction `μ = 0.25` (`μg`, `μmgR / I_zz`), lateral by torque |
+| speed | **3.30** m/s | **4.04** m/s | **35.9** rad/s | wheel speed through the matrix |
+
+The forward acceleration clears the static forward tip threshold (`g · 0.04325 / 0.05399 =
+7.86` m/s²) by a factor of three. The `velocity` actuators' `kv = 0.103696` is kept: it
+saturates above 0.75 rad/s of error, which approximates a firmware speed loop with a current
+clamp (DELIBERATE APPROXIMATION). A constant `forcerange` cannot express an ESC's transient
+overcurrent, so launch acceleration may be low.
+
+**Tier 1 does not yet reach its derived speed.** Measured by the validation sweep, full
+command from rest: 2.47 m/s² forward and 1.87 lateral (inside 1.5× of 2.30, which the
+`validation` suite asserts), but 2 s later only 2.14 m/s forward and 0.43 m/s lateral
+against 3.30 and 4.04. The rollers lose floor contact while driving; that is open as
+ticket 18, and no acceptance criterion uses the kinematic `v_max` until it closes.
 
 **Body frame.** Tier 1's wheel speeds inherently produce a *body-frame* motion, which is
 also how SSL firmware is commanded. Tier 0 has to be made to agree: its chassis joints are
@@ -135,6 +198,9 @@ Robot linear velocity is world-frame (it is read straight off `qvel`), unlike th
 command, which is per-wheel on tier 1 and body-frame on tier 0. `has_ball` is `1.0` while
 the robot is inside the possession grace window (see below) and `0.0` otherwise.
 
+Chassis tilt is not observed: a robot past 60° ends the episode instead (see
+[Turnover](#turnover)), and below that the tier-1 chassis stays within a few degrees.
+
 Every entry is normalised by a constant from `base.py` or `scene.py`:
 
 | quantity | divisor | value |
@@ -184,17 +250,38 @@ kinematic approximation has never met any of it.
 
 Tier 0 is the fast approximation. It is several times cheaper to step, and it is what to
 drop to when throughput is the binding constraint — early sweeps, reward debugging,
-anything where the number of samples matters more than their fidelity. Measured here, 100
-random-action steps on one core, measured at a 1 ms step (16 per control step, the
-same count as the 1/960 s default):
+anything where the number of samples matters more than their fidelity. Measured by
+`scripts/validation_sweep.py --scenario random`, one process, random actions, at the
+1/960 s default (`.scratch/physics-fidelity/candidate-14/throughput.csv`):
 
 | env | tier 0 | tier 1 |
 |---|---|---|
-| `GoToBall-v0` | ~1 000 steps/s | ~240 steps/s |
-| `StaticDefenders-v0` (7 robots) | ~260 steps/s | ~40 steps/s |
+| `GoToBall-v0` | ~1 500 steps/s | ~320 steps/s |
+| `Dribbling-v0` | ~1 200 steps/s | ~280 steps/s |
+| `StaticDefenders-v0` (7 robots) | ~360 steps/s | ~54 steps/s |
 
-Half of what the same measurement gives at the old 2 ms step: the price of resolving the
-contacts (see Timing).
+The 1/960 s step costs about half the throughput of the old 2 ms one: the price of
+resolving the contacts (see Timing). The validation criterion is "within 10 % of that file on the same machine".
+
+**Tier 0 has tier 1's envelope, not its mechanism.** One action head should mean one thing
+on both tiers, so tier 0's servos carry the four per-axis limits of the derived tier-1
+envelope above, each isotropic at the smaller of tier 1's forward and lateral value:
+
+| limit | tier 0 | from |
+|---|---|---|
+| `v_max` | 3.30 m/s (`ctrlrange`) | tier-1 forward speed |
+| `a_max` | 2.30 m/s² (`forcerange` ±6.1918 N = m·a) | tier-1 lateral acceleration |
+| `ω_max` | 35.9 rad/s (`ctrlrange`) | the wheels' kinematic yaw ceiling |
+| `α_max` | 55.1 rad/s² (`forcerange` ±0.5273 N·m = `I_zz`·α) | tier-1 friction-limited yaw |
+
+Isotropic because tier 0's slides are world axes: a body-frame limit would need a clip in
+the Python, and the limits come from the model. The chassis joint damping is 0, so nothing
+else eats the thrust. `test_tier0_has_the_tier1_envelope` pins the step response to 3 %.
+
+**What is deliberately not matched**, and is what tier 1 is for: slip, traction, weight
+transfer, and the coupling between axes. Tier 0's envelope is a box — it can reach all three
+limits at once, and along a world diagonal up to `√2 ×` its `v` and `a`. Tier 1's is a
+polytope: at full forward speed no wheel is left over for yaw.
 
 The two tiers are not interchangeable as evaluation targets — see
 [Possession](#possession) for a measured behavioural difference — so a number produced on
@@ -261,6 +348,59 @@ at the sphere/bar tangency instead is a launcher, not a seat — the contact nee
 tenths of a millimetre of overlap to exist at all, and on a 46 g ball that overlap is a
 compressed spring worth several newtons. Below ~0.1 mm MuJoCo stops generating the contact
 at all, so there is no overlap that works.
+
+**Turning with the ball loses it.** With the bar at 157 rad/s (`dribble = 0.5`) a robot
+spinning in place at 10 rad/s or more drops a seated ball within 5 control steps; standing
+still it holds 117 of 120 (the validation sweep's `dribble_turn` scenario). A task that
+needs a turn in possession has to do it slowly, or with more bar speed.
+
+## Turnover
+
+A controlled robot whose up-axis is more than 60° off vertical (`base.TIPPED_COS = 0.5`)
+ends the episode. That step pays `base.TIPOVER_PENALTY = 100.0` off the task reward and sets
+`info["tipped"]`, plus `info["tilt_deg"]` (the worst controlled robot's tilt) and
+`info["tip_step"]` (control steps since reset, so time-to-tip is `tip_step * dt`). Scripted
+robots never trigger it, and tier 0's chassis cannot tilt at all.
+
+60° is not arbitrary: it sits about 1° from the measured static recovery boundary. A robot
+rested on the carpet at tilt θ about a horizontal axis, controls at zero, stands back up
+below 59-67° depending on the axis azimuth, median 61°
+(`.scratch/physics-fidelity/candidate-10/recover.txt`); a robot falling through 60° carries
+momentum towards the floor, so the dynamic boundary is lower still. Past it the robot only
+lies there until truncation, so ending the episode loses nothing.
+
+It is a safety net, not a mechanism a policy meets. Under random action, tier 1, seeds 0-49,
+all six envs: **0 turnovers in 101 minutes of episode**, tilt p99 3.6-3.9° and max 7-8°.
+Before the drivetrain envelope above, the same sweep tipped 35.9 times a minute — from the
+old ±3 N·m wheel torque, not from spin. The chassis collides with the carpet (its hulls
+first touch it from 9.5° of tilt), so a robot on its side lies on the floor instead of
+sinking through it. There is no righting moment and none is planned; that reopens only if a
+trained policy shows a non-zero `tipped` rate.
+
+## Contact and body parameters
+
+Every number below either has a source or is recorded as a deliberate approximation. The
+classes rank RULEBOOK > MEASURED > VENDOR > DELIBERATE APPROXIMATION (development in
+`.scratch/physics-fidelity/research/02-physical-constants.md` and ticket 05).
+
+| parameter | value | class | source / reason |
+|---|---|---|---|
+| ball mass, radius | 0.046 kg, 0.0215 m | RULEBOOK | SSL rules §2.2 |
+| kick and chip speed cap | 6.5 m/s | RULEBOOK | SSL rules §8.4.2 |
+| ball inertia | `diaginertia` for β = 0.5 (`I = β m r²`), not MuJoCo's solid-sphere 0.4 | MEASURED | `models/ball.xml` |
+| ball ↔ floor sliding μ | 0.35 | MEASURED | ER-Force's empirical μ_k |
+| ball rolling μ | 0.0009 → 0.293 m/s² rolling deceleration | MEASURED | measured range 0.26-0.31 m/s² |
+| ball ↔ floor, ball ↔ wall restitution | **none yet** (`solref` damping ratio 1); target COR 0.50 | MEASURED target | measured 0.47-0.56 on carpet; the `solref` that reaches it is open as ticket 17. **This is the model's largest open contact gap**: a landing chip or a missed shot dies instead of bouncing |
+| roller ↔ floor μ | 0.25, set on both the roller and the floor (MuJoCo takes the elementwise max) | MEASURED | Williams et al., IEEE T-RA 18(3), 2002, tilt table — the only published omni-roller-on-carpet value |
+| chassis ↔ floor | collided (floor `contype/conaffinity` 5), no proxy | — | ticket 06 |
+| collision hulls | 193 per robot (16 buried hulls pruned) | — | ticket 07; the wheel hub, not a roller, is what deflects a ball rolling under the robot |
+| ball ↔ kicker/chipper plates | μ 0.4 (geom-mixed with the ball's 0.35) | DELIBERATE APPROXIMATION | no source |
+| ball ↔ dribbler | μ 2.5, `solref="0.004 0.5"` | DELIBERATE APPROXIMATION | above 1 so the bar can hold the ball; no physical retention model |
+| walls, bumpers | `solref="0.004 1"` | DELIBERATE APPROXIMATION | neither this nor MuJoCo's `0.02 1` has a source |
+| robot ↔ robot, robot ↔ wall μ | 0.5, 0.6 | DELIBERATE APPROXIMATION | no source |
+| `impratio` | 1 | DELIBERATE APPROXIMATION | no ODE/rSim counterpart; revisit if slip turns abrupt |
+| dribbler bar speed | 314 rad/s at `a = 1` | DELIBERATE APPROXIMATION | assumed, not a firmware setpoint (see Dribbler) |
+| plunger lockout | 250 ms | DELIBERATE APPROXIMATION | no capacitor recharge time is known |
 
 ## Multi-robot
 

@@ -156,6 +156,11 @@ diagnóstico revertido, e precisam reverter.
   yaw p99 < 35.9, roll p99 < 15°, posse ≥ 109/106, aceleração 1.5× de 2.30, vazão 10 %; o 6
   (aprendizado) tem comandos mas **não foi rodado**. Girar com a bola a ≥ 10 rad/s perde a bola.
   Números em [`candidate-14/`](candidate-14/).
+- [Documentação](issues/15-documentation.md): `docs/index.md` declara a matriz de rodas (sinais
+  espelhados do rSim), o envelope derivado com classes de fonte, os parâmetros de contato, o
+  tombamento e o envelope do tier 0 sem o mecanismo; `README.md` resume; rodas ±95 nas seis páginas.
+  A auditoria ganha uma tabela de status (descreve o `147d2af`) e corrige `W3` (3.68 / 2.82 m/s²),
+  `B9`, `P4`, `C2`, `B6`. `docs/analysis/` não existe no repositório: nada a commitar.
 
 ## Not yet specified
 
@@ -184,8 +189,8 @@ diagnóstico revertido, e precisam reverter.
   uma decisão.
 - **Custo de escala.** 100 DOF e 193 geoms de colisão por robô × até 7 robôs
   (`StaticDefenders-v0`). O `07` mostrou que a malha não é o gargalo (podar ou tirar cubos: ≤ 6 %);
-  o que sobra é DOF/roletes. O `13` dobrou o custo por step (passo 1/960 s): tier 1 ~240 steps/s
-  no `GoToBall`, ~40 no `StaticDefenders`.
+  o que sobra é DOF/roletes. O `13` dobrou o custo por step (passo 1/960 s): tier 1 ~320 steps/s
+  no `GoToBall`, ~54 no `StaticDefenders` (`candidate-14/throughput.csv`).
 - **A queda de 1 mm no spawn** (`X8`): impacto determinístico de 0.14 m/s a cada reset.
   Provavelmente inofensivo, não quantificado.
 

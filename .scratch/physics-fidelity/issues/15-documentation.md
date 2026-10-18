@@ -1,7 +1,7 @@
 # Documentação: registrar os números e corrigir o desvio
 
 Type: task
-Status: open
+Status: resolved
 Blocked by: 04, 05, 08, 10, 11, 12, 13
 
 ## Pergunta
@@ -54,6 +54,47 @@ Também decidir onde os dois documentos de auditoria vivem a longo prazo: `docs/
 `docs/analysis/` estão ambos fora do controle de versão hoje. Eles são a justificativa de todo número
 deste mapa, então deveriam ser commitados, e a comparação de CoM do documento de análise corrigida
 (ver as Notes do mapa).
+
+## Answer
+
+Resolvido em 2026-10-18. Só documentação; nada em `src/`, `models/` ou `tests/` mudou.
+
+**Desvio existente.**
+1. `-100.0` nas seis páginas: já feito pelo `10`.
+2. Tombamento em `docs/index.md`: a frase sob o índice de ambientes diz que todo env termina com
+   tombamento (> 60°, `-100.0`) e aponta para a seção nova **Turnover** (60°, `-100`, `info`
+   `tipped`/`tilt_deg`/`tip_step`, fronteira de recuperação 59-67°, 0 tombamentos em 101 min,
+   colisão chassi↔piso, sem momento endireitador).
+3. "roughly [−1, 1]": já feito pelo `11`.
+4. Matriz roda-chassi: declarada em **Action space → Tier-1 wheel matrix**, com `r_eff = 0.030089`,
+   `R = 0.0796`, 60/135/225/300°, `tasks.wheel_command`, e a nota do espelho do rSim (`W2`).
+   Conferida numericamente contra `wheel_command` em três comandos. Os fatores de projeção
+   3.14626 / 2.41421 ficam declarados ali, uma vez.
+
+**Material novo.** `docs/index.md`: tabela **Drive envelope** (torque VENDOR, `ctrlrange` escolha de
+projeto, 2.45 / 2.30 / 55.1, 3.30 / 4.04 / 35.9, acionamento direto, `kv` e sobrecorrente como
+aproximações) e o aviso de que o tier 1 medido ainda não chega no `v_max` (`18`); seção nova
+**Contact and body parameters** com classe de fonte por linha (`05`, `02`, `06`, `07`, dribbler,
+bloqueio); em **Tiers**, a prosa "mesmo envelope, não mesmo mecanismo" (`12`) e a vazão do `14`
+(1515/322, 1225/279, 356/54); em **Possession**, girar com a bola a ≥ 10 rad/s perde a bola; os
+comandos `pytest -m validation` e `scripts/validation_sweep.py`. Dribbler (`08`), observação (`11`)
+e Timing (`13`) já estavam escritos pelos próprios tickets. `README.md`: seção **Physics** com a
+declaração de envelope, e os dois comandos. Páginas de ambiente: rodas ±200 → **±95** nas seis.
+
+**Documento de auditoria.** `docs/research/rsoccer-vs-mjsoccer.md` ganha a seção *Status after the
+physics-fidelity map*: o lado mjsoccer descreve o `147d2af`; uma tabela id → antes → agora → ticket
+cobre o que os comentários listam como desatualizado (2 ms/62.5 Hz, tier 0 com 19.1261/3.427/4.0 e
+amortecimento, pulso de 200 N e "6-7 m/s", gol sobre z do mundo, 209 cascos, …) e vence as seções
+quando discordam. Correções inline só onde a auditoria estava errada *no próprio* `147d2af`: `W3`
+e a tabela da §7 (3.68 / 2.82 m/s², não 4.67; também o `L1` do resumo), `B9` (erro de transcrição),
+`P4` e `C2` (enquadramento invertido), `B6` (o cubo desvia a bola), e 209 → "agora 193" nas três
+linhas. Reescrever as seções inteiras foi descartado: a auditoria é um registro de um commit.
+
+**Onde os documentos vivem.** `docs/research/rsoccer-vs-mjsoccer.md` **já está versionado** (desde o
+`cf4d2d4`), então fica onde está. `docs/analysis/ssl-simulator-rsoccer-comparison.md` **não existe**
+neste repositório nem em `~/doc` — não há o que commitar nem corrigir. O erro de CoM dele fica
+registrado na seção de status da auditoria (o `M2` desta está certo: 18.3 mm mais baixo). Se o arquivo
+aparecer, commitar em `docs/analysis/` com a correção.
 
 ## Comments
 

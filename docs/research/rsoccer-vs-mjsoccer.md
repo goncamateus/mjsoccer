@@ -36,6 +36,37 @@ Engine-knob semantics are cited from the MuJoCo XML reference
 Both clones are complete (`git log` and `git cat-file` succeed on every file cited); no blob
 was missing and no network fetch was needed beyond the two documentation URLs above.
 
+## Status after the physics-fidelity map (2026-10-18)
+
+**The mjsoccer column of this audit describes `147d2af`.** The physics-fidelity map
+(`.scratch/physics-fidelity/`, tickets 01-18) has since changed most of what it describes on
+this side. The sections below are kept as the audit of that commit, with inline corrections
+only where the audit itself was wrong *at* that commit (`W3`, `B9`, `P4`, `C2`, `B6`). Where
+this table and a section disagree about mjsoccer's *current* state, this table wins, and
+[`docs/index.md`](../index.md) is the reference for today's numbers.
+
+| ids | at `147d2af` | now | ticket |
+|---|---|---|---|
+| `L1`, `W3`, `W4`, `W7`, §7 limits | wheel ±200 rad/s, ±3 N·m; friction-limited at ~1 g | ±95 rad/s, ±0.078 N·m from the motor (Maxon EC 45 flat 50 W, **direct drive**, not 18:60); derived 2.45 / 2.30 m/s² forward/lateral, 3.30 / 4.04 m/s, 35.9 rad/s; `kv` kept | 01, 04, 16 |
+| `L2`, `M1`, `TO1`, `TO2` | full spin 59.4 rad/s; 35.9 turnovers/min under random action | full spin ~30 rad/s measured (35.9 kinematic); **0 turnovers in 101 min**. The turnovers came from wheel torque authority, not from the 3.459 mm CoM offset (unchanged, harmless). Terminate at 60° with -100 kept; `info` gains `tilt_deg`, `tip_step` | 03, 04, 10 |
+| `B5` | chassis does not collide with the floor | collided (floor `contype/conaffinity` 5), touches from 9.5° of tilt | 06 |
+| `B1`, `C7` | 209 collision geoms per robot | 193 (16 buried hulls pruned); no hull contact gives a trip impulse in normal play | 07 |
+| `C1`, §5 wheel↔ground | roller μ 1.0, floor 0.8 | 0.25 on both (measured, Williams et al. 2002) | 05 |
+| `C2`, §5 ball↔ground/wall | no bounce | still no bounce; target COR 0.50, open | 17 |
+| §3 ball | MuJoCo default inertia, β = 0.4 | explicit `diaginertia`, β = 0.5 (measured) | 05 |
+| `L5`, §7 dribbler | `314 * (a + 1) / 2`: a zero action dribbles at 157 rad/s | `314 * max(a, 0)`: `a ≤ 0` off; 314 rad/s is an assumption | 08 |
+| `L4`, `L7`, `L8`, `B4`, §7 kick | 200 N for one control step, exit speed emergent (6-7 m/s) | the action asks for `6.5 * a` m/s, half range; a per-tier force table, `ctrlrange` 0..500 N; the firing step runs at `dt / 4`; 250 ms lockout = 15 steps | 09, 13 |
+| `L9`, `U2`, `U4` | `Box(-inf, inf)`; ball z and the goal test on world z | `Box` finite where physics bounds it, nothing clipped; `MAX_V` 3.3, `MAX_W` 35.9; ball height and `in_goal` measured above the carpet (`FLOOR_Z = 0.02`), so the goal is 0.155 m tall over the carpet, not 0.135 | 11, 12, 13 |
+| `W5`, `W6`, `P3` (tier 0) | `forcerange` ±19.1261 N / ±3.427 N·m, `ctrlrange` 4.0 m/s, damping 0.1/0.005 | tier 1's derived per-axis envelope: ±6.1918 N (2.30 m/s²), ±0.5273 N·m (55.1 rad/s²), ±3.3 m/s, ±35.9 rad/s; damping 0 | 12, 13 |
+| `P2`, `T1`, `T2`, `T4`, §9 | 2 ms step, decimation 8, 62.5 Hz, 1250/1875/2500 steps | 1/960 s step, decimation 16, **exactly 60 Hz**, 1200/1800/2400 steps; an unreachable `control_hz` raises `ValueError` | 13 |
+| `W1` | no kinematic matrix anywhere in the Python | the action is still raw wheel speeds, but `tasks.wheel_command` converts a body velocity to them | 14 |
+| `W2` | matrix undocumented | stated in `docs/index.md`, with the sign inversion | 15 |
+
+`M2`'s CoM comparison (54.0 mm above the carpet here, 72.3 mm in rSim, so mjsoccer's is
+18.3 mm *lower*) is correct. The independent comparison referenced by the map,
+`docs/analysis/ssl-simulator-rsoccer-comparison.md`, got this one wrong by omitting the
+floor's 20 mm step (`models/field.xml:42`); that file is not in this repository.
+
 ## Severity counts
 
 | severity | count |
@@ -58,7 +89,7 @@ The eleven differences that dominate everything else, in the order a policy meet
 | `U2` | goal mouth | 1.8 m wide, 0.155 m high, 3-D goal test (`scene.py:59-61`, `scene.py:286-292`) | 0.70 m wide, `ball.x > half_len` 2-D test (`sslconfig.h:108`, `static_defenders.py:190-194`) | scoring probability from the same shot differs by ~2.5× in mouth width, and a chipped ball scores in rSoccer at any height |
 | `W1` | drive interface | 4 raw wheel speeds, no kinematic matrix (`base.py:143-156`, `__init__` doc `base.py:13`) | body-frame `(vx, vy, vθ)` through `setDesiredSpeedLocal` (`static_defenders.py:119-124`, `sslrobot.cpp:376-391`) | the action spaces are not the same object; an rSoccer policy cannot be loaded into tier 1 without a conversion |
 | `W2` | wheel sign and radius | measured matrix `w = (1/0.030089)(vx sinα − vy cosα − 0.0796 ω)` | `w = (1/0.02475)(−vx sinα + vy cosα + 0.090 vw)` (`sslrobot.cpp:383-386`) | **every sign is inverted.** A ported wheel vector drives backwards and spins the wrong way |
-| `L1` | wheel torque ceiling | ±3 N·m per wheel (`models/robot_rollers.xml:827-830`) | 0.070 N·m per wheel (`sslconfig.h:159`) | 43×. rSim is torque-limited to ≈4.7 m/s²; mjsoccer is only friction-limited (≈1 g), so it can command accelerations rSim physically cannot produce |
+| `L1` | wheel torque ceiling | ±3 N·m per wheel (`models/robot_rollers.xml:827-830`) | 0.070 N·m per wheel (`sslconfig.h:159`) | 43×. rSim is torque-limited to ≈3.7 m/s² forward, 2.8 lateral; mjsoccer is only friction-limited (≈1 g), so it can command accelerations rSim physically cannot produce |
 | `L2` | yaw rate reachable | saturated uniform wheel command *requests* 75.6 rad/s, **measured** peak 59.4 rad/s | env-capped at `max_w = 10` rad/s (`static_defenders.py:77`) | ~6×. This is the direct cause of tip-over (see `TO1`) and it puts the `omega` observation channel 2× outside its own normaliser |
 | `M1` | centre of mass offset from the spin axis | 3.46 mm, **measured** (CAD asymmetry) | exactly 0 by construction (`sslrobot.cpp:242`, a centred cylinder) | at high yaw the offset CoM is centrifugally levered outward. **Measured** tip threshold ≈50 rad/s, and the reachable yaw is 59 rad/s |
 | `TO1` | what happens on turnover | terminate the episode, `reward -= 100.0` (`base.py:41-42`, `base.py:129-132`) | teleport upright, restore the spawn yaw, zero velocities, continue (`sslworld.cpp:388-392`, `sslrobot.cpp:289-303`) | rSoccer episodes never end from tipping and never show the state; mjsoccer's do, and the -100 dominates the return |
@@ -116,8 +147,12 @@ below 0.01 m/s (`sslworld.cpp:295-298`). mjsoccer bounds the rolling-friction to
 `μ_roll · f_n = 0.0009 · 0.451 N = 4.06e-4 N·m`, which for a rolling 46 g / 21.5 mm sphere is
 about 0.29 m/s² (derived from `models/ball.xml:7` and `models/scene_rollers.xml:23`). A 5 m/s
 pass therefore runs roughly 43 m in mjsoccer against 26 m in rSim, and mjsoccer's ball creeps
-instead of parking. On a 12 × 9 m field both cross it, but the ball is noticeably livelier
-here.
+instead of parking. On a 12 × 9 m field both cross it.
+
+**Reframed (ticket 02).** This is not mjsoccer's ball being too lively. rSim's 0.49 m/s²
+traces to ER-Force's Bullet workaround (`hackFactor = 1.4`), and the measured rolling
+deceleration on carpet is 0.26-0.31 m/s², so **mjsoccer's 0.293 m/s² is right and rSim's is
+the outlier.**
 
 **`P5` (Low).** `sslconfig.h:119` (`ballSlip = 1`), `:127` (`ballLinearDamp = 0.004`) and
 `:128` (`ballAngularDamp = 0.004`) are dead configuration: `grep` over `src/robosim` finds no
@@ -200,7 +235,7 @@ numerically identical.
 
 | body | mjsoccer | rSoccer/rSim |
 |---|---|---|
-| chassis | CAD convex-hull decomposition: 47 chassis hulls plus motor housings, bumpers, dribbler structure and gear housings — **209 collision geoms per robot** (measured); `type="mesh"`, `condim="3"`, `friction="0.5 0.005 0.0001"` (`models/robot_rollers.xml`, e.g. the `r_col_chassis_*` block) | one `dCreateCylinder`, radius 0.090, height 0.146 (`sslrobot.cpp:242`, `pcylinder.cpp:43`, `sslconfig.h:150-151`) |
+| chassis | CAD convex-hull decomposition: 47 chassis hulls plus motor housings, bumpers, dribbler structure and gear housings — **209 collision geoms per robot** (measured; 193 since ticket 07 pruned 16 buried hulls, 299 geoms in total with the visuals); `type="mesh"`, `condim="3"`, `friction="0.5 0.005 0.0001"` (`models/robot_rollers.xml`, e.g. the `r_col_chassis_*` block) | one `dCreateCylinder`, radius 0.090, height 0.146 (`sslrobot.cpp:242`, `pcylinder.cpp:43`, `sslconfig.h:150-151`) |
 | chassis footprint | **measured** collision half-extent 87.7 × 88.0 mm about the body axis | 90.0 mm radius |
 | chassis height | **measured** top at 156 mm above the carpet | `bottomHeight + height = 0.004 + 0.146 = 150` mm (`sslconfig.h:151-152`) |
 | wheels | 4 hub bodies at 60/135/225/300°, mount radius **measured** 79.60 mm, each carrying **20 free-spinning roller bodies** on their own hinges — 84 bodies and 84 joints per robot beyond the chassis (`models/robot_rollers.xml:297,428,559,690`; roller pattern at `:305-311` onward) | 4 solid `PCylinder` wheels, radius 0.02475, thickness 0.005, mount radius `0.090 + 0.005/2 = 0.0925` (`sslrobot.cpp:27-36`) |
@@ -212,7 +247,7 @@ numerically identical.
 | goal walls | 8 goalpost hulls per goal, x ∈ [6.0, 6.2] (`models/field.xml:58-74`) | 3 `PFixedBox` per goal — back plate plus two sides (`sslworld.cpp:247-263`) |
 | ball | sphere r = 0.0215, mass 0.046, `condim="4"`, `contype="7" conaffinity="7"` (`models/ball.xml:7`) | `dCreateSphere` r = 0.0215, `dMassSetSphereTotal` 0.043 (`sslconfig.h:121,123`, `pball.cpp:31-44`) |
 
-**`B1` (High).** The chassis is a 209-hull CAD decomposition here and a single cylinder there.
+**`B1` (High).** The chassis is a 209-hull (now 193) CAD decomposition here and a single cylinder there.
 Every robot-robot and robot-wall interaction is therefore a different event: mjsoccer's robots
 catch on each other's bumpers, dribbler structures and motor housings, generate multiple
 simultaneous contact points at different heights, and produce torques a smooth cylinder
@@ -252,8 +287,9 @@ explicit handler in both simulators, and it constrains the fixes in `TO2`.
 `contype="7" conaffinity="7"` (`models/ball.xml:7`) and the roller geoms are `contype="4"
 conaffinity="4"` (`models/robot_rollers.xml:311`), so bit 4 matches. rSim never collides the
 ball with a wheel: `pworld.cpp:287-305` enumerates the collide calls and `spaceWheel` appears
-only against the ground. A ball rolling under an mjsoccer robot gets kicked out by a roller; in
-rSoccer it passes through the wheels untouched.
+only against the ground. A ball rolling under an mjsoccer robot gets deflected by the wheel; in
+rSoccer it passes through the wheels untouched. *(Measured by ticket 07: it is the wheel
+**hub** that deflects the ball; ball↔roller contact changes the exit velocity by ≤ 0.04 m/s.)*
 
 **`B7` (Medium).** Wall geometry differs in height and in extent: 0.20 m of 12-hull CAD at
 ±6.32/±4.82 here versus 0.4 m boxes at ±3.325/±2.325 (type-2 field) there. Because mjsoccer
@@ -265,8 +301,12 @@ that hits an mjsoccer post gets a mesh-accurate deflection; rSim's goal is a rec
 pocket.
 
 **`B9` (Low).** Ball mass differs — 0.046 kg (`models/ball.xml:7`) versus 0.043 kg
-(`sslconfig.h:123`). Radius is identical at 0.0215 m. 7% on mass changes kick exit speed for
-the same impulse by about 3.4%.
+(`sslconfig.h:123`). Radius is identical at 0.0215 m.
+
+**Reclassified (ticket 02).** This is not a 7 % modelling difference but a **transcription
+error** upstream: 0.043 is the rulebook's §2.2 ball *diameter* in metres pasted into the mass
+field, and rSim's `ballRadius` is derived from it by halving. mjsoccer's 0.046 kg is the
+rulebook mass.
 
 ---
 
@@ -349,7 +389,7 @@ reader comparing the two XMLs will see two different numbers for "the robot".
 | ball ↔ dribbler | two explicit pairs, `condim="4"`, `friction="2.5 2.5 0.02 0.0001 0.0001"`, `solref="0.004 0.5"`, `solimp="0.95 0.99 0.001"` (`models/scene_rollers.xml:21-22`), replicated per robot at build time (`scene.py:222-227`) | none — no dribbler geom exists |
 | ball ↔ kicker plate | geom-mixed from `friction="0.4 0.005 0.0001"` on the plate meshes and the ball's own `0.35 0.004 0.0002` (`models/robot_rollers.xml:274,292`, `models/ball.xml:7`) | `mode = dContactApprox1`, `mu = 0.8`, `slip1 = 5` (`sslworld.cpp:163-166,182`, `sslconfig.h:169`) |
 | ball ↔ chassis | geom-mixed; MuJoCo takes the elementwise max friction and averages `solref`, giving derived `(0.5, 0.005, 0.0002)` at `condim = 4` | `PSurface` default `mode = dContactApprox1`, `mu = 0.5` (`pworld.cpp:26-27`), **plus a callback that suppresses the contact entirely inside the ±25.84° kicker sector** (`sslworld.cpp:66-99`, angle from `sslconfig.h:170`) |
-| robot ↔ robot | 209 mesh hulls against 209, `condim="3"`, `friction="0.5 0.005 0.0001"` | cylinder against cylinder, `PSurface` default `mu = 0.5` (`sslworld.cpp:190-196`) |
+| robot ↔ robot | 209 (now 193) mesh hulls against 209, `condim="3"`, `friction="0.5 0.005 0.0001"` | cylinder against cylinder, `PSurface` default `mu = 0.5` (`sslworld.cpp:190-196`) |
 | robot ↔ wall | mesh hulls against the 12 wall hulls, `friction` 0.5 vs 0.6 | cylinder against box, `PSurface` default `mu = 0.5` (`sslworld.cpp:173-176`) |
 | chassis ↔ ground | **not collided** (`contype`/`conaffinity` mismatch) | **not collided** (no surface created) |
 | wheel ↔ wall, wheel ↔ wheel, wheel ↔ chassis, kicker ↔ anything but the ball | collided (wheel hubs are `contype="1" conaffinity="1"`; kicker plates are `contype="2" conaffinity="0"` so only the ball reaches them) | **not collided at all** — `pworld.cpp:287-305` lists every pair rSim tests |
@@ -373,6 +413,11 @@ critically damped `solref="0.006 1"` on ball/floor (`models/scene_rollers.xml:23
 `solref="0.004 1"` on the walls (`models/field.xml:44`). A chip that lands rebounds to half
 its impact speed upstream and dies here; a hard shot that misses rebounds off the back wall
 upstream and stops here. This is one of the most immediately visible differences in a replay.
+
+**Reframed (ticket 02).** The measured ball COR on carpet is 0.47-0.56, so rSim's
+`bounce = 0.5` is its one defensible contact constant and **mjsoccer's zero-COR ball is the
+fidelity gap**, not a neutral difference. The target is COR 0.50 on floor and wall; the
+`solref` damping ratio that reaches it is ticket 17.
 
 **`C3` (High).** Ball/ground sliding friction is 0.35 here (`models/scene_rollers.xml:23`) and
 1.0 there (`sslworld.cpp:154`), with rSim additionally overlaying its explicit Coulomb drag
@@ -467,7 +512,8 @@ returns tier-0 body velocities and `tasks.py:311-312`/`tasks.py:331-333` note th
 `A = −B` with `r_w: 0.02475 → 0.030089` and `R: 0.090 → 0.0796`. A wheel vector copied from
 rSoccer into mjsoccer drives backwards and yaws the wrong way. mjsoccer's docs never state
 this matrix at all (`docs/index.md:69-77` lists only the `ctrlrange`), so a porter has nothing
-to check against — flagged as a documentation gap in §12.
+to check against — flagged as a documentation gap in §12. *(Closed by ticket 15:
+`docs/index.md` now states the matrix, its radii and this sign inversion.)*
 
 **`W3` (High).** Torque authority differs by 43× (`L1`). rSim's `wheelMotorMaxTorque = 0.070`
 carries the comment "Maxon EC45 flat 50w with 18:60 gear ratio, **reduced to 3m/s2 accel**"
@@ -475,10 +521,19 @@ carries the comment "Maxon EC45 flat 50w with 18:60 gear ratio, **reduced to 3m/
 sets `forcerange="-3 3"` (`models/robot_rollers.xml:827`), which at `r_eff = 0.030089` is a
 399 N ground force per wheel — far above the `μ · m · g = 1.0 · 2.692 · 9.81 = 26.4 N`
 friction budget, so mjsoccer is friction-limited at about 1 g and rSim is torque-limited at
-about 0.48 g. Derived: mjsoccer's 9.81 m/s² friction ceiling is above its own forward static tip
-threshold (`g · 0.04325 / 0.05399 = 7.86` m/s²), while rSim's 4.67 m/s² torque ceiling is
+about 0.38 g. Derived: mjsoccer's 9.81 m/s² friction ceiling is above its own forward static tip
+threshold (`g · 0.04325 / 0.05399 = 7.86` m/s²), while rSim's 3.68 m/s² torque ceiling is
 below its own (`g · 0.04625 / 0.07225 = 6.28` m/s²) — and below its own 7.85 m/s² friction
 ceiling, so rSim is torque-limited and cannot tip itself by accelerating.
+
+**Corrected (ticket 01).** The first version of this finding gave rSim's ceiling as
+4.67 m/s², which assumes all four wheels project their force at unit weight. The
+60/135/225/300° geometry limits the projection to `Σ|sin α| = 3.14626` forward and
+`Σ|cos α| = 2.41421` lateral (the force-maximising sign pattern has `Σ f_i = 0`, so it costs
+no yaw), giving **3.68 m/s² forward and 2.82 m/s² lateral** — which matches rSim's own
+"reduced to 3m/s2 accel" comment on the weak axis. The conclusion (rSim torque-limited,
+mjsoccer friction-limited) is unchanged. The same factors apply to every acceleration
+quoted for either robot.
 
 **`W4` (High).** Wheel speed and radius: 200 rad/s × 30.089 mm = **6.018 m/s** of surface speed
 here (`models/robot_rollers.xml:827`) against 163.05 rad/s × 24.75 mm = **4.035 m/s** upstream
@@ -519,7 +574,7 @@ similarly; near the target rSim is stiffer and mjsoccer has a finite tracking er
 | max linear speed | ~6.0 m/s achievable on tier 1 (derived from `W4`); 4.0 m/s hard `ctrlrange` on tier 0 (`models/robot_kinematic.xml:389-390`) | `max_v = 2.5` m/s enforced in the env (`static_defenders.py:76`, `dribbling.py:67`, `contested_possession.py:64`, `pass_endurance.py:71`), on top of a 4.035 m/s motor ceiling |
 | max yaw rate | ~59 rad/s measured on tier 1; 30 rad/s `ctrlrange` on tier 0 | `max_w = 10` rad/s (same four files) |
 | max wheel speed | 200 rad/s (`models/robot_rollers.xml:827-830`) | 163.05 rad/s (`sslconfig.h:160`, clamped at `sslrobot.cpp:65`) |
-| acceleration limit | none — friction-limited at ≈9.81 m/s² (derived), above the 7.86 m/s² forward tip threshold | 0.070 N·m per wheel ⇒ ≈4.67 m/s² (`sslconfig.h:159`), below its own 6.28 m/s² tip threshold |
+| acceleration limit | none — friction-limited at ≈9.81 m/s² (derived), above the 7.86 m/s² forward tip threshold | 0.070 N·m per wheel ⇒ ≈3.68 m/s² forward, 2.82 lateral (`sslconfig.h:159`; see the correction under `W3`), below its own 6.28 m/s² tip threshold |
 | planar speed clipping | none; each wheel is clipped independently by `ctrlrange` | `‖(vx, vy)‖` scaled down to `max_v` (`static_defenders.py:143-146`) |
 | kick | 200 N on a 0.1413 kg plunger against `stiffness="2000"`, for exactly one control step; per-plunger 250 ms lockout (`base.py:160-163`, `scene.py:52`, `models/robot_rollers.xml:271`) | `dBodySetLinearVel(ball, vx, vy, vz)` with `vx` from the env, gated on `isTouchingBall()`, plus a 10-substep `kickerCounter` (`sslrobot.cpp:167-200`) |
 | kick speed | emergent; docs give 6-7 m/s for a flat kick (`base.py:35`) | exactly `kick_speed_x = 5.0` m/s (`static_defenders.py:78`, `contested_possession.py:66`); `pass_endurance.py:116` scales it by the action |

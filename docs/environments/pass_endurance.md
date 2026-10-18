@@ -35,10 +35,10 @@ only. The team-mate is scripted and never appears in the action, which is why th
 
 | Num | Action | Min | Max | Unit |
 |---|---|---|---|---|
-| 0 | wheel 1 speed (`wheel1_vel`) | -200 | 200 | rad/s |
-| 1 | wheel 2 speed (`wheel2_vel`) | -200 | 200 | rad/s |
-| 2 | wheel 3 speed (`wheel3_vel`) | -200 | 200 | rad/s |
-| 3 | wheel 4 speed (`wheel4_vel`) | -200 | 200 | rad/s |
+| 0 | wheel 1 speed (`wheel1_vel`) | -95 | 95 | rad/s |
+| 1 | wheel 2 speed (`wheel2_vel`) | -95 | 95 | rad/s |
+| 2 | wheel 3 speed (`wheel3_vel`) | -95 | 95 | rad/s |
+| 3 | wheel 4 speed (`wheel4_vel`) | -95 | 95 | rad/s |
 | 4 | kicker plunger force (`kicker_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
 | 5 | chipper plunger force (`chipper_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
 | 6 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
