@@ -140,6 +140,11 @@ class BaseEnv(gym.Env):
             reward -= TIPOVER_PENALTY
             terminated = True
             info["tipped"] = True
+            # Logged so the tip rate and the time-to-tip distribution come off the env
+            # rather than a bespoke harness. Worst controlled robot; steps since reset.
+            cos = np.clip(self._upright_cos(), -1.0, 1.0)
+            info["tilt_deg"] = float(np.degrees(np.arccos(cos)))
+            info["tip_step"] = self.steps
         if self.render_mode == "human":
             self.render()
         return obs, float(reward), bool(terminated), bool(truncated), info
@@ -194,8 +199,12 @@ class BaseEnv(gym.Env):
         product rather than a quaternion. Always False on tier 0, whose chassis is a planar
         joint and cannot leave the ground.
         """
-        return any(
-            self.data.xmat[r.body].reshape(3, 3)[2, 2] < TIPPED_COS
+        return self._upright_cos() < TIPPED_COS
+
+    def _upright_cos(self) -> float:
+        """cos of the worst controlled robot's tilt off world +z."""
+        return min(
+            self.data.xmat[r.body].reshape(3, 3)[2, 2]
             for r in self.robots[: self.n_controlled]
         )
 

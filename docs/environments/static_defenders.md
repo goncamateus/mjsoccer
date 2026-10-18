@@ -203,7 +203,7 @@ Identical to [`GoToBallShoot-v0`](go_to_ball_shoot.md).
   `|y| > 4.5 m`) *and* `info["goal"]` is false, so a scored ball is never also reported as
   out. `info["ball_out"]` is set. A shot deflected wide off a defender ends the episode.
 - **Controlled robot turned over.** The robot's own +z tilts more than 60 deg off world
-  +z (`cos < 0.5`). The step pays `-10.0` on top of whatever the task scored and
+  +z (`cos < 0.5`). The step pays `-100.0` on top of whatever the task scored and
   `info["tipped"]` is set. Only the robots the policy controls count — a scripted robot on
   its side is the agent's to exploit. Tier 0 never trips this: its chassis is a planar
   joint and cannot leave the ground.
@@ -246,6 +246,8 @@ determines the compiled model, and therefore the observation dimension.
 | `goal` | `bool` | the same flag; also read by `base.step` to keep a scored ball from being reported as out of the field |
 | `ball_out` | `bool` | present only on the step the ball leaves the field without scoring |
 | `tipped` | `bool` | present only on the step a controlled robot turned over |
+| `tilt_deg` | `float` | with `tipped`: the worst controlled robot's tilt off vertical, degrees |
+| `tip_step` | `int` | with `tipped`: control steps since reset, so time-to-tip is `tip_step * dt` |
 
 ## Version History
 

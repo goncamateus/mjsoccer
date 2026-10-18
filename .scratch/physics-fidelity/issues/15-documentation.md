@@ -68,3 +68,8 @@ deste mapa, então deveriam ser commitados, e a comparação de CoM do documento
   ainda dão as rodas como ±200 rad/s (é ±95 desde o `04`); e
   `docs/research/rsoccer-vs-mjsoccer.md:66,524,525,558` ainda diz pulso de 200 N e "6-7 m/s
   emergente (`base.py:35`)".
+- 2026-10-18, do `10`: item 1 feito — as seis páginas de ambiente dizem `-100.0`, e as tabelas de
+  `info` ganharam `tilt_deg` e `tip_step` (só no step de `tipped`). Item 2 (`docs/index.md` sem
+  tombamento) continua aqui: terminar a 60° e pagar −100 é a política confirmada, e 60° agora tem
+  fonte medida — fica a ~1° da fronteira de recuperação estática (59-67° conforme o azimute,
+  mediana 61°, `candidate-10/recover.txt`), não é um número arbitrário.

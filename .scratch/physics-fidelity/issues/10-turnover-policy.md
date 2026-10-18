@@ -1,7 +1,7 @@
 # Decisão: tratamento de capotamento quando a atuação estiver limitada
 
 Type: grilling
-Status: open
+Status: resolved
 Blocked by: 04
 
 ## Pergunta
@@ -36,3 +36,36 @@ Decidir:
 
 Explicitamente fora de escopo: teletransportar, soldar roll/pitch, e trocar a junta livre por uma
 cadeia planar (isso é o tier 0, e o `W5` mostra que o tier 0 não é equivalente).
+
+## Answer
+
+Resolvido em 2026-10-18, com a equipe. Medições em [`candidate-10/`](../candidate-10/), no `main` com
+`04`-`09` aplicados.
+
+**Taxa atual.** Ação aleatória, tier 1, seeds 0-49, os seis ambientes
+(`candidate-10/baseline.py <env>` → [`summary.csv`](../candidate-10/summary.csv)): **0 tombamentos em
+101 min de episódio** (era 35.9/min na linha de base do `03`). Inclinação p50/p95/p99/máx
+**0.36/2.46/3.60/8.32°**; 250 de 300 episódios chegam ao truncamento. O máximo nunca chega aos 9.5° em
+que o chassi começa a encostar no carpete (`06`).
+
+1. **Manter terminar-e-penalizar**, como rede de segurança. Com taxa ~0, ela só dispara quando algo deu
+   errado de verdade; e passar de 60° é irrecuperável (item 3), então continuar seria só tempo morto de
+   lado até o truncamento.
+2. **`TIPOVER_PENALTY` fica em 100.0.** O argumento do ruído ("um tombamento apaga 5-10 episódios")
+   pressupunha 35.9/min; com taxa ~0 o custo no gradiente some, e baixar só enfraqueceria a dissuasão.
+3. **60° fica, e agora tem fonte medida**: fica a ~1° da fronteira de recuperação estática.
+   `candidate-10/recover.py` → [`recover.txt`](../candidate-10/recover.txt) inclina o robô θ em torno de
+   um eixo horizontal de azimute φ (passo de 15°), apoia no carpete parado, ctrl zero, 2 s: o menor θ
+   que **não** volta de pé fica em **59-67°**, mediana 61°. Então 60° é conservador em 0-7° em 22 de
+   24 azimutes (um robô *parado* a 60-62° ainda voltaria) e 1° permissivo em φ = 225° e 315° (59°).
+   Aceito: o ensaio é estático, e um robô que passa de 60° caindo carrega momento angular para o lado
+   do tombamento, então a fronteira dinâmica fica abaixo da estática. Não é arbitrário.
+4. **Registro: só no step do tombamento**, junto de `info["tipped"]`: `info["tilt_deg"]` (pior robô
+   controlado, graus) e `info["tip_step"]` (steps de controle desde o reset; tempo até tombar =
+   `tip_step * dt`). Taxa e distribuição do tempo até tombar saem do env, sem harness sob medida.
+   Fixado no `test_tipover_ends_episode`; documentado nas tabelas de `info` das seis páginas de
+   ambiente, que também passam a dizer `-100.0` (item 1 do `15`).
+5. **Momento endireitador: fechado, nunca construir.** A condição do ticket (persistir depois de `04`,
+   `05`, `07`) não se cumpriu. Reabrir só se uma política treinada mostrar taxa de `tipped` não nula —
+   e aí os requisitos do item 5 da pergunta (saturação rígida, zona morta, constante de tempo, impulso
+   registrado, alarme acima de 0.1 % dos steps saturados) continuam valendo.

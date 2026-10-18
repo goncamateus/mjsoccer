@@ -1,0 +1,25 @@
+phi=  0 first unrecovered at 63 deg
+phi= 15 first unrecovered at 62 deg
+phi= 30 first unrecovered at 61 deg
+phi= 45 first unrecovered at 62 deg
+phi= 60 first unrecovered at 67 deg
+phi= 75 first unrecovered at 60 deg
+phi= 90 first unrecovered at 60 deg
+phi=105 first unrecovered at 61 deg
+phi=120 first unrecovered at 63 deg
+phi=135 first unrecovered at 62 deg
+phi=150 first unrecovered at 61 deg
+phi=165 first unrecovered at 63 deg
+phi=180 first unrecovered at 63 deg
+phi=195 first unrecovered at 63 deg
+phi=210 first unrecovered at 61 deg
+phi=225 first unrecovered at 59 deg
+phi=240 first unrecovered at 61 deg
+phi=255 first unrecovered at 61 deg
+phi=270 first unrecovered at 61 deg
+phi=285 first unrecovered at 61 deg
+phi=300 first unrecovered at 61 deg
+phi=315 first unrecovered at 59 deg
+phi=330 first unrecovered at 62 deg
+phi=345 first unrecovered at 63 deg
+min unrecovered tilt deg 59

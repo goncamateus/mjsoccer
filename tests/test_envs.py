@@ -383,7 +383,12 @@ def test_tipover_ends_episode(env_id):
     env.data.qpos[a + 3 : a + 7] = (np.cos(np.pi / 4), np.sin(np.pi / 4), 0.0, 0.0)
     _, reward, terminated, _, info = env.step(np.zeros(env.action_space.shape, dtype=np.float32))
     assert terminated and info.get("tipped"), f"episode continued: {info}"
-    assert reward < -5.0, f"tipping over paid {reward:+.2f}"
+    # The penalty is 100 (ticket 10 kept it); one step of task shaping is nowhere near 50.
+    assert reward < -50.0, f"tipping over paid {reward:+.2f}"
+    # Logged so tip rate and time-to-tip come from the env itself (ticket 10). One
+    # 16 ms step from a 90 deg roll barely moves it.
+    assert 80.0 < info["tilt_deg"] < 100.0, f"logged tilt {info['tilt_deg']:.1f} deg"
+    assert info["tip_step"] == 1, f"logged step {info['tip_step']}"
     env.close()
 
 

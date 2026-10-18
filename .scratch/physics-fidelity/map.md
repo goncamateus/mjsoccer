@@ -50,7 +50,7 @@ tickets `research`. CodeGraph (`codegraph_*`) antes de ler código-fonte à mão
 As exceções são os tickets `task`, que rodam medições — esses podem mexer em `models/` só como
 diagnóstico revertido, e precisam reverter.
 **Exceção registrada (2026-10-17):** a pedido explícito, as edições do `04` e do `05` já entraram em
-`models/` antes do mapa fechar — ver os Comments do `05`. O `06`, o `07`, o `08` e o `09` entraram do mesmo jeito, também a pedido explícito.
+`models/` antes do mapa fechar — ver os Comments do `05`. O `06`, o `07`, o `08`, o `09` e o `10` entraram do mesmo jeito, também a pedido explícito.
 
 ## Decisions so far
 
@@ -118,6 +118,12 @@ diagnóstico revertido, e precisam reverter.
   (1.64-1.72× com ação aleatória, ~1× para quem chuta pouco). Bloqueio de 250 ms e chute que levanta a bola
   4-6 cm: aproximações deliberadas. Recuo físico (−0.085 m/s no tier 1). Números em
   [`candidate-09/`](candidate-09/).
+- [Política de capotamento](issues/10-turnover-policy.md): **mantém terminar-e-penalizar a 60° com
+  −100**. No `main` atual, ação aleatória: **0 tombamentos em 101 min**, inclinação p99/máx 3.60/8.32°.
+  60° deixa de ser arbitrário: fica a ~1° da **fronteira de recuperação estática** medida
+  (59-67° conforme o azimute, mediana 61°; com momento de queda a fronteira real é mais baixa). Novo registro no step de tombamento: `info["tilt_deg"]` e `info["tip_step"]`. Momento
+  endireitador fechado — reabrir só se uma política treinada tombar. Números em
+  [`candidate-10/`](candidate-10/).
 
 ## Not yet specified
 
