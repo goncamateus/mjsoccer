@@ -30,7 +30,7 @@ from gymnasium import spaces
 
 from . import scene
 
-MAX_V = 4.0  # m/s -- the tier-0 chassis servo ctrlrange, used to normalise observations
+MAX_V = 3.3  # m/s -- the tier-0 chassis servo ctrlrange (ticket 12), used to normalise observations
 MAX_W = 30.0  # rad/s, likewise
 MAX_BALL_V = 8.0  # m/s -- kicks cap at 6.5 (scene.KICK_SPEED_MAX) off a standing robot, ~8.5 moving
 POSSESSION_GRACE = 0.05  # s of no ball/dribbler contact before the ball counts as lost

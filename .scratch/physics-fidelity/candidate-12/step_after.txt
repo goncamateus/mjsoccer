@@ -1,0 +1,4 @@
+ctrlrange [ 3.3  3.3 30. ] forcerange [6.1918 6.1918 0.5273]
+x   accel    2.299  steady   3.300
+y   accel    2.307  steady   3.300
+yaw accel   55.214  steady  29.974

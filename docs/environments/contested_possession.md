@@ -62,9 +62,9 @@ wheel servos; rows 0-2 on tier 0 are instead a *body-frame* velocity that is rot
 the world-axis chassis slides before being written. See
 [the action space contract](../index.md#action-space).
 
-The half-second hold is also measurably harder to complete on tier 1: a robot that is not
-even driving keeps ball contact on 87-95 of 120 idle steps there against 96-103 on tier 0,
-because wheel slip lets the chassis recoil off the ball. See
+How long a ball is held is tier-dependent: a robot that is not even driving keeps it on
+89-96 of 120 idle steps on tier 1 against 69-95 on tier 0, where the ball contact is chaotic
+enough that a 0.1 N·s/m change in chassis damping moves the worst seed by 13 steps. See
 [Possession](../index.md#possession).
 
 ## Observation Space
@@ -84,16 +84,16 @@ controlled blue robot first and the yellow opponent second.
 | 7 | y position of the controlled blue robot | -1.067 | 1.067 | `b0_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
 | 8 | sin of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
 | 9 | cos of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
-| 10 | world-frame x velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 4.0 (`MAX_V`) |
-| 11 | world-frame y velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 4.0 (`MAX_V`) |
+| 10 | world-frame x velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
+| 11 | world-frame y velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
 | 12 | yaw rate of the controlled blue robot | -Inf | Inf | `b0_robot` | rad/s, / 30.0 (`MAX_W`) |
 | 13 | whether the controlled blue robot has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
 | 14 | x position of the yellow opponent | -1.05 | 1.05 | `y0_robot` | m, / 6.0 (`FIELD_HALF_X`) |
 | 15 | y position of the yellow opponent | -1.067 | 1.067 | `y0_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
 | 16 | sin of the yaw of the yellow opponent | -1 | 1 | `y0_robot` | unitless |
 | 17 | cos of the yaw of the yellow opponent | -1 | 1 | `y0_robot` | unitless |
-| 18 | world-frame x velocity of the yellow opponent | -Inf | Inf | `y0_robot` | m/s, / 4.0 (`MAX_V`) |
-| 19 | world-frame y velocity of the yellow opponent | -Inf | Inf | `y0_robot` | m/s, / 4.0 (`MAX_V`) |
+| 18 | world-frame x velocity of the yellow opponent | -Inf | Inf | `y0_robot` | m/s, / 3.3 (`MAX_V`) |
+| 19 | world-frame y velocity of the yellow opponent | -Inf | Inf | `y0_robot` | m/s, / 3.3 (`MAX_V`) |
 | 20 | yaw rate of the yellow opponent | -Inf | Inf | `y0_robot` | rad/s, / 30.0 (`MAX_W`) |
 | 21 | whether the yellow opponent has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
 

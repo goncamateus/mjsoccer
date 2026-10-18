@@ -69,9 +69,9 @@ it, which is what keeps a single action head transferable across the suite.
 | control | tier 1 actuator (default) | tier 0 actuator | ctrlrange | commanded |
 |---|---|---|---|---|
 | `w1..w4` | `wheel{1..4}_vel` | — | -95 .. 95 rad/s, ±0.078 N·m | `a * 95` |
-| `vx` | — | `vel_x` | -4 .. 4 m/s | `a * 4` |
-| `vy` | — | `vel_y` | -4 .. 4 m/s | `a * 4` |
-| `omega` | — | `vel_yaw` | -30 .. 30 rad/s | `a * 30` |
+| `vx` | — | `vel_x` | -3.3 .. 3.3 m/s, ±6.19 N | `a * 3.3` |
+| `vy` | — | `vel_y` | -3.3 .. 3.3 m/s, ±6.19 N | `a * 3.3` |
+| `omega` | — | `vel_yaw` | -30 .. 30 rad/s, ±0.527 N·m | `a * 30` |
 | `kick` | `kicker_force` | `kicker_force` | 0 .. 500 N | pulse for `6.5 * a` m/s if `a > 0` |
 | `chip` | `chipper_force` | `chipper_force` | 0 .. 500 N | pulse for `6.5 * a` m/s if `a > 0` |
 | `dribble` | `dribbler_vel` | `dribbler_vel` | -1500 .. 1500 rad/s | `314 * max(a, 0)` |
@@ -85,7 +85,7 @@ command rather than the midpoint of the range.
 also how SSL firmware is commanded. Tier 0 has to be made to agree: its chassis joints are
 *world*-axis slides, so `base._drive_robot` rotates the `vx, vy, omega` command through the
 chassis orientation before writing it, which is what makes the two tiers mean the same
-thing. A diagonal tier-0 command can therefore ask for `4 * sqrt(2)` on one world axis;
+thing. A diagonal tier-0 command can therefore ask for `3.3 * sqrt(2)` on one world axis;
 MuJoCo clamps it to `ctrlrange`, exactly as a real servo would.
 
 **Kicker and chipper.** Half range, like the dribbler: `a <= 0` never fires, and
@@ -143,7 +143,7 @@ Every entry is normalised by a constant from `base.py` or `scene.py`:
 | ball y, robot y | `scene.FIELD_HALF_Y` | 4.5 m |
 | ball z above the carpet (`z - scene.FLOOR_Z`) | `scene.GOAL_HEIGHT` | 0.155 m |
 | ball vx, vy, vz | `base.MAX_BALL_V` | 8.0 m/s (kicks are capped at 6.5 off a standing robot) |
-| robot vx, vy | `base.MAX_V` | 4.0 m/s (the tier-0 chassis servo ctrlrange) |
+| robot vx, vy | `base.MAX_V` | 3.3 m/s (the tier-0 chassis servo ctrlrange) |
 | robot omega | `base.MAX_W` | 30.0 rad/s (likewise) |
 
 Nothing clips these. The declared `Box` is finite only where the simulator guarantees a
@@ -159,8 +159,8 @@ bound, so `observation_space.contains` is true of every observation:
 | every velocity | `inf` | collisions have no ceiling |
 | Dribbling waypoint | ±2.57, ±3.427 | an in-field waypoint seen from a robot inside the walls |
 
-Measured under random action, seeds 0-19, six envs: tier 1 robot `|v|` peaks at 0.38 and
-`|omega|` at 0.14 of their divisors; tier 0 at 0.51 and 0.88. Under its own full command
+Measured under random action, seeds 0-19, six envs: tier 1 robot `|v|` peaks at 0.46 and
+`|omega|` at 0.14 of their divisors; tier 0 at 0.42 and 0.46. Under its own full command
 the tier-1 chassis spins at 29.2 rad/s (< `MAX_W`, pinned by `test_full_spin_stays_under_max_w`)
 and drives at ~2 m/s. `MAX_V` and `MAX_W` are the tier-0 servo `ctrlrange`, pinned by
 `test_velocity_normalisers_are_the_tier0_servo_range`, and the same on both tiers so one
@@ -233,7 +233,7 @@ steps out of 120 idle ones — the robot seated on the ball, no drive command gi
 
 | env | tier 0 | tier 1 (default) |
 |---|---|---|
-| `ContestedPossession-v0` | 82-93 / 120 | 89-96 / 120 |
+| `ContestedPossession-v0` | 69-95 / 120 | 89-96 / 120 |
 | `Dribbling-v0` | 119 / 120 | 114 / 120 |
 
 Tier 0 holds a ball it is not even trying to hold; on `Dribbling-v0` it drops it for a single
@@ -245,7 +245,8 @@ ball-lost rate or possession-gated reward is tier-dependent and comparing one ac
 is comparing two different mechanisms.
 
 These numbers are from after ticket 05's contact changes (roller μ 0.25, ball β 0.5, the
-motor-envelope wheel actuators of ticket 04). Before them `Dribbling-v0` held 120 / 111-112
+motor-envelope wheel actuators of ticket 04) and ticket 12's tier-0 envelope, which
+moved the tier-0 `ContestedPossession-v0` floor from 82 to 69 by contact noise alone. Before them `Dribbling-v0` held 120 / 111-112
 and `ContestedPossession-v0` 96-103 / 87-95; the 5% retention budget ticket 05 was allowed
 is enforced by `test_seated_ball_is_possessed`.
 

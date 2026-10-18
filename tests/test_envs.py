@@ -178,7 +178,7 @@ def test_deterministic(env_id):
 
 
 @pytest.mark.parametrize(
-    "env_id,index,min_held", [("ContestedPossession-v0", 1, 70), ("Dribbling-v0", 0, 106)]
+    "env_id,index,min_held", [("ContestedPossession-v0", 1, 60), ("Dribbling-v0", 0, 106)]
 )
 @pytest.mark.parametrize("tier", TIERS)
 def test_seated_ball_is_possessed(env_id, index, min_held, tier):
@@ -190,12 +190,14 @@ def test_seated_ball_is_possessed(env_id, index, min_held, tier):
     square in the mouth. Either way the episode looks fine and the task is unsolvable.
 
     Both tiers, because they do not retain alike. Measured over 8 seeds, holds() steps out
-    of 120 idle ones: ContestedPossession 82-93 on tier 0 against 89-96 on tier 1,
+    of 120 idle ones: ContestedPossession 69-95 on tier 0 against 89-96 on tier 1,
     Dribbling 119 against 114. The threshold sits under the worse tier rather than between
-    them, with room for seed noise (ContestedPossession tier 0 bottoms out at 82) -- a ball
-    that is actually dropped scores near zero, so there is no risk of that
-    slipping through a lower bar. Dribbling's is tighter: ticket 05's contact changes may
-    not cost it more than 5% of the 111-112 it held before them.
+    them, with room for seed noise -- a ball that is actually dropped scores near zero, so
+    there is no risk of that slipping through a lower bar. ContestedPossession tier 0 is
+    chaotic in the ball contact: its worst seed is 82, 75, 69 or 75 as the chassis slide
+    damping goes 0.1, 0.01, 0 (ticket 12) or 0.2, so its bar is 60, not 70. Dribbling's is
+    tighter: ticket 05's contact changes may not cost it more than 5% of the 111-112 it held
+    before them.
     """
     env = gym.make(env_id, tier=tier).unwrapped
     for seed in range(5):
@@ -505,6 +507,41 @@ def test_velocity_normalisers_are_the_tier0_servo_range():
     _, robots, _ = S.build(1, 0, tier=0)
     np.testing.assert_array_equal(robots[0].drive_range[:, 1], (MAX_V, MAX_V, MAX_W))
     np.testing.assert_array_equal(robots[0].drive_range[:, 0], (-MAX_V, -MAX_V, -MAX_W))
+
+
+def test_tier0_has_the_tier1_envelope():
+    """Tier 0 keeps its ideal-kinematics mechanism but gets tier 1's per-axis envelope
+    (ticket 12), so a tier-0 command asks for what a tier-1 robot could do. Isotropic, the
+    smaller of tier 1's frontal and lateral figure, from tickets 01/04/05:
+
+      v_max 3.30 m/s    frontal (lateral is 4.04)
+      a_max 2.30 m/s^2  lateral wheel-torque limit (frontal is min(2.98, mu*g = 2.45))
+      alpha 55.1 rad/s^2  roller friction: mu*m*g*R / Izz = 6.602 N * 0.0796 m / 0.009545
+      w_max 30 rad/s    the ceiling test_full_spin_stays_under_max_w holds tier 1 under
+
+    Not matched, because they are what tier 1 is for: slip, traction, weight transfer,
+    and the coupling between axes (tier 1 at full forward speed has no wheel left to yaw).
+    """
+    import mujoco
+
+    model, robots, ball = S.build(1, 0, tier=0)
+    r = robots[0]
+    dt = model.opt.timestep
+    for axis, (a_max, v_max) in enumerate(((2.30, 3.30), (2.30, 3.30), (55.1, 30.0))):
+        data = mujoco.MjData(model)
+        r.place(data, -5.0, -4.0, 0.0)  # room for 7 m before a wall
+        ball.place(data, 4.0, 3.0)
+        mujoco.mj_forward(model, data)
+        cmd = np.zeros(3)
+        cmd[axis] = r.drive_range[axis, 1]
+        vel = []
+        for _ in range(round(2.0 / dt)):
+            data.ctrl[list(r.drive)] = cmd
+            mujoco.mj_step(model, data)
+            vel.append(data.qvel[r.qvel_adr + axis])
+        accel = np.diff(vel[: round(0.05 / dt)]).max() / dt
+        assert accel == pytest.approx(a_max, rel=0.03), f"axis {axis}: accel {accel:.2f}"
+        assert vel[-1] == pytest.approx(v_max, rel=0.03), f"axis {axis}: speed {vel[-1]:.2f}"
 
 
 if __name__ == "__main__":

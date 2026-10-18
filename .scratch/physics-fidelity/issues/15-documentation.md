@@ -78,3 +78,13 @@ deste mapa, então deveriam ser commitados, e a comparação de CoM do documento
   ambiente seguem; `FLOOR_Z`, `WALL_HALF_X/Y` na tabela de constantes; altura da bola e regra de gol
   medidas acima do carpete. Fora do `11`: `docs/research/rsoccer-vs-mjsoccer.md` (`U2`, `U4`, `L9`)
   ainda descreve o gol de 0.155 m sobre z do mundo e o deslocamento da altura como atuais.
+- 2026-10-18, do `12`: a declaração de envelope que o `README.md` e `docs/index.md:145-150,199-212`
+  precisam (as linhas eram as de antes do `11`/`12`; procurar a seção de tiers): **"o mesmo
+  envelope" = os quatro limites por eixo** — `v_max` 3.30 m/s, `a_max` 2.30 m/s², `ω_max` 30 rad/s,
+  `α_max` 55.1 rad/s², isotrópicos, o menor entre o frontal e o lateral do tier 1. **Não igualados,
+  e é isso que define o tier 1:** escorregamento, tração, transferência de peso e o acoplamento entre
+  eixos (o tier 0 alcança os três limites ao mesmo tempo e, pela diagonal do mundo, até √2 × `v`/`a`;
+  o tier 1 com velocidade frontal cheia não tem roda sobrando para o yaw). Os números do tier 0 já
+  estão em `docs/index.md` (tabela de ação, `MAX_V`) e nas seis páginas de ambiente; falta a prosa.
+  Fora do `12`: `docs/research/rsoccer-vs-mjsoccer.md:81,428,519` ainda dá o tier 0 com amortecimento
+  0.1/0.005, `forcerange` ±19.1261 N / ±3.427 N·m e `ctrlrange` de 4.0 m/s.

@@ -50,7 +50,7 @@ tickets `research`. CodeGraph (`codegraph_*`) antes de ler código-fonte à mão
 As exceções são os tickets `task`, que rodam medições — esses podem mexer em `models/` só como
 diagnóstico revertido, e precisam reverter.
 **Exceção registrada (2026-10-17):** a pedido explícito, as edições do `04` e do `05` já entraram em
-`models/` antes do mapa fechar — ver os Comments do `05`. O `06`, o `07`, o `08`, o `09` e o `10` entraram do mesmo jeito, também a pedido explícito.
+`models/` antes do mapa fechar — ver os Comments do `05`. O `06`, o `07`, o `08`, o `09`, o `10`, o `11` e o `12` entraram do mesmo jeito, também a pedido explícito.
 
 ## Decisions so far
 
@@ -132,6 +132,13 @@ diagnóstico revertido, e precisam reverter.
   sin/cos, `has_ball`, z ≥ 0, waypoint); bola x/y e velocidades ilimitadas. 0 observações fora em ~152
   mil steps. `MAX_BALL_V` fica 8 (chute em movimento lê ~1.06). Números em
   [`candidate-11/`](candidate-11/).
+- [Envelope do tier 0](issues/12-tier0-envelope.md): **"o mesmo envelope" = os quatro limites por
+  eixo**, isotrópicos, o menor entre frontal e lateral do envelope *derivado* do tier 1: `v_max`
+  3.30 m/s (`ctrlrange`, era 4), `a_max` 2.30 m/s² (`forcerange` ±6.1918 N, era 19.1261),
+  `α_max` 55.1 rad/s² (±0.5273 N·m, era 3.427), `ω_max` 30 (fica, teto que o tier 1 garante).
+  Escorregamento, tração, peso e acoplamento entre eixos ficam de fora: são o tier 1. Amortecimento
+  das juntas do chassi → 0; `MAX_V` → 3.3. Medido 2.30 / 3.30 / 55.2 / 29.97. Números em
+  [`candidate-12/`](candidate-12/).
 
 ## Not yet specified
 

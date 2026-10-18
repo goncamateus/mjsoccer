@@ -25,3 +25,9 @@ Fazer:
    do próprio contato.
 
 Até isto fechar, o `14` não deve usar `v_max`/`a_max` cinemáticos como critério.
+
+## Comments
+
+- 2026-10-18, do `12`: o tier 0 agora declara o envelope **derivado** do tier 1 (`v_max` 3.30 m/s,
+  `a_max` 2.30 m/s², isotrópicos), não o medido. Quando este ticket fechar, o tier 1 deve alcançar
+  pelo menos 3.30 m/s em x e 2.30 m/s² nos dois eixos; se não alcançar, o `12` reabre.
