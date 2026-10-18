@@ -1,0 +1,24 @@
+total 210
+  -4.3mm b0_r_col_axisDribbler ct=2 ca=0 type=5
+  -0.5mm b0_col_wheel1_roller_16_c00 ct=4 ca=4 type=7
+  -0.5mm b0_col_wheel3_roller_9_3_c00 ct=4 ca=4 type=7
+  -0.5mm b0_col_wheel4_roller_6_4_c00 ct=4 ca=4 type=7
+  -0.4mm b0_col_wheel2_roller_6_2_c00 ct=4 ca=4 type=7
+  -0.3mm b0_col_wheel2_roller_5_2_c00 ct=4 ca=4 type=7
+  -0.0mm ball ct=7 ca=7 type=2
+   0.2mm b0_col_wheel4_roller_5_4_c00 ct=4 ca=4 type=7
+   0.3mm b0_col_wheel1_roller_15_c00 ct=4 ca=4 type=7
+   0.3mm b0_col_wheel3_roller_8_3_c00 ct=4 ca=4 type=7
+   0.8mm b0_col_wheel1_roller_17_c00 ct=4 ca=4 type=7
+   0.8mm b0_col_wheel3_roller_10_3_c00 ct=4 ca=4 type=7
+None
+   3.0mm b0_r_col_Direct_Transmission_new_Simplify_2_1_2_c03 ct=1 ca=1 type=7
+   3.2mm b0_r_col_Direct_Transmission_new_Simplify_2_1_c01 ct=1 ca=1 type=7
+   3.2mm b0_r_col_Direct_Transmission_new_Simplify_2_1_4_c03 ct=1 ca=1 type=7
+   3.3mm b0_r_col_Direct_Transmission_new_Simplify_2_1_3_c04 ct=1 ca=1 type=7
+   4.1mm b0_r_col_chassis_2_c09 ct=1 ca=1 type=7
+   4.1mm b0_r_col_chassis_2_c10 ct=1 ca=1 type=7
+   4.1mm b0_r_col_chassis_2_c12 ct=1 ca=1 type=7
+   4.9mm b0_r_col_Direct_Transmission_new_Simplify_2_1_c02 ct=1 ca=1 type=7
+bodies 91 ngeom 349
+bit-1 geoms by body, robot b0: {'b0_robot': 87, 'b0_wheel1': 6, 'b0_wheel2': 6, 'b0_wheel3': 6, 'b0_wheel4': 6}

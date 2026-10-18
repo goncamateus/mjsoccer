@@ -325,6 +325,34 @@ def test_tipover_ends_episode(env_id):
     env.close()
 
 
+def test_chassis_rests_on_carpet():
+    """A tier-1 robot dropped on its side lies on the carpet, not under it.
+
+    Only the rollers used to collide with the floor, so a tipped chassis sank through and
+    ended up on its back with the CoM at carpet height. Rolling over pivots the chassis
+    onto the carpet from ~10 deg of tilt on, well inside the 60 deg termination, so this is
+    in-episode physics, not post-mortem. Measured (ticket 06): CoM 87 mm up at 89 deg
+    with the contact, 1.6 mm at 180 deg without.
+    """
+    import mujoco
+
+    model, robots, _ = S.build(1, 0, tier=1)
+    r, data = robots[0], mujoco.MjData(model)
+    mujoco.mj_resetData(model, data)
+    r.place(data, 0, 0, 0)
+    a = r.qpos_adr
+    carpet = model.geom_pos[mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "floor")][2]
+    data.qpos[a + 2] = carpet + 0.15  # released clear of the carpet
+    # 90 deg roll about the chassis' own x -- flat on its side.
+    data.qpos[a + 3 : a + 7] = (np.cos(np.pi / 4), np.sin(np.pi / 4), 0.0, 0.0)
+    for _ in range(round(2.0 / model.opt.timestep)):
+        mujoco.mj_step(model, data)
+    height = data.xipos[r.body][2] - carpet
+    tilt = np.degrees(np.arccos(np.clip(data.xmat[r.body][8], -1, 1)))
+    assert height > 0.05, f"CoM {height * 1e3:.1f} mm above the carpet, chassis sank through"
+    assert tilt < 120, f"settled at {tilt:.0f} deg, rolled through the floor onto its back"
+
+
 @pytest.mark.parametrize("env_id", ENV_IDS)
 @pytest.mark.parametrize("tier,dim", [(0, 6), (1, 7)])
 def test_action_space_is_uniform(env_id, tier, dim):

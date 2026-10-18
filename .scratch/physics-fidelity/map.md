@@ -50,7 +50,7 @@ tickets `research`. CodeGraph (`codegraph_*`) antes de ler código-fonte à mão
 As exceções são os tickets `task`, que rodam medições — esses podem mexer em `models/` só como
 diagnóstico revertido, e precisam reverter.
 **Exceção registrada (2026-10-17):** a pedido explícito, as edições do `04` e do `05` já entraram em
-`models/` antes do mapa fechar — ver os Comments do `05`.
+`models/` antes do mapa fechar — ver os Comments do `05`. O `06` entrou do mesmo jeito, também a pedido explícito.
 
 ## Decisions so far
 
@@ -92,6 +92,12 @@ diagnóstico revertido, e precisam reverter.
   giro. `kv` fica como aproximação da malha de velocidade do firmware. Achado lateral: as rodas perdem
   contato com o piso ao dirigir (`v` real ~1.7-2 m/s de 3.30 em x, 0.17 de 4.04 em y) → novo [`18`](issues/18-wheel-contact-loss.md).
   Números em [`candidate-04/`](candidate-04/).
+- [Colisão chassi↔piso](issues/06-chassis-floor-collision.md): **habilitada**, piso `contype/conaffinity`
+  4 → **5**, sem proxy. O chassi encosta no carpete a partir de 9.5° (mediana 25.5°), dentro do término
+  a 60°, então isso é física dentro do episódio; sem a colisão, um robô de lado atravessa o piso e
+  termina de costas. Custo: ~1 % de vazão (ruído), zero contatos no jogo normal; são 111 cascos por
+  robô, não 209. O `07` herda um único conjunto de cascos para robô↔robô e piso. Aplicado em `models/`.
+  Números em [`candidate-06/`](candidate-06/).
 
 ## Not yet specified
 

@@ -1,0 +1,7 @@
+current,throughput,GoToBall-v0,772.4
+current,throughput,StaticDefenders-v0,136.8
+current,random,GoToBall-v0,steps=12500,chassis_floor_step_frac=0.0000,tips=0
+current,random,StaticDefenders-v0,steps=18750,chassis_floor_step_frac=0.0000,tips=0
+current,drive,x,chassis_floor_step_frac=0.000,|v_final|=1.92
+current,drive,y,chassis_floor_step_frac=0.000,|v_final|=0.17
+current,sidedrop,com_z_above_carpet=0.0016,lowest_collision_vertex=-95.2mm,tilt=180.0
