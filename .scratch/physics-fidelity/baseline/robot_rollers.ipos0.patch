@@ -1,0 +1,11 @@
+--- models/robot_rollers.xml
++++ models/robot_rollers.xml
+@@ -150,7 +150,7 @@
+     <body name="robot" pos="0 0 0.021">
+       <camera name="robot_cam" pos="-0.6 0 0.35" xyaxes="0 -1 0 0.5 0 0.87" mode="trackcom" />
+       <freejoint name="robot_free" />
+-      <inertial pos="-0.00796127 0.00020715 0.0580094" mass="2.27657" fullinertia="0.00877972 0.00764781 0.00783416 2.01248e-05 -4.18293e-05 -2.02144e-05" />
++      <inertial pos="0 0 0.0580094" mass="2.27657" fullinertia="0.00877972 0.00764781 0.00783416 2.01248e-05 -4.18293e-05 -2.02144e-05" />
+       <geom name="r_vis_chassis_1" type="mesh" mesh="r_v_COMPOUND_13" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" material="r_mat_chassis" contype="0" conaffinity="0" group="2" density="0" />
+       <geom name="r_vis_chassis_2" type="mesh" mesh="r_v_COMPOUND_14" pos="0 0 0.00558921" quat="0.707107 0 0 0.707107" material="r_mat_chassis" contype="0" conaffinity="0" group="2" density="0" />
+       <geom name="r_vis_motor1" type="mesh" mesh="r_v_motor_axis" pos="0.03395 0.0588031 0.0300892" quat="0.227827 -0.458332 0.12281 0.850261" material="r_mat_metal" contype="0" conaffinity="0" group="2" density="0" />

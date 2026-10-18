@@ -74,6 +74,13 @@ diagnóstico revertido, e precisam reverter.
   `solref` de paredes/para-choques, μ bola↔dribbler = 2.5 e μ robô↔robô/parede ficam inalterados,
   registrados como aproximações deliberadas. `impratio` fica em 1, revisitar só se o `14` encontrar
   problemas de escorregamento.
+- [Diagnóstico CoM/giro](issues/03-com-spin-diagnostic.md): o deslocamento de 3.459 mm baixa o
+  limiar de giro (CAD anda na borda a partir de ~54 rad/s; CoM centralizado, ~62), mas **não é
+  necessário** — o modo existe com o CoM no eixo; zerar `ipos` x/y nem centraliza o CoM (vira 3.28 mm
+  para +x). Linha de base com ação aleatória, tier 1: **35.9 tombamentos/min**, inclinação p50/p95/p99
+  12.3/44.5/59.8° (p99 censurado pelo término a 60°), yaw ≤ 34 rad/s — outro mecanismo, não o giro.
+  Números em
+  [`baseline/`](baseline/).
 
 ## Not yet specified
 
