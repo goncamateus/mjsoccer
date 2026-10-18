@@ -1,0 +1,99 @@
+# base: dt 0.00104 s, mjsoccer models /tmp/claude-1000/-home-mateus-doc-ssl-rl/e16cf69a-facd-4dbe-91fb-1bfc42c5a652/scratchpad/m18/base
+x k=0.10: frac [0.97 0.98 0.98 0.99] n_wheels(0..4) [0.   0.   0.01 0.06 0.93] other 0.00 z_std 0.041 mm  v 0.28 of 0.33 m/s  peak|yaw| 0.19
+x k=0.20: frac [0.85 0.81 0.84 0.86] n_wheels(0..4) [0.   0.01 0.11 0.38 0.49] other 0.00 z_std 0.046 mm  v 0.55 of 0.66 m/s  peak|yaw| 0.37
+x k=0.30: frac [0.74 0.67 0.71 0.69] n_wheels(0..4) [0.01 0.07 0.28 0.35 0.28] other 0.00 z_std 0.063 mm  v 0.80 of 0.99 m/s  peak|yaw| 0.23
+x k=0.50: frac [0.54 0.56 0.54 0.55] n_wheels(0..4) [0.06 0.2  0.36 0.27 0.12] other 0.00 z_std 0.074 mm  v 1.30 of 1.65 m/s  peak|yaw| 0.34
+x k=1.00: frac [0.33 0.4  0.37 0.33] n_wheels(0..4) [0.23 0.31 0.31 0.11 0.04] other 0.00 z_std 0.103 mm  v 2.07 of 3.30 m/s  peak|yaw| 0.68
+y k=0.10: frac [0.96 0.81 0.84 0.98] n_wheels(0..4) [0.   0.   0.07 0.27 0.66] other 0.00 z_std 0.054 mm  v 0.26 of 0.40 m/s  peak|yaw| 0.79
+y k=0.20: frac [0.8  0.62 0.68 0.83] n_wheels(0..4) [0.   0.06 0.26 0.37 0.31] other 0.00 z_std 0.068 mm  v 0.46 of 0.81 m/s  peak|yaw| 1.24
+y k=0.30: frac [0.68 0.44 0.54 0.8 ] n_wheels(0..4) [0.02 0.15 0.34 0.31 0.17] other 0.00 z_std 0.085 mm  v 0.55 of 1.21 m/s  peak|yaw| 1.70
+y k=0.50: frac [0.54 0.3  0.39 0.71] n_wheels(0..4) [0.1  0.25 0.34 0.22 0.09] other 0.00 z_std 0.090 mm  v 0.09 of 2.02 m/s  peak|yaw| 3.95
+y k=1.00: frac [0.37 0.18 0.23 0.49] n_wheels(0..4) [0.24 0.39 0.25 0.08 0.03] other 0.00 z_std 0.127 mm  v -0.03 of 4.04 m/s  peak|yaw| 7.08
+# dt05: dt 0.000521 s, mjsoccer models /tmp/claude-1000/-home-mateus-doc-ssl-rl/e16cf69a-facd-4dbe-91fb-1bfc42c5a652/scratchpad/m18/dt05
+x k=0.10: frac [0.97 0.98 0.97 0.98] n_wheels(0..4) [0.   0.   0.01 0.07 0.92] other 0.00 z_std 0.044 mm  v 0.28 of 0.33 m/s  peak|yaw| 0.21
+x k=0.20: frac [0.84 0.8  0.86 0.85] n_wheels(0..4) [0.   0.01 0.12 0.37 0.5 ] other 0.00 z_std 0.052 mm  v 0.56 of 0.66 m/s  peak|yaw| 0.44
+x k=0.30: frac [0.72 0.67 0.71 0.71] n_wheels(0..4) [0.01 0.09 0.25 0.36 0.29] other 0.00 z_std 0.068 mm  v 0.82 of 0.99 m/s  peak|yaw| 0.41
+x k=0.50: frac [0.53 0.55 0.54 0.54] n_wheels(0..4) [0.06 0.2  0.37 0.25 0.12] other 0.00 z_std 0.067 mm  v 1.31 of 1.65 m/s  peak|yaw| 0.45
+x k=1.00: frac [0.32 0.38 0.38 0.34] n_wheels(0..4) [0.21 0.33 0.31 0.11 0.03] other 0.00 z_std 0.095 mm  v 2.16 of 3.30 m/s  peak|yaw| 0.82
+y k=0.10: frac [0.97 0.77 0.84 0.99] n_wheels(0..4) [0.   0.   0.09 0.25 0.67] other 0.00 z_std 0.057 mm  v 0.26 of 0.40 m/s  peak|yaw| 0.77
+y k=0.20: frac [0.79 0.62 0.67 0.84] n_wheels(0..4) [0.01 0.07 0.25 0.33 0.34] other 0.00 z_std 0.069 mm  v 0.50 of 0.81 m/s  peak|yaw| 1.28
+y k=0.30: frac [0.66 0.42 0.55 0.81] n_wheels(0..4) [0.03 0.15 0.34 0.3  0.18] other 0.00 z_std 0.079 mm  v 0.57 of 1.21 m/s  peak|yaw| 1.93
+y k=0.50: frac [0.55 0.26 0.39 0.71] n_wheels(0..4) [0.08 0.27 0.38 0.18 0.09] other 0.00 z_std 0.089 mm  v 0.05 of 2.02 m/s  peak|yaw| 4.72
+y k=1.00: frac [0.35 0.18 0.23 0.49] n_wheels(0..4) [0.26 0.37 0.26 0.08 0.02] other 0.00 z_std 0.111 mm  v 0.21 of 4.04 m/s  peak|yaw| 7.81
+# soft8: dt 0.00104 s, mjsoccer models /tmp/claude-1000/-home-mateus-doc-ssl-rl/e16cf69a-facd-4dbe-91fb-1bfc42c5a652/scratchpad/m18/soft8
+x k=0.10: frac [0.98 0.99 0.99 0.99] n_wheels(0..4) [0.   0.   0.01 0.03 0.96] other 0.00 z_std 0.044 mm  v 0.28 of 0.33 m/s  peak|yaw| 0.20
+x k=0.20: frac [0.88 0.86 0.88 0.89] n_wheels(0..4) [0.   0.01 0.08 0.28 0.62] other 0.00 z_std 0.053 mm  v 0.55 of 0.66 m/s  peak|yaw| 0.29
+x k=0.30: frac [0.76 0.75 0.74 0.76] n_wheels(0..4) [0.01 0.05 0.22 0.34 0.37] other 0.00 z_std 0.064 mm  v 0.81 of 0.99 m/s  peak|yaw| 0.43
+x k=0.50: frac [0.59 0.61 0.57 0.57] n_wheels(0..4) [0.05 0.16 0.34 0.29 0.15] other 0.00 z_std 0.083 mm  v 1.25 of 1.65 m/s  peak|yaw| 0.44
+x k=1.00: frac [0.36 0.43 0.4  0.35] n_wheels(0..4) [0.19 0.31 0.33 0.13 0.05] other 0.00 z_std 0.116 mm  v 1.98 of 3.30 m/s  peak|yaw| 0.99
+y k=0.10: frac [0.99 0.85 0.83 1.  ] n_wheels(0..4) [0.   0.   0.06 0.2  0.74] other 0.00 z_std 0.066 mm  v 0.23 of 0.40 m/s  peak|yaw| 0.70
+y k=0.20: frac [0.82 0.63 0.71 0.89] n_wheels(0..4) [0.   0.04 0.22 0.35 0.38] other 0.00 z_std 0.070 mm  v 0.45 of 0.81 m/s  peak|yaw| 1.36
+y k=0.30: frac [0.71 0.47 0.59 0.83] n_wheels(0..4) [0.02 0.12 0.34 0.3  0.22] other 0.00 z_std 0.086 mm  v 0.57 of 1.21 m/s  peak|yaw| 1.63
+y k=0.50: frac [0.56 0.33 0.42 0.79] n_wheels(0..4) [0.05 0.24 0.39 0.21 0.12] other 0.00 z_std 0.091 mm  v 0.08 of 2.02 m/s  peak|yaw| 3.59
+y k=1.00: frac [0.4  0.2  0.25 0.53] n_wheels(0..4) [0.22 0.37 0.26 0.1  0.04] other 0.00 z_std 0.106 mm  v 0.02 of 4.04 m/s  peak|yaw| 7.68
+# soft16: dt 0.00104 s, mjsoccer models /tmp/claude-1000/-home-mateus-doc-ssl-rl/e16cf69a-facd-4dbe-91fb-1bfc42c5a652/scratchpad/m18/soft16
+x k=0.10: frac [0.99 1.   1.   0.99] n_wheels(0..4) [0.   0.   0.   0.01 0.99] other 0.00 z_std 0.035 mm  v 0.27 of 0.33 m/s  peak|yaw| 0.20
+x k=0.20: frac [0.92 0.91 0.95 0.93] n_wheels(0..4) [0.   0.   0.04 0.19 0.76] other 0.00 z_std 0.046 mm  v 0.55 of 0.66 m/s  peak|yaw| 0.36
+x k=0.30: frac [0.83 0.81 0.85 0.83] n_wheels(0..4) [0.   0.02 0.13 0.34 0.5 ] other 0.00 z_std 0.062 mm  v 0.81 of 0.99 m/s  peak|yaw| 0.33
+x k=0.50: frac [0.66 0.67 0.67 0.65] n_wheels(0..4) [0.03 0.12 0.29 0.31 0.25] other 0.00 z_std 0.071 mm  v 1.28 of 1.65 m/s  peak|yaw| 0.38
+x k=1.00: frac [0.43 0.48 0.47 0.4 ] n_wheels(0..4) [0.13 0.26 0.39 0.17 0.07] other 0.00 z_std 0.102 mm  v 2.10 of 3.30 m/s  peak|yaw| 0.81
+y k=0.10: frac [1.   0.95 0.95 1.  ] n_wheels(0..4) [0.  0.  0.  0.1 0.9] other 0.00 z_std 0.048 mm  v 0.23 of 0.40 m/s  peak|yaw| 0.67
+y k=0.20: frac [0.89 0.68 0.76 0.95] n_wheels(0..4) [0.   0.02 0.15 0.36 0.47] other 0.00 z_std 0.068 mm  v 0.47 of 0.81 m/s  peak|yaw| 1.38
+y k=0.30: frac [0.76 0.51 0.63 0.91] n_wheels(0..4) [0.01 0.08 0.3  0.33 0.29] other 0.00 z_std 0.094 mm  v 0.52 of 1.21 m/s  peak|yaw| 1.93
+y k=0.50: frac [0.62 0.35 0.47 0.84] n_wheels(0..4) [0.02 0.17 0.43 0.25 0.13] other 0.00 z_std 0.091 mm  v 0.04 of 2.02 m/s  peak|yaw| 4.21
+y k=1.00: frac [0.45 0.25 0.3  0.59] n_wheels(0..4) [0.17 0.33 0.3  0.13 0.06] other 0.00 z_std 0.120 mm  v -0.07 of 4.04 m/s  peak|yaw| 7.79
+# soft32: dt 0.00104 s, mjsoccer models /tmp/claude-1000/-home-mateus-doc-ssl-rl/e16cf69a-facd-4dbe-91fb-1bfc42c5a652/scratchpad/m18/soft32
+x k=0.10: frac [0.99 1.   1.   1.  ] n_wheels(0..4) [0.   0.   0.   0.01 0.99] other 0.00 z_std 0.051 mm  v 0.27 of 0.33 m/s  peak|yaw| 0.14
+x k=0.20: frac [0.97 0.98 0.98 0.98] n_wheels(0..4) [0.   0.   0.01 0.05 0.94] other 0.00 z_std 0.043 mm  v 0.54 of 0.66 m/s  peak|yaw| 0.36
+x k=0.30: frac [0.9  0.91 0.9  0.92] n_wheels(0..4) [0.   0.01 0.06 0.2  0.72] other 0.00 z_std 0.063 mm  v 0.81 of 0.99 m/s  peak|yaw| 0.40
+x k=0.50: frac [0.73 0.73 0.75 0.75] n_wheels(0..4) [0.01 0.07 0.23 0.31 0.37] other 0.00 z_std 0.097 mm  v 1.28 of 1.65 m/s  peak|yaw| 0.42
+x k=1.00: frac [0.51 0.57 0.57 0.5 ] n_wheels(0..4) [0.08 0.19 0.38 0.21 0.14] other 0.00 z_std 0.117 mm  v 2.09 of 3.30 m/s  peak|yaw| 0.54
+y k=0.10: frac [1.   0.97 0.99 1.  ] n_wheels(0..4) [0.   0.   0.   0.03 0.96] other 0.00 z_std 0.043 mm  v 0.22 of 0.40 m/s  peak|yaw| 0.58
+y k=0.20: frac [0.97 0.81 0.86 0.98] n_wheels(0..4) [0.   0.   0.07 0.23 0.69] other 0.00 z_std 0.078 mm  v 0.45 of 0.81 m/s  peak|yaw| 1.32
+y k=0.30: frac [0.88 0.6  0.73 0.96] n_wheels(0..4) [0.   0.04 0.19 0.32 0.45] other 0.00 z_std 0.102 mm  v 0.54 of 1.21 m/s  peak|yaw| 1.95
+y k=0.50: frac [0.72 0.42 0.57 0.91] n_wheels(0..4) [0.01 0.13 0.34 0.27 0.25] other 0.00 z_std 0.107 mm  v 0.03 of 2.02 m/s  peak|yaw| 4.55
+y k=1.00: frac [0.53 0.32 0.39 0.69] n_wheels(0..4) [0.11 0.26 0.34 0.18 0.11] other 0.00 z_std 0.146 mm  v 0.06 of 4.04 m/s  peak|yaw| 7.42
+# damp3: dt 0.00104 s, mjsoccer models /tmp/claude-1000/-home-mateus-doc-ssl-rl/e16cf69a-facd-4dbe-91fb-1bfc42c5a652/scratchpad/m18/damp3
+x k=0.10: frac [0.98 0.99 0.99 0.99] n_wheels(0..4) [0.   0.   0.   0.04 0.96] other 0.00 z_std 0.045 mm  v 0.27 of 0.33 m/s  peak|yaw| 0.27
+x k=0.20: frac [0.87 0.85 0.86 0.87] n_wheels(0..4) [0.   0.02 0.1  0.3  0.59] other 0.00 z_std 0.055 mm  v 0.54 of 0.66 m/s  peak|yaw| 0.29
+x k=0.30: frac [0.74 0.71 0.72 0.7 ] n_wheels(0..4) [0.01 0.07 0.24 0.38 0.3 ] other 0.00 z_std 0.068 mm  v 0.78 of 0.99 m/s  peak|yaw| 0.37
+x k=0.50: frac [0.56 0.56 0.55 0.56] n_wheels(0..4) [0.07 0.17 0.35 0.26 0.14] other 0.00 z_std 0.076 mm  v 1.27 of 1.65 m/s  peak|yaw| 0.43
+x k=1.00: frac [0.36 0.37 0.38 0.33] n_wheels(0..4) [0.23 0.31 0.31 0.11 0.05] other 0.00 z_std 0.104 mm  v 2.06 of 3.30 m/s  peak|yaw| 0.75
+y k=0.10: frac [0.97 0.86 0.86 0.99] n_wheels(0..4) [0.   0.   0.03 0.26 0.71] other 0.00 z_std 0.060 mm  v 0.25 of 0.40 m/s  peak|yaw| 0.84
+y k=0.20: frac [0.81 0.64 0.71 0.84] n_wheels(0..4) [0.   0.04 0.23 0.38 0.34] other 0.00 z_std 0.064 mm  v 0.47 of 0.81 m/s  peak|yaw| 1.20
+y k=0.30: frac [0.67 0.46 0.57 0.79] n_wheels(0..4) [0.03 0.13 0.34 0.33 0.18] other 0.00 z_std 0.084 mm  v 0.58 of 1.21 m/s  peak|yaw| 1.79
+y k=0.50: frac [0.56 0.29 0.39 0.75] n_wheels(0..4) [0.06 0.27 0.39 0.19 0.09] other 0.00 z_std 0.088 mm  v 0.11 of 2.02 m/s  peak|yaw| 4.00
+y k=1.00: frac [0.38 0.19 0.22 0.51] n_wheels(0..4) [0.24 0.37 0.26 0.09 0.04] other 0.00 z_std 0.118 mm  v 0.03 of 4.04 m/s  peak|yaw| 7.58
+# hull: dt 0.00104 s, mjsoccer models /tmp/claude-1000/-home-mateus-doc-ssl-rl/e16cf69a-facd-4dbe-91fb-1bfc42c5a652/scratchpad/m18/hull
+x k=0.10: frac [0.99 1.   1.   0.99] n_wheels(0..4) [0.   0.   0.   0.01 0.99] other 0.00 z_std 0.017 mm  v 0.30 of 0.33 m/s  peak|yaw| 0.17
+x k=0.20: frac [0.95 0.96 0.96 0.96] n_wheels(0..4) [0.   0.01 0.03 0.08 0.88] other 0.00 z_std 0.023 mm  v 0.59 of 0.66 m/s  peak|yaw| 0.16
+x k=0.30: frac [0.88 0.86 0.85 0.89] n_wheels(0..4) [0.01 0.03 0.07 0.28 0.62] other 0.00 z_std 0.027 mm  v 0.88 of 0.99 m/s  peak|yaw| 0.18
+x k=0.50: frac [0.7  0.67 0.68 0.68] n_wheels(0..4) [0.02 0.1  0.26 0.38 0.24] other 0.00 z_std 0.039 mm  v 1.44 of 1.65 m/s  peak|yaw| 0.35
+x k=1.00: frac [0.38 0.41 0.42 0.37] n_wheels(0..4) [0.17 0.3  0.34 0.12 0.06] other 0.00 z_std 0.064 mm  v 2.47 of 3.30 m/s  peak|yaw| 0.37
+y k=0.10: frac [1.   0.97 0.98 1.  ] n_wheels(0..4) [0.   0.   0.   0.04 0.95] other 0.00 z_std 0.038 mm  v 0.31 of 0.40 m/s  peak|yaw| 0.57
+y k=0.20: frac [0.93 0.77 0.84 0.95] n_wheels(0..4) [0.   0.01 0.1  0.27 0.62] other 0.00 z_std 0.038 mm  v 0.62 of 0.81 m/s  peak|yaw| 1.26
+y k=0.30: frac [0.78 0.55 0.68 0.89] n_wheels(0..4) [0.01 0.06 0.24 0.38 0.3 ] other 0.00 z_std 0.041 mm  v 0.91 of 1.21 m/s  peak|yaw| 1.86
+y k=0.50: frac [0.6  0.23 0.4  0.82] n_wheels(0..4) [0.05 0.25 0.4  0.2  0.1 ] other 0.00 z_std 0.048 mm  v 0.04 of 2.02 m/s  peak|yaw| 5.41
+y k=1.00: frac [0.37 0.18 0.22 0.5 ] n_wheels(0..4) [0.25 0.37 0.27 0.08 0.03] other 0.00 z_std 0.078 mm  v -0.21 of 4.04 m/s  peak|yaw| 8.78
+# ellip: dt 0.00104 s, mjsoccer models /tmp/claude-1000/-home-mateus-doc-ssl-rl/e16cf69a-facd-4dbe-91fb-1bfc42c5a652/scratchpad/m18/ellip
+x k=0.10: frac [0.98 1.   1.   0.99] n_wheels(0..4) [0.   0.   0.   0.01 0.98] other 0.00 z_std 0.008 mm  v 0.29 of 0.33 m/s  peak|yaw| 0.08
+x k=0.20: frac [0.95 0.8  0.77 0.94] n_wheels(0..4) [0.01 0.01 0.2  0.11 0.68] other 0.00 z_std 0.023 mm  v 0.60 of 0.66 m/s  peak|yaw| 0.16
+x k=0.30: frac [0.81 0.68 0.68 0.85] n_wheels(0..4) [0.01 0.03 0.26 0.32 0.38] other 0.00 z_std 0.013 mm  v 0.89 of 0.99 m/s  peak|yaw| 0.33
+x k=0.50: frac [0.57 0.55 0.54 0.57] n_wheels(0..4) [0.11 0.13 0.36 0.22 0.18] other 0.00 z_std 0.028 mm  v 1.45 of 1.65 m/s  peak|yaw| 0.22
+x k=1.00: frac [0.33 0.36 0.37 0.32] n_wheels(0..4) [0.26 0.27 0.36 0.07 0.05] other 0.00 z_std 0.038 mm  v 2.43 of 3.30 m/s  peak|yaw| 0.41
+y k=0.10: frac [0.94 0.96 0.96 0.96] n_wheels(0..4) [0.   0.   0.02 0.14 0.84] other 0.00 z_std 0.020 mm  v 0.29 of 0.40 m/s  peak|yaw| 0.53
+y k=0.20: frac [0.75 0.73 0.71 0.83] n_wheels(0..4) [0.01 0.02 0.25 0.37 0.35] other 0.00 z_std 0.019 mm  v 0.57 of 0.81 m/s  peak|yaw| 0.94
+y k=0.30: frac [0.61 0.49 0.54 0.76] n_wheels(0..4) [0.02 0.11 0.49 0.19 0.19] other 0.00 z_std 0.026 mm  v 0.76 of 1.21 m/s  peak|yaw| 1.62
+y k=0.50: frac [0.54 0.24 0.37 0.77] n_wheels(0..4) [0.09 0.27 0.4  0.14 0.11] other 0.00 z_std 0.031 mm  v 0.06 of 2.02 m/s  peak|yaw| 5.96
+y k=1.00: frac [0.34 0.16 0.21 0.46] n_wheels(0..4) [0.29 0.35 0.28 0.04 0.03] other 0.00 z_std 0.061 mm  v -0.22 of 4.04 m/s  peak|yaw| 9.29
+# susp: dt 0.00104 s, mjsoccer models /tmp/claude-1000/-home-mateus-doc-ssl-rl/e16cf69a-facd-4dbe-91fb-1bfc42c5a652/scratchpad/m18/susp
+x k=0.10: frac [1. 1. 1. 1.] n_wheels(0..4) [0. 0. 0. 0. 1.] other 0.00 z_std 0.043 mm  v 0.28 of 0.33 m/s  peak|yaw| 0.23
+x k=0.20: frac [0.98 0.98 0.99 0.99] n_wheels(0..4) [0.   0.   0.   0.05 0.95] other 0.00 z_std 0.188 mm  v 0.59 of 0.66 m/s  peak|yaw| 0.61
+x k=0.30: frac [0.96 0.96 0.97 0.96] n_wheels(0..4) [0.   0.   0.01 0.14 0.85] other 0.00 z_std 0.198 mm  v 0.82 of 0.99 m/s  peak|yaw| 0.51
+x k=0.50: frac [0.91 0.92 0.92 0.91] n_wheels(0..4) [0.   0.   0.03 0.27 0.7 ] other 0.00 z_std 0.169 mm  v 1.33 of 1.65 m/s  peak|yaw| 0.26
+x k=1.00: frac [0.8  0.84 0.85 0.79] n_wheels(0..4) [0.   0.02 0.13 0.39 0.46] other 0.00 z_std 0.155 mm  v 2.35 of 3.30 m/s  peak|yaw| 0.32
+y k=0.10: frac [1.   0.99 0.99 1.  ] n_wheels(0..4) [0.   0.   0.   0.02 0.98] other 0.00 z_std 0.160 mm  v 0.26 of 0.40 m/s  peak|yaw| 0.80
+y k=0.20: frac [0.97 0.97 0.95 1.  ] n_wheels(0..4) [0.   0.   0.01 0.11 0.89] other 0.00 z_std 0.229 mm  v 0.46 of 0.81 m/s  peak|yaw| 1.42
+y k=0.30: frac [0.94 0.94 0.91 1.  ] n_wheels(0..4) [0.   0.   0.01 0.19 0.8 ] other 0.00 z_std 0.090 mm  v 0.57 of 1.21 m/s  peak|yaw| 1.70
+y k=0.50: frac [0.89 0.83 0.8  0.97] n_wheels(0..4) [0.   0.01 0.08 0.33 0.59] other 0.00 z_std 0.282 mm  v -0.01 of 2.02 m/s  peak|yaw| 4.26
+y k=1.00: frac [0.81 0.67 0.7  0.9 ] n_wheels(0..4) [0.   0.03 0.19 0.45 0.33] other 0.00 z_std 0.109 mm  v -0.27 of 4.04 m/s  peak|yaw| 9.19

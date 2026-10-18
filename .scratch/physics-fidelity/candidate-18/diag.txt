@@ -1,0 +1,56 @@
+# base: dt 0.00104; ripple of wheel 1 over one roller pitch 0.237 mm
+k=0.2: contact frac [0.9  0.82 0.84 0.89]; on/off peak Hz [30. 49. 49. 60.]; roller-pass Hz [60. 49. 49. 60.]
+  mean sum Fn / mg 1.000; wheel |w| [18.7 15.3 15.3 18.7] of cmd [19.  15.5 15.5 19. ]; slip [0.147 0.182 0.143 0.172]
+  v(t) at 0.25/0.5/1/1.5/2 s: [0.35, 0.51, 0.54, 0.56, 0.52]
+# base: dt 0.00104; ripple of wheel 1 over one roller pitch 0.237 mm
+k=1.0: contact frac [0.37 0.41 0.37 0.36]; on/off peak Hz [43. 43. 43. 40.]; roller-pass Hz [289. 240. 237. 290.]
+  mean sum Fn / mg 1.001; wheel |w| [90.9 75.5 74.4 91.1] of cmd [95.  77.6 77.6 95. ]; slip [0.439 0.355 0.48  0.383]
+  v(t) at 0.25/0.5/1/1.5/2 s: [0.43, 0.83, 1.47, 1.93, 2.08]
+# dt05: dt 0.000521; ripple of wheel 1 over one roller pitch 0.237 mm
+k=0.2: contact frac [0.87 0.82 0.87 0.87]; on/off peak Hz [60. 49. 49. 31.]; roller-pass Hz [60. 49. 49. 60.]
+  mean sum Fn / mg 0.998; wheel |w| [18.7 15.3 15.3 18.7] of cmd [19.  15.5 15.5 19. ]; slip [0.141 0.165 0.127 0.146]
+  v(t) at 0.25/0.5/1/1.5/2 s: [0.37, 0.56, 0.57, 0.55, 0.56]
+# dt05: dt 0.000521; ripple of wheel 1 over one roller pitch 0.237 mm
+k=1.0: contact frac [0.35 0.38 0.37 0.39]; on/off peak Hz [32. 38. 43. 45.]; roller-pass Hz [295. 238. 243. 288.]
+  mean sum Fn / mg 0.996; wheel |w| [92.6 74.7 76.4 90.6] of cmd [95.  77.6 77.6 95. ]; slip [0.379 0.484 0.347 0.437]
+  v(t) at 0.25/0.5/1/1.5/2 s: [0.43, 0.83, 1.47, 1.95, 2.21]
+# soft16: dt 0.00104; ripple of wheel 1 over one roller pitch 0.237 mm
+k=0.2: contact frac [0.97 0.94 0.95 0.98]; on/off peak Hz [27.  3. 49. 32.]; roller-pass Hz [59. 49. 49. 59.]
+  mean sum Fn / mg 1.000; wheel |w| [18.7 15.3 15.3 18.7] of cmd [19.  15.5 15.5 19. ]; slip [0.157 0.151 0.163 0.151]
+  v(t) at 0.25/0.5/1/1.5/2 s: [0.37, 0.51, 0.55, 0.54, 0.55]
+# soft16: dt 0.00104; ripple of wheel 1 over one roller pitch 0.237 mm
+k=1.0: contact frac [0.48 0.48 0.46 0.43]; on/off peak Hz [37. 38. 39. 35.]; roller-pass Hz [292. 243. 239. 292.]
+  mean sum Fn / mg 0.999; wheel |w| [91.9 76.4 75.1 91.7] of cmd [95.  77.6 77.6 95. ]; slip [0.438 0.393 0.466 0.405]
+  v(t) at 0.25/0.5/1/1.5/2 s: [0.41, 0.81, 1.46, 1.87, 2.09]
+# soft32: dt 0.00104; ripple of wheel 1 over one roller pitch 0.237 mm
+k=0.2: contact frac [1.   0.99 0.98 1.  ]; on/off peak Hz [240.  28.  56.   6.]; roller-pass Hz [59. 49. 49. 59.]
+  mean sum Fn / mg 1.000; wheel |w| [18.7 15.3 15.3 18.7] of cmd [19.  15.5 15.5 19. ]; slip [0.169 0.166 0.168 0.158]
+  v(t) at 0.25/0.5/1/1.5/2 s: [0.36, 0.52, 0.54, 0.55, 0.54]
+# soft32: dt 0.00104; ripple of wheel 1 over one roller pitch 0.237 mm
+k=1.0: contact frac [0.55 0.56 0.56 0.52]; on/off peak Hz [35. 35. 35. 29.]; roller-pass Hz [294. 243. 242. 294.]
+  mean sum Fn / mg 0.998; wheel |w| [92.4 76.3 76.1 92.2] of cmd [95.  77.6 77.6 95. ]; slip [0.436 0.431 0.453 0.436]
+  v(t) at 0.25/0.5/1/1.5/2 s: [0.41, 0.79, 1.41, 1.85, 2.1]
+# hull: dt 0.00104; ripple of wheel 1 over one roller pitch 0.175 mm
+k=0.2: contact frac [1.   0.99 0.99 1.  ]; on/off peak Hz [ 1. 49. 49.  1.]; roller-pass Hz [60. 49. 49. 60.]
+  mean sum Fn / mg 1.001; wheel |w| [18.7 15.4 15.4 18.8] of cmd [19.  15.5 15.5 19. ]; slip [0.093 0.091 0.093 0.085]
+  v(t) at 0.25/0.5/1/1.5/2 s: [0.4, 0.58, 0.59, 0.6, 0.59]
+# hull: dt 0.00104; ripple of wheel 1 over one roller pitch 0.175 mm
+k=1.0: contact frac [0.46 0.43 0.44 0.45]; on/off peak Hz [40. 46. 45. 40.]; roller-pass Hz [294. 243. 242. 295.]
+  mean sum Fn / mg 0.996; wheel |w| [92.4 76.3 75.9 92.7] of cmd [95.  77.6 77.6 95. ]; slip [0.343 0.321 0.359 0.326]
+  v(t) at 0.25/0.5/1/1.5/2 s: [0.47, 0.88, 1.63, 2.16, 2.5]
+# ellip: dt 0.00104; ripple of wheel 1 over one roller pitch 0.007 mm
+k=0.2: contact frac [1.   0.81 0.76 1.  ]; on/off peak Hz [ 1. 49. 49.  1.]; roller-pass Hz [60. 49. 49. 60.]
+  mean sum Fn / mg 1.001; wheel |w| [18.8 15.4 15.4 18.8] of cmd [19.  15.5 15.5 19. ]; slip [0.08  0.07  0.108 0.087]
+  v(t) at 0.25/0.5/1/1.5/2 s: [0.39, 0.56, 0.6, 0.59, 0.59]
+# ellip: dt 0.00104; ripple of wheel 1 over one roller pitch 0.007 mm
+k=1.0: contact frac [0.39 0.35 0.37 0.36]; on/off peak Hz [69. 88. 83. 70.]; roller-pass Hz [293. 243. 241. 295.]
+  mean sum Fn / mg 1.001; wheel |w| [92.  76.5 75.7 92.8] of cmd [95.  77.6 77.6 95. ]; slip [0.364 0.323 0.389 0.337]
+  v(t) at 0.25/0.5/1/1.5/2 s: [0.46, 0.89, 1.62, 2.12, 2.47]
+# susp: dt 0.00104; ripple of wheel 1 over one roller pitch 0.237 mm
+k=0.2: contact frac [1.   0.98 1.   1.  ]; on/off peak Hz [ 12.  15. 120.   1.]; roller-pass Hz [60. 49. 49. 59.]
+  mean sum Fn / mg 1.001; wheel |w| [18.7 15.3 15.3 18.7] of cmd [19.  15.5 15.5 19. ]; slip [0.091 0.131 0.086 0.119]
+  v(t) at 0.25/0.5/1/1.5/2 s: [0.31, 0.52, 0.58, 0.6, 0.58]
+# susp: dt 0.00104; ripple of wheel 1 over one roller pitch 0.237 mm
+k=1.0: contact frac [0.85 0.84 0.87 0.83]; on/off peak Hz [300. 245.  91. 300.]; roller-pass Hz [300. 245. 245. 300.]
+  mean sum Fn / mg 1.001; wheel |w| [94.2 76.9 76.9 94.1] of cmd [95.  77.6 77.6 95. ]; slip [0.357 0.437 0.333 0.413]
+  v(t) at 0.25/0.5/1/1.5/2 s: [0.43, 0.86, 1.53, 2.06, 2.38]

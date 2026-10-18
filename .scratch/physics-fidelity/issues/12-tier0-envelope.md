@@ -1,8 +1,8 @@
 # Decisão: o que "o mesmo envelope" significa para o tier 0
 
 Type: grilling
-Status: resolved
-Blocked by: 04
+Status: open
+Blocked by: 04, 19
 
 ## Pergunta
 
@@ -97,3 +97,8 @@ continua 119/120.
   do teste subiu de 60 para 106. `ω_max` do tier 0 subiu de 30 para **35.9** (teto cinemático, `01`): o
   giro cheio do tier 1 no passo resolvido passa de 30 (31.8 a 0.25 ms). `MAX_W` = 35.9, e o
   `goto_ball_policy` usa `kw` 1.25 para manter o mesmo ganho físico.
+- 2026-10-18, do `18`: **reabre**, pela regra do comentário do `12` no `18`. O tier 1 não alcança
+  3.30 m/s em x: platô em 2.29 m/s em 3.5 s (`../candidate-18/terminal.txt`). A aceleração lateral
+  medida no `14` é 1.87 m/s², abaixo de 2.30. Em y, o comando cheio vira giro. A causa não é a perda de contato, é o arrasto axial dos roletes (e, em y, o yaw), e isso vai
+  para o [`19`](19-wheel-axial-scrub.md). Decidir de novo quando o `19` der o envelope que o tier 1
+  alcança: ou o tier 0 desce até ele, ou o tier 1 sobe até 3.30.
