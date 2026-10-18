@@ -50,7 +50,7 @@ tickets `research`. CodeGraph (`codegraph_*`) antes de ler código-fonte à mão
 As exceções são os tickets `task`, que rodam medições — esses podem mexer em `models/` só como
 diagnóstico revertido, e precisam reverter.
 **Exceção registrada (2026-10-17):** a pedido explícito, as edições do `04` e do `05` já entraram em
-`models/` antes do mapa fechar — ver os Comments do `05`. O `06` entrou do mesmo jeito, também a pedido explícito.
+`models/` antes do mapa fechar — ver os Comments do `05`. O `06` e o `07` entraram do mesmo jeito, também a pedido explícito.
 
 ## Decisions so far
 
@@ -98,6 +98,14 @@ diagnóstico revertido, e precisam reverter.
   termina de costas. Custo: ~1 % de vazão (ruído), zero contatos no jogo normal; são 111 cascos por
   robô, não 209. O `07` herda um único conjunto de cascos para robô↔robô e piso. Aplicado em `models/`.
   Números em [`candidate-06/`](candidate-06/).
+- [Orçamento da malha de colisão](issues/07-collision-mesh-budget.md): **manter tudo, menos 16 cascos
+  enterrados** (motor/engrenagens do dribbler e o casco `c02` de cada para-choque — superfície inteira
+  dentro dos outros cascos; zero contatos). 209 → **193** geoms de colisão por robô (315 → 299 no total,
+  o "315" da outra auditoria contava os visuais). Bola↔rolete e cubo↔parede ficam: quem desvia a bola é
+  o cubo (bola↔rolete muda a saída ≤ 0.04 m/s). Em jogo normal **nenhum contato fornece impulso de
+  tropeço**: zero contatos de casco com ação aleatória; robô↔robô a comando cheio ≤ 3.1°, parede ≤ 1.7°.
+  Custo da malha não é gargalo (poda: ruído; sem cubos: +2-6 %). Aplicado em `models/`, nos dois tiers.
+  Números em [`candidate-07/`](candidate-07/).
 
 ## Not yet specified
 
@@ -124,9 +132,9 @@ diagnóstico revertido, e precisam reverter.
   20 %, que o `02` converte em ≤10.9 mm de penetração no casco. Se este modelo está em conformidade não
   foi medido, e isso restringe a geometria do dribbler em vez de algum parâmetro — então ainda não é
   uma decisão.
-- **Custo de escala.** 100 DOF e 209 geoms de colisão por robô × até 7 robôs
-  (`StaticDefenders-v0`). Se a fidelidade é viável em tamanhos de partida; precisa primeiro dos
-  números do `07` e do `13`.
+- **Custo de escala.** 100 DOF e 193 geoms de colisão por robô × até 7 robôs
+  (`StaticDefenders-v0`). O `07` mostrou que a malha não é o gargalo (podar ou tirar cubos: ≤ 6 %);
+  o que sobra é DOF/roletes, e isso precisa do `13`.
 - **A queda de 1 mm no spawn** (`X8`): impacto determinístico de 0.14 m/s a cada reset.
   Provavelmente inofensivo, não quantificado.
 

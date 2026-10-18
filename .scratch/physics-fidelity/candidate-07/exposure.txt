@@ -1,0 +1,7 @@
+rays=200000 miss=15644 hit=184356
+class=body(bit1) geoms=87 first_hit_share=0.863 buried=25
+class=mech(bit2) geoms=18 first_hit_share=0.031 buried=7
+class=hub geoms=24 first_hit_share=0.067 buried=0
+class=roller geoms=80 first_hit_share=0.039 buried=0
+buried: r_col_chassis_1_c23 r_col_chassis_2_c06 r_col_chassis_2_c19 r_col_motor1_c01 r_col_motor2_c01 r_col_motor3_c01 r_col_motor4_c01 r_col_bumperRight_1_c02 r_col_bumperLeft_1_c02 r_col_motorDribbler_c00 r_col_motorDribbler_c01 r_col_motorDribbler_c02 r_col_motorDribbler_c03 r_col_motorDribbler_c04 r_col_motorDribbler_c05 r_col_motorDribbler_c06 r_col_motorDribbler_c07 r_col_gearMotorDribbler_c00 r_col_gearMotorDribbler_c01 r_col_gearMotorDribbler_c02 r_col_gearMotorDribbler_c03 r_col_gearMiddleDribbler_c00 r_col_gearMiddleDribbler_c01 r_col_gearMiddleDribbler_c02 r_col_gearMiddleDribbler_c03 r_col_frontKicker_c01 r_col_frontKicker_c05 r_col_chipKicker_c00 r_col_chipKicker_c02 r_col_chipKicker_c03 r_col_chipKicker_c04 r_col_chipKicker_c05
+rare (<10 hits): r_col_chassis_2_c04=2 r_col_chassis_2_c13=5 r_col_chassis_2_c15=5 r_col_motor2_c00=4 r_col_motor3_c00=1 r_col_chipKicker_c01=7

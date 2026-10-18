@@ -54,3 +54,9 @@ Também decidir onde os dois documentos de auditoria vivem a longo prazo: `docs/
 `docs/analysis/` estão ambos fora do controle de versão hoje. Eles são a justificativa de todo número
 deste mapa, então deveriam ser commitados, e a comparação de CoM do documento de análise corrigida
 (ver as Notes do mapa).
+
+## Comments
+
+- 2026-10-17, do `07`: citar **193 geoms de colisão por robô** (299 no total com os visuais), não 209
+  nem 315 — 16 cascos enterrados foram podados. `docs/research/rsoccer-vs-mjsoccer.md:203,215,352`
+  dizem 209; o `B6` deve dizer que quem desvia a bola é o cubo da roda, não o rolete.

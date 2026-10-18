@@ -1,0 +1,3 @@
+prune,GoToBall-v0,691.0
+prune,ContestedPossession-v0,326.1
+prune,StaticDefenders-v0,119.8

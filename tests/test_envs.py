@@ -353,6 +353,25 @@ def test_chassis_rests_on_carpet():
     assert tilt < 120, f"settled at {tilt:.0f} deg, rolled through the floor onto its back"
 
 
+@pytest.mark.parametrize("tier", (0, 1))
+def test_no_buried_collision_hulls(tier):
+    """The CAD decomposition's buried hulls stay pruned on both tiers.
+
+    These 16 lie wholly inside the union of the other rigid chassis hulls (exact surface
+    test, ticket 07), so no contact can reach them without penetration: the dribbler
+    motor and gear housings and hull c02 of each bumper. They took zero contacts in
+    random play on all six ids and in robot/wall/ball impacts. They were density="0".
+    """
+    import mujoco
+
+    model, _, _ = S.build(1, 0, tier=tier)
+    buried = re.compile(
+        r"r_col_(motorDribbler_c0[1-6]|gear(Motor|Middle)Dribbler_c0[0-3]|bumper(Left|Right)_1_c02)$"
+    )
+    names = [mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, g) or "" for g in range(model.ngeom)]
+    assert not [n for n in names if buried.search(n)]
+
+
 @pytest.mark.parametrize("env_id", ENV_IDS)
 @pytest.mark.parametrize("tier,dim", [(0, 6), (1, 7)])
 def test_action_space_is_uniform(env_id, tier, dim):

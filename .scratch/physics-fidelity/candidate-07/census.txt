@@ -1,0 +1,17 @@
+ngeom=299 collision=193 visual=106 nbody=90 (world excluded: 89)
+collision ('Direct', 1, 1, 'wheel1') 6
+collision ('Direct', 1, 1, 'wheel2') 6
+collision ('Direct', 1, 1, 'wheel3') 6
+collision ('Direct', 1, 1, 'wheel4') 6
+collision ('bumper', 1, 1, 'robot') 6
+collision ('chassis', 1, 1, 'robot') 47
+collision ('dribbler', 1, 1, 'robot') 8
+collision ('dribbler', 2, 0, 'dribbler') 2
+collision ('kicker', 2, 0, 'chipper') 6
+collision ('kicker', 2, 0, 'kicker') 6
+collision ('motor', 1, 1, 'robot') 10
+collision ('other', 2, 0, 'chipper') 4
+collision ('roller', 4, 4, 'wheel1') 20
+collision ('roller', 4, 4, 'wheel2') 20
+collision ('roller', 4, 4, 'wheel3') 20
+collision ('roller', 4, 4, 'wheel4') 20
