@@ -372,7 +372,7 @@
     <motor name="chipper_force" joint="chipper_slide" gear="1" ctrlrange="0 500" />
     <velocity name="vel_x" joint="robot_x" kv="119.538" ctrlrange="-3.3 3.3" forcerange="-6.1918 6.1918" />
     <velocity name="vel_y" joint="robot_y" kv="119.538" ctrlrange="-3.3 3.3" forcerange="-6.1918 6.1918" />
-    <velocity name="vel_yaw" joint="robot_yaw" kv="0.428375" ctrlrange="-30 30" forcerange="-0.5273 0.5273" />
+    <velocity name="vel_yaw" joint="robot_yaw" kv="0.428375" ctrlrange="-35.9 35.9" forcerange="-0.5273 0.5273" />
   </actuator>
   <sensor>
     <jointpos name="dribbler_arm_pos" joint="dribbler_pivot" />

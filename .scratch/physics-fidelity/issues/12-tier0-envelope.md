@@ -88,3 +88,12 @@ e a resposta é não monotônica (pior seed 82 / 75 / 69 / 75 com amortecimento 
 É ruído do contato bola↔dribbler, não efeito do envelope. O limite foi para 60. Uma bola de fato
 perdida pontua perto de zero, então o teste continua pegando o que deve pegar. `Dribbling` tier 0
 continua 119/120.
+
+## Comments
+
+- 2026-10-18, do `13`: o "efeito lateral caótico" daqui era resolução, não caos. No passo de 2 ms o
+  contato bola↔dribbler de 4-6 ms fica com dois steps; o `ContestedPossession` tier 0 segura 120 /
+  119 / 87 / 0 a 0.5 / 1 / 2 / 4 ms. No passo novo (1/960 s) dá 114-118 nos dois tiers, e o limite
+  do teste subiu de 60 para 106. `ω_max` do tier 0 subiu de 30 para **35.9** (teto cinemático, `01`): o
+  giro cheio do tier 1 no passo resolvido passa de 30 (31.8 a 0.25 ms). `MAX_W` = 35.9, e o
+  `goto_ball_policy` usa `kw` 1.25 para manter o mesmo ganho físico.

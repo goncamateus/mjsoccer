@@ -88,3 +88,8 @@ deste mapa, então deveriam ser commitados, e a comparação de CoM do documento
   estão em `docs/index.md` (tabela de ação, `MAX_V`) e nas seis páginas de ambiente; falta a prosa.
   Fora do `12`: `docs/research/rsoccer-vs-mjsoccer.md:81,428,519` ainda dá o tier 0 com amortecimento
   0.1/0.005, `forcerange` ±19.1261 N / ±3.427 N·m e `ctrlrange` de 4.0 m/s.
+- 2026-10-18, do `13`: `docs/index.md` ganhou a seção Timing nova (passo 1/960 s, 60 Hz exatos,
+  `ValueError` para taxa inalcançável, o que cada taxa representa, segundos como contrato, por que
+  1/960), a tabela de vazão medida de novo, `MAX_W` 35.9 e a retenção nova; as seis páginas de
+  ambiente dizem 1200/1800/2400 steps e `/ 35.9`. Fora do `13`: `docs/research/rsoccer-vs-mjsoccer.md`
+  e `docs/analysis/` ainda falam em 2 ms / 62.5 Hz / decimation 8.

@@ -50,7 +50,7 @@ tickets `research`. CodeGraph (`codegraph_*`) antes de ler código-fonte à mão
 As exceções são os tickets `task`, que rodam medições — esses podem mexer em `models/` só como
 diagnóstico revertido, e precisam reverter.
 **Exceção registrada (2026-10-17):** a pedido explícito, as edições do `04` e do `05` já entraram em
-`models/` antes do mapa fechar — ver os Comments do `05`. O `06`, o `07`, o `08`, o `09`, o `10`, o `11` e o `12` entraram do mesmo jeito, também a pedido explícito.
+`models/` antes do mapa fechar — ver os Comments do `05`. O `06`, o `07`, o `08`, o `09`, o `10`, o `11`, o `12` e o `13` entraram do mesmo jeito, também a pedido explícito.
 
 ## Decisions so far
 
@@ -139,6 +139,14 @@ diagnóstico revertido, e precisam reverter.
   Escorregamento, tração, peso e acoplamento entre eixos ficam de fora: são o tier 1. Amortecimento
   das juntas do chassi → 0; `MAX_V` → 3.3. Medido 2.30 / 3.30 / 55.2 / 29.97. Números em
   [`candidate-12/`](candidate-12/).
+- [Timestep e taxa de controle](issues/13-timestep-and-rate.md): **passo 1/960 s, 60 Hz exatos**
+  (`decimation` 16, 20 s = 1200 steps); taxa inalcançável levanta `ValueError`. 2 ms subresolvia os
+  contatos de 4-6 ms: contra 0.25 ms, retenção −24 %, chip −11 %, aceleração −12 %; a ~1 ms tudo
+  dentro de 5 % por metade da vazão. Resíduos declarados: giro −5.6 % e `v` frontal −12 % (`18`).
+  Segundos são o contrato (teste prende `max_steps`); a taxa do env é a da política, os substeps são o
+  firmware. `FIRING_SUBSTEPS` 8 → 4, tabela de chute medida de novo; `ω_max` do tier 0 e `MAX_W` →
+  **35.9** (teto cinemático; o giro resolvido do tier 1 passa de 30). O "caos" de retenção do `12`
+  era resolução: agora 112-118 nos dois tiers. Números em [`candidate-13/`](candidate-13/).
 
 ## Not yet specified
 
@@ -167,7 +175,8 @@ diagnóstico revertido, e precisam reverter.
   uma decisão.
 - **Custo de escala.** 100 DOF e 193 geoms de colisão por robô × até 7 robôs
   (`StaticDefenders-v0`). O `07` mostrou que a malha não é o gargalo (podar ou tirar cubos: ≤ 6 %);
-  o que sobra é DOF/roletes, e isso precisa do `13`.
+  o que sobra é DOF/roletes. O `13` dobrou o custo por step (passo 1/960 s): tier 1 ~240 steps/s
+  no `GoToBall`, ~40 no `StaticDefenders`.
 - **A queda de 1 mm no spawn** (`X8`): impacto determinístico de 0.14 m/s a cada reset.
   Provavelmente inofensivo, não quantificado.
 

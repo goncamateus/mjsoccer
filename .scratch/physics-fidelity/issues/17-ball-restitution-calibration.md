@@ -34,3 +34,11 @@ edição real entra quando o mapa fechar, conforme a nota de Mode do `map.md`.
 ## Answer
 
 <!-- preencher quando resolvido -->
+
+## Comments
+
+- 2026-10-18, do `13`: o passo global agora é **1/960 s** (~1.04 ms), não 2 ms. Calibrar o `solref`
+  nesse passo. O MuJoCo prende a constante de tempo em ≥ 2·dt, e o quique depende do passo: com o
+  `solref` atual o COR de queda de 0.3 m lia 0.136 / 0.107 / 0.144 / 0.151 a 0.5 / 1 / 2 / 4 ms
+  (`../candidate-13/sweep_t*.txt`). Conferir o resultado a 0.5 ms antes de fechar; se divergir mais
+  de 5 %, a constante de tempo é curta demais para o passo.

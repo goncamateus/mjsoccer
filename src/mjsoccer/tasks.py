@@ -280,7 +280,7 @@ class PassEnduranceEnv(_BallTask):
 # ------------------------------------------------------------------ scripted policy
 
 
-def goto_ball_policy(obs: np.ndarray, kp: float = 2.0, kw: float = 1.5) -> np.ndarray:
+def goto_ball_policy(obs: np.ndarray, kp: float = 2.0, kw: float = 1.25) -> np.ndarray:
     """A P-controller that drives robot 0 at the ball, in the tier-0 action layout.
 
     This exists so the smoke test can answer the one question random actions cannot: is
@@ -296,6 +296,8 @@ def goto_ball_policy(obs: np.ndarray, kp: float = 2.0, kw: float = 1.5) -> np.nd
         [cos * delta[0] + sin * delta[1], -sin * delta[0] + cos * delta[1]]
     )
     heading = float(np.arctan2(local[1], local[0]))
+    # kw is in action units, so it scales with the yaw ctrlrange: 1.25 of 35.9 rad/s is the
+    # 45 rad/s per rad that 1.5 of 30 was before ticket 13 raised the ceiling.
     return np.clip([kp * local[0], kp * local[1], kw * heading], -1.0, 1.0).astype(
         np.float32
     )

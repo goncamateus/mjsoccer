@@ -82,7 +82,7 @@ position is a constant a policy can absorb into its weights.
 | 9 | cos of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
 | 10 | world-frame x velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
 | 11 | world-frame y velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
-| 12 | yaw rate of the controlled blue robot | -Inf | Inf | `b0_robot` | rad/s, / 30.0 (`MAX_W`) |
+| 12 | yaw rate of the controlled blue robot | -Inf | Inf | `b0_robot` | rad/s, / 35.9 (`MAX_W`) |
 | 13 | whether the controlled blue robot has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
 
 Positions and velocities are divided by the constants shown in the Unit column; yaw is
@@ -150,14 +150,14 @@ ball-to-goal distance.
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**30 s**, and at the default `control_hz=60` the actual `dt` is 0.016 s, so **1875 steps**.
+**30 s**, and at the default `control_hz=60` `dt` is exactly 1/60 s, so **1800 steps**.
 
 ## Arguments
 
 | parameter | type | default | description |
 |---|---|---|---|
 | `tier` | `int` | `1` | `1` = roller wheels with real slip, the default; `0` = the faster kinematic chassis |
-| `control_hz` | `int` | `60` | requested control rate; rounded to a whole number of 2 ms physics steps, so 60 becomes 62.5 Hz |
+| `control_hz` | `int` | `60` | control rate, exact: it must divide the 960 Hz physics rate (30, 60, 120, ...), or the env raises `ValueError` |
 | `horizon_s` | `float` | `30.0` | truncation horizon, in seconds |
 | `render_mode` | `str \| None` | `None` | `"human"` or `"rgb_array"` |
 

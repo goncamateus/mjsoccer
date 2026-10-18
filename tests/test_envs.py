@@ -126,9 +126,10 @@ def test_full_spin_stays_under_max_w():
     """Every wheel at the top of its ctrlrange must spin the chassis slower than MAX_W.
 
     Nothing clips yaw in Python (ticket 04): the bound comes from the motor envelope
-    (+-95 rad/s, +-0.078 N*m) slipping on mu = 0.25 rollers. Measured 29.2 rad/s peak
-    against a kinematic 35.9 -- a 2.6% margin that any contact or actuator change can
-    erase, and an observation normalised by MAX_W would then read past its bound.
+    (+-95 rad/s, +-0.078 N*m) slipping on mu = 0.25 rollers. MAX_W is the kinematic
+    ceiling, 35.9, which slip can only stay under (ticket 13). The measured peak is
+    resolution-dependent -- 29.2 at 2 ms, 30.1 at 1/960 s, 31.8 at 0.25 ms -- which is why
+    the bound is the derived one, not a measured one with a few percent of margin.
     """
     import mujoco
 
@@ -178,7 +179,7 @@ def test_deterministic(env_id):
 
 
 @pytest.mark.parametrize(
-    "env_id,index,min_held", [("ContestedPossession-v0", 1, 60), ("Dribbling-v0", 0, 106)]
+    "env_id,index,min_held", [("ContestedPossession-v0", 1, 106), ("Dribbling-v0", 0, 109)]
 )
 @pytest.mark.parametrize("tier", TIERS)
 def test_seated_ball_is_possessed(env_id, index, min_held, tier):
@@ -189,15 +190,12 @@ def test_seated_ball_is_possessed(env_id, index, min_held, tier):
     reads the wrong sign on this model, so `has_ball` was False with the ball parked
     square in the mouth. Either way the episode looks fine and the task is unsolvable.
 
-    Both tiers, because they do not retain alike. Measured over 8 seeds, holds() steps out
-    of 120 idle ones: ContestedPossession 69-95 on tier 0 against 89-96 on tier 1,
-    Dribbling 119 against 114. The threshold sits under the worse tier rather than between
-    them, with room for seed noise -- a ball that is actually dropped scores near zero, so
-    there is no risk of that slipping through a lower bar. ContestedPossession tier 0 is
-    chaotic in the ball contact: its worst seed is 82, 75, 69 or 75 as the chassis slide
-    damping goes 0.1, 0.01, 0 (ticket 12) or 0.2, so its bar is 60, not 70. Dribbling's is
-    tighter: ticket 05's contact changes may not cost it more than 5% of the 111-112 it held
-    before them.
+    Both tiers. Measured over 8 seeds on the 1/960 s step, holds() steps out of 120 idle
+    ones: ContestedPossession 114-118 on tier 0 and 112-118 on tier 1, Dribbling 119 and
+    115-117. Each bar sits 5 % under the worse tier's worst seed -- a ball that is actually
+    dropped scores near zero, so the margin is for seed noise only. On the old 2 ms step
+    ContestedPossession tier 0 scattered 69-95 and looked chaotic; ticket 13 found it was
+    the step under-resolving the ball/dribbler contact (120 at 0.5 ms, 87 at 2 ms, 0 at 4).
     """
     env = gym.make(env_id, tier=tier).unwrapped
     for seed in range(5):
@@ -225,6 +223,10 @@ def test_goto_ball_is_solvable():
     Random actions cannot tell a working reward from one no controller can collect; this
     is the check that can. It is deliberately a weak controller -- if it needs tuning to
     pass, the task got harder, which is worth knowing.
+
+    It fails by shoving the ball out of the field, and which seeds do that is chaotic in
+    the contact: 53/60 seeds both at 2 ms and at 1/960 s (ticket 13), so 18/20 sat on a
+    lucky window and the bar is 16.
     """
     # Pinned to tier 0: goto_ball_policy emits a body-frame (vx, vy, omega) command, and
     # tier 1's drive slice is four wheel speeds. What is under test is the reward, not the
@@ -244,7 +246,7 @@ def test_goto_ball_is_solvable():
                 returns.append(total)
                 break
     env.close()
-    assert wins >= 18, f"scripted policy reached the ball {wins}/20 times"
+    assert wins >= 16, f"scripted policy reached the ball {wins}/20 times"
     assert np.mean(returns) > 5.0, f"mean return {np.mean(returns):.2f}"
 
 
@@ -500,7 +502,7 @@ def test_observation_bounds_are_true(tier):
 def test_velocity_normalisers_are_the_tier0_servo_range():
     """MAX_V and MAX_W are the tier-0 chassis servo ctrlrange (ticket 11), shared by both
     tiers so one observation means one speed. Tier 1 stays under them on its own drive
-    (test_full_spin_stays_under_max_w). If ticket 12 retunes the tier-0 servos, this fails
+    (test_full_spin_stays_under_max_w). If the tier-0 servos are retuned, this fails
     and the normalisers get revisited rather than drifting apart."""
     from mjsoccer.base import MAX_V, MAX_W
 
@@ -517,7 +519,8 @@ def test_tier0_has_the_tier1_envelope():
       v_max 3.30 m/s    frontal (lateral is 4.04)
       a_max 2.30 m/s^2  lateral wheel-torque limit (frontal is min(2.98, mu*g = 2.45))
       alpha 55.1 rad/s^2  roller friction: mu*m*g*R / Izz = 6.602 N * 0.0796 m / 0.009545
-      w_max 30 rad/s    the ceiling test_full_spin_stays_under_max_w holds tier 1 under
+      w_max 35.9 rad/s  wheel no-load: 95 rad/s * r_eff / R (ticket 01), the kinematic
+                        ceiling tier 1 cannot pass whatever dt or mu (ticket 13)
 
     Not matched, because they are what tier 1 is for: slip, traction, weight transfer,
     and the coupling between axes (tier 1 at full forward speed has no wheel left to yaw).
@@ -527,7 +530,7 @@ def test_tier0_has_the_tier1_envelope():
     model, robots, ball = S.build(1, 0, tier=0)
     r = robots[0]
     dt = model.opt.timestep
-    for axis, (a_max, v_max) in enumerate(((2.30, 3.30), (2.30, 3.30), (55.1, 30.0))):
+    for axis, (a_max, v_max) in enumerate(((2.30, 3.30), (2.30, 3.30), (55.1, 35.9))):
         data = mujoco.MjData(model)
         r.place(data, -5.0, -4.0, 0.0)  # room for 7 m before a wall
         ball.place(data, 4.0, 3.0)
@@ -542,6 +545,31 @@ def test_tier0_has_the_tier1_envelope():
         accel = np.diff(vel[: round(0.05 / dt)]).max() / dt
         assert accel == pytest.approx(a_max, rel=0.03), f"axis {axis}: accel {accel:.2f}"
         assert vel[-1] == pytest.approx(v_max, rel=0.03), f"axis {axis}: speed {vel[-1]:.2f}"
+
+
+# Seconds are the contract (ticket 13): horizons, the kick lock and the possession grace
+# are declared in seconds and converted. These literals are what that conversion gives at
+# the default 60 Hz, so a change of dt or control rate fails here instead of silently
+# changing every episode length and every reward's rate per second.
+@pytest.mark.parametrize(
+    "env_id,steps",
+    [("GoToBall-v0", 1200), ("GoToBallShoot-v0", 1800), ("Dribbling-v0", 2400),
+     ("StaticDefenders-v0", 1800), ("ContestedPossession-v0", 1200), ("PassEndurance-v0", 1200)],
+)
+def test_horizon_is_seconds_at_exactly_60_hz(env_id, steps):
+    env = gym.make(env_id).unwrapped
+    assert env.dt == pytest.approx(1 / 60, rel=1e-12)
+    assert env.max_steps == steps
+    assert env.metadata["render_fps"] == 60
+    env.close()
+
+
+def test_unreachable_control_rate_raises():
+    """The control rate is exact or refused, never rounded to a neighbour (ticket 13): 50 Hz
+    is 19.2 physics steps of 1/960 s."""
+    with pytest.raises(ValueError, match="control_hz"):
+        gym.make("GoToBall-v0", control_hz=50)
+    assert gym.make("GoToBall-v0", control_hz=120).unwrapped.decimation == 8
 
 
 if __name__ == "__main__":

@@ -31,3 +31,9 @@ Até isto fechar, o `14` não deve usar `v_max`/`a_max` cinemáticos como crité
 - 2026-10-18, do `12`: o tier 0 agora declara o envelope **derivado** do tier 1 (`v_max` 3.30 m/s,
   `a_max` 2.30 m/s², isotrópicos), não o medido. Quando este ticket fechar, o tier 1 deve alcançar
   pelo menos 3.30 m/s em x e 2.30 m/s² nos dois eixos; se não alcançar, o `12` reabre.
+- 2026-10-18, do `13`: hipótese (d) medida em parte (`../candidate-13/sweep_t1.txt`, comando de
+  avanço cheio pela env, 2 s). `v` final 1.90 / 2.005 / 1.666 / 1.633 / 1.192 m/s a 0.25 / 0.5 / 1 /
+  2 / 4 ms: o passo mexe ~15 % e de forma não monotônica, mas nem 0.25 ms chega perto de 3.30, então
+  **o passo não é o mecanismo dominante**. O giro cheio também depende do passo (31.8 / 30.9 / 30.0 /
+  29.2 rad/s), por isso `MAX_W` virou o teto cinemático 35.9. O passo agora é 1/960 s; medir as
+  variantes deste ticket a ≤ 0.5 ms para tirar o passo da conta.

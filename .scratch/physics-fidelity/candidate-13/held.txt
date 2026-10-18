@@ -1,0 +1,5 @@
+ContestedPossession-v0 tier 0 [118, 118, 117, 117, 116, 114, 118, 117]
+ContestedPossession-v0 tier 1 [114, 115, 114, 118, 114, 112, 112, 115]
+Dribbling-v0 tier 0 [119, 119, 119, 119, 119, 119, 119, 119]
+Dribbling-v0 tier 1 [117, 117, 117, 115, 117, 117, 117, 117]
+full spin tier 1: peak 30.13 rad/s, tilt 0.46 deg

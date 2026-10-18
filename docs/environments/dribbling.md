@@ -89,7 +89,7 @@ extras (`extra_obs = 2`).
 | 9 | cos of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
 | 10 | world-frame x velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
 | 11 | world-frame y velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
-| 12 | yaw rate of the controlled blue robot | -Inf | Inf | `b0_robot` | rad/s, / 30.0 (`MAX_W`) |
+| 12 | yaw rate of the controlled blue robot | -Inf | Inf | `b0_robot` | rad/s, / 35.9 (`MAX_W`) |
 | 13 | whether the controlled blue robot has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
 | 14 | waypoint x in the robot's own frame | -2.57 | 2.57 | `DribblingEnv._target` | m, / 6.0 (`FIELD_HALF_X`) |
 | 15 | waypoint y in the robot's own frame | -3.427 | 3.427 | `DribblingEnv._target` | m, / 4.5 (`FIELD_HALF_Y`) |
@@ -122,7 +122,7 @@ ball keeps closing on the target for free. Gated, the shaping stops the moment t
 leaves the mouth, and the distance the ball covers loose is credited to nobody — when the
 ball is recaptured, `prev_dist` has already moved with it. The `+0.01` holding bonus is a
 small, constant reason to keep the bar on the ball even when the waypoint is not getting
-closer; over the full 2500-step horizon it is worth at most `+25`.
+closer; over the full 2400-step horizon it is worth at most `+24`.
 
 `ENERGY = 0.001` multiplies the squared norm of the whole flat action, summing over all 7
 dimensions on the default tier 1 (6 on tier 0) rather than just the drive channels, so a
@@ -162,7 +162,7 @@ first is a success.
   `waypoint_tol = 0.3 m` of it *and* `holds(0)` is true — arriving with a loose ball scores
   nothing.
 - **Ball lost.** `holds(0)` has been false for more than 2 s of continuous simulated time —
-  125 control steps at the default rate. `holds` itself already tolerates a 50 ms gap in
+  120 control steps at the default rate. `holds` itself already tolerates a 50 ms gap in
   ball/dribbler contact, so a bar that sticks and re-grips does not restart this timer.
   `info["is_success"]` is `False`.
 - **Ball out of the field.** `scene.in_field` fails for the ball centre (`|x| > 6.0 m` or
@@ -180,7 +180,7 @@ first is a success.
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**40 s**, and at the default `control_hz=60` the actual `dt` is 0.016 s, so **2500 steps** —
+**40 s**, and at the default `control_hz=60` `dt` is exactly 1/60 s, so **2400 steps** —
 the longest horizon in the suite, because four waypoints across a 12 x 9 m field is a lot of
 ground to cover at a speed that keeps the ball.
 
@@ -189,7 +189,7 @@ ground to cover at a speed that keeps the ball.
 | parameter | type | default | description |
 |---|---|---|---|
 | `tier` | `int` | `1` | `1` = roller wheels with real slip, the default; `0` = the faster kinematic chassis |
-| `control_hz` | `int` | `60` | requested control rate; rounded to a whole number of 2 ms physics steps, so 60 becomes 62.5 Hz |
+| `control_hz` | `int` | `60` | control rate, exact: it must divide the 960 Hz physics rate (30, 60, 120, ...), or the env raises `ValueError` |
 | `horizon_s` | `float` | `40.0` | truncation horizon, in seconds |
 | `render_mode` | `str \| None` | `None` | `"human"` or `"rgb_array"` |
 

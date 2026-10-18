@@ -71,7 +71,7 @@ it, which is what keeps a single action head transferable across the suite.
 | `w1..w4` | `wheel{1..4}_vel` | — | -95 .. 95 rad/s, ±0.078 N·m | `a * 95` |
 | `vx` | — | `vel_x` | -3.3 .. 3.3 m/s, ±6.19 N | `a * 3.3` |
 | `vy` | — | `vel_y` | -3.3 .. 3.3 m/s, ±6.19 N | `a * 3.3` |
-| `omega` | — | `vel_yaw` | -30 .. 30 rad/s, ±0.527 N·m | `a * 30` |
+| `omega` | — | `vel_yaw` | -35.9 .. 35.9 rad/s, ±0.527 N·m | `a * 35.9` |
 | `kick` | `kicker_force` | `kicker_force` | 0 .. 500 N | pulse for `6.5 * a` m/s if `a > 0` |
 | `chip` | `chipper_force` | `chipper_force` | 0 .. 500 N | pulse for `6.5 * a` m/s if `a > 0` |
 | `dribble` | `dribbler_vel` | `dribbler_vel` | -1500 .. 1500 rad/s | `314 * max(a, 0)` |
@@ -93,17 +93,17 @@ MuJoCo clamps it to `ctrlrange`, exactly as a real servo would.
 at `a = 1`. That is what SSL firmware takes, a speed, not a trigger. The plunger is still a
 force actuator against its return spring: a per-tier, per-plunger table
 (`scene.KICK_TABLE_MS`) turns the asked-for speed into a one-step force, the way the
-firmware's calibration table turns it into a pulse width. The cap takes ~290-345 N. Speeds
+firmware's calibration table turns it into a pulse width. The cap takes ~285-365 N. Speeds
 are relative to a standing robot with the ball settled in the mouth (within ±4 % across
 seatings); a moving robot adds its own speed, as a real one does. The control step a
-plunger fires on runs at an eighth of the timestep (`scene.FIRING_SUBSTEPS`): at 2 ms the
-plate closes ~9 mm per step and the exit speed swung ±35 % with force. That costs ~1.6-1.7x in
-throughput under random actions, which fire at every re-arm, and nothing for a policy that
-kicks rarely. Each shot is followed by a 250 ms lockout on that plunger, a deliberate
+plunger fires on runs at a quarter of the timestep (`scene.FIRING_SUBSTEPS`, ~0.26 ms): at
+2 ms the plate closed ~9 mm per step and the exit speed swung ±35 % with force, and 1 ms still
+saws. That costs extra throughput under random actions, which fire at every re-arm, and
+nothing for a policy that kicks rarely. Each shot is followed by a 250 ms lockout on that plunger, a deliberate
 approximation (no capacitor recharge time is known). Held continuously the plunger pins against its 30 mm stop and never releases the
 ball, so the lockout is what makes the mechanism usable at all. The two locks are
 independent — a kick must not be able to block a chip. At the default control rate the
-lockout is 16 control steps.
+lockout is 15 control steps.
 
 **Dribbler.** `a <= 0` is off and `(0, 1]` maps to `(0, DRIBBLER_OMEGA]` = `(0, 314] rad/s`,
 so a zero action does not dribble and `action_space.sample()` dribbles half the time, at a
@@ -144,7 +144,7 @@ Every entry is normalised by a constant from `base.py` or `scene.py`:
 | ball z above the carpet (`z - scene.FLOOR_Z`) | `scene.GOAL_HEIGHT` | 0.155 m |
 | ball vx, vy, vz | `base.MAX_BALL_V` | 8.0 m/s (kicks are capped at 6.5 off a standing robot) |
 | robot vx, vy | `base.MAX_V` | 3.3 m/s (the tier-0 chassis servo ctrlrange) |
-| robot omega | `base.MAX_W` | 30.0 rad/s (likewise) |
+| robot omega | `base.MAX_W` | 35.9 rad/s (likewise; the wheels' kinematic yaw ceiling) |
 
 Nothing clips these. The declared `Box` is finite only where the simulator guarantees a
 bound, so `observation_space.contains` is true of every observation:
@@ -159,10 +159,11 @@ bound, so `observation_space.contains` is true of every observation:
 | every velocity | `inf` | collisions have no ceiling |
 | Dribbling waypoint | ±2.57, ±3.427 | an in-field waypoint seen from a robot inside the walls |
 
-Measured under random action, seeds 0-19, six envs: tier 1 robot `|v|` peaks at 0.46 and
-`|omega|` at 0.14 of their divisors; tier 0 at 0.42 and 0.46. Under its own full command
-the tier-1 chassis spins at 29.2 rad/s (< `MAX_W`, pinned by `test_full_spin_stays_under_max_w`)
-and drives at ~2 m/s. `MAX_V` and `MAX_W` are the tier-0 servo `ctrlrange`, pinned by
+Measured under random action, seeds 0-19, six envs: tier 1 robot `|v|` peaks at 0.45 and
+`|omega|` at 0.14 of their divisors; tier 0 at 0.42 and 0.45. Under its own full command
+the tier-1 chassis spins at ~30 rad/s (< `MAX_W`, pinned by `test_full_spin_stays_under_max_w`;
+the figure creeps up as the timestep shrinks, 31.8 at 0.25 ms, which is why `MAX_W` is the
+derived 35.9 and not a measured value) and drives at ~2 m/s. `MAX_V` and `MAX_W` are the tier-0 servo `ctrlrange`, pinned by
 `test_velocity_normalisers_are_the_tier0_servo_range`, and the same on both tiers so one
 observation means one speed. The channels that do leave `[-1, 1]` are physical: a chipped
 ball reads up to ~3 in height, a kick off a moving robot reaches ~8.5 m/s (1.06 of
@@ -184,16 +185,16 @@ kinematic approximation has never met any of it.
 Tier 0 is the fast approximation. It is several times cheaper to step, and it is what to
 drop to when throughput is the binding constraint — early sweeps, reward debugging,
 anything where the number of samples matters more than their fidelity. Measured here, 100
-random steps:
+random-action steps on one core, measured at a 1 ms step (16 per control step, the
+same count as the 1/960 s default):
 
 | env | tier 0 | tier 1 |
 |---|---|---|
-| `GoToBall-v0` | 3 300 steps/s | 650 steps/s |
-| `StaticDefenders-v0` (7 robots) | 820 steps/s | 88 steps/s |
+| `GoToBall-v0` | ~1 000 steps/s | ~240 steps/s |
+| `StaticDefenders-v0` (7 robots) | ~260 steps/s | ~40 steps/s |
 
-Those figures were measured with the older, narrower action space (drive only on some
-tasks), so treat them as indicative of the ratio between the tiers rather than as a current
-benchmark. The physics cost, which dominates, is unchanged.
+Half of what the same measurement gives at the old 2 ms step: the price of resolving the
+contacts (see Timing).
 
 The two tiers are not interchangeable as evaluation targets — see
 [Possession](#possession) for a measured behavioural difference — so a number produced on
@@ -233,20 +234,21 @@ steps out of 120 idle ones — the robot seated on the ball, no drive command gi
 
 | env | tier 0 | tier 1 (default) |
 |---|---|---|
-| `ContestedPossession-v0` | 69-95 / 120 | 89-96 / 120 |
-| `Dribbling-v0` | 119 / 120 | 114 / 120 |
+| `ContestedPossession-v0` | 114-118 / 120 | 112-118 / 120 |
+| `Dribbling-v0` | 119 / 120 | 115-117 / 120 |
 
 Tier 0 holds a ball it is not even trying to hold; on `Dribbling-v0` it drops it for a single
-step. Tier 1 loses about 4% there, because real wheel slip lets the chassis recoil off the
-ball it is carrying — a rigid kinematic chassis has nothing to recoil with. On
-`ContestedPossession-v0`, where a defender is pressing, the order flips. The grace window
+step. Tier 1 loses about 3% there, because real wheel slip lets the chassis recoil off the
+ball it is carrying — a rigid kinematic chassis has nothing to recoil with. The grace window
 absorbs most of the difference, so `holds` stays usable on both, but any retention number,
 ball-lost rate or possession-gated reward is tier-dependent and comparing one across tiers
 is comparing two different mechanisms.
 
 These numbers are from after ticket 05's contact changes (roller μ 0.25, ball β 0.5, the
-motor-envelope wheel actuators of ticket 04) and ticket 12's tier-0 envelope, which
-moved the tier-0 `ContestedPossession-v0` floor from 82 to 69 by contact noise alone. Before them `Dribbling-v0` held 120 / 111-112
+motor-envelope wheel actuators of ticket 04), ticket 12's tier-0 envelope and ticket 13's
+1/960 s step. On the old 2 ms step tier-0 `ContestedPossession-v0` scattered 69-95 and
+looked chaotic; it was the step under-resolving the ball/dribbler contact (120 at 0.5 ms,
+87 at 2 ms, 0 at 4 ms). Before ticket 05 `Dribbling-v0` held 120 / 111-112
 and `ContestedPossession-v0` 96-103 / 87-95; the 5% retention budget ticket 05 was allowed
 is enforced by `test_seated_ball_is_possessed`.
 
@@ -342,8 +344,27 @@ differs.
 
 ## Timing
 
-`control_hz` is a request, not a guarantee: `decimation = round(1 / (control_hz * timestep))`
-is an integer number of physics steps. The model's timestep is 2 ms, so the default
-`control_hz=60` gives `decimation = 8` and `dt = 0.016 s`, i.e. an actual control rate of
-62.5 Hz. Every step count quoted in these docs is at that rate:
+The physics step is 1/960 s (~1.04 ms) and the default `control_hz=60` is exact:
+`decimation = 16`, `dt = 1/60` s. A `control_hz` that is not a whole number of physics steps
+(anything that does not divide 960 Hz: 50, 62.5, ...) raises `ValueError` instead of being
+rounded to a neighbour. Every step count quoted in these docs is at 60 Hz:
 `max_steps = round(horizon_s / dt)`.
+
+**What the two rates mean.** The control step is the *policy's* decision rate, the ~60 Hz at
+which SSL vision feeds the AI. The 16 physics steps inside it stand for the firmware and the
+integration: the wheel and chassis velocity servos act on every one of them. So `control_hz`
+is a fidelity setting (how often the policy decides), and the timestep is a resolution
+setting.
+
+**Seconds are the contract.** Horizons, the 250 ms plunger lock and the 50 ms possession
+grace are declared in seconds and converted, so episodes last the same physical time at any
+rate. Per-step rewards are per 1/60 s step. `test_horizon_is_seconds_at_exactly_60_hz` pins
+each env's step count, so a change of rate is never silent.
+
+**Why 1/960 s.** The contact time constants are 4-6 ms (`solref`), and 2 ms resolved them in
+two steps. Measured against a 0.25 ms reference, 2 ms carried 12-24 % errors on tier 1 —
+possession retention -24 %, chip speed -11 %, forward acceleration -12 % — and tier 0's
+possession scattered 69-95 of 120. At ~1 ms all three are within 5 %, for half the
+throughput. What stays dt-sensitive at ~1 ms is the tier-1 full spin (-5.6 %) and top
+forward speed (-12 %), both through the roller contact loss tracked by ticket 18. Numbers in
+`.scratch/physics-fidelity/candidate-13/`.

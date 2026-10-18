@@ -81,7 +81,7 @@ receiver second.
 | 9 | cos of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
 | 10 | world-frame x velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
 | 11 | world-frame y velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
-| 12 | yaw rate of the controlled blue robot | -Inf | Inf | `b0_robot` | rad/s, / 30.0 (`MAX_W`) |
+| 12 | yaw rate of the controlled blue robot | -Inf | Inf | `b0_robot` | rad/s, / 35.9 (`MAX_W`) |
 | 13 | whether the controlled blue robot has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
 | 14 | x position of the blue team-mate (scripted) | -1.05 | 1.05 | `b1_robot` | m, / 6.0 (`FIELD_HALF_X`) |
 | 15 | y position of the blue team-mate (scripted) | -1.067 | 1.067 | `b1_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
@@ -89,7 +89,7 @@ receiver second.
 | 17 | cos of the yaw of the blue team-mate (scripted) | -1 | 1 | `b1_robot` | unitless |
 | 18 | world-frame x velocity of the blue team-mate (scripted) | -Inf | Inf | `b1_robot` | m/s, / 3.3 (`MAX_V`) |
 | 19 | world-frame y velocity of the blue team-mate (scripted) | -Inf | Inf | `b1_robot` | m/s, / 3.3 (`MAX_V`) |
-| 20 | yaw rate of the blue team-mate (scripted) | -Inf | Inf | `b1_robot` | rad/s, / 30.0 (`MAX_W`) |
+| 20 | yaw rate of the blue team-mate (scripted) | -Inf | Inf | `b1_robot` | rad/s, / 35.9 (`MAX_W`) |
 | 21 | whether the blue team-mate has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
 
 Elements 14 and 15 are the target of the pass — the only thing that varies between episodes
@@ -170,14 +170,14 @@ drive command, so it coasts if the ball or the passer hits it hard enough.
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**20 s**, and at the default `control_hz=60` the actual `dt` is 0.016 s, so **1250 steps**.
+**20 s**, and at the default `control_hz=60` `dt` is exactly 1/60 s, so **1200 steps**.
 
 ## Arguments
 
 | parameter | type | default | description |
 |---|---|---|---|
 | `tier` | `int` | `1` | `1` = roller wheels with real slip, the default; `0` = the faster kinematic chassis |
-| `control_hz` | `int` | `60` | requested control rate; rounded to a whole number of 2 ms physics steps, so 60 becomes 62.5 Hz |
+| `control_hz` | `int` | `60` | control rate, exact: it must divide the 960 Hz physics rate (30, 60, 120, ...), or the env raises `ValueError` |
 | `horizon_s` | `float` | `20.0` | truncation horizon, in seconds |
 | `render_mode` | `str \| None` | `None` | `"human"` or `"rgb_array"` |
 

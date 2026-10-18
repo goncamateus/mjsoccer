@@ -63,8 +63,7 @@ the world-axis chassis slides before being written. See
 [the action space contract](../index.md#action-space).
 
 How long a ball is held is tier-dependent: a robot that is not even driving keeps it on
-89-96 of 120 idle steps on tier 1 against 69-95 on tier 0, where the ball contact is chaotic
-enough that a 0.1 N·s/m change in chassis damping moves the worst seed by 13 steps. See
+112-118 of 120 idle steps on tier 1 against 114-118 on tier 0. See
 [Possession](../index.md#possession).
 
 ## Observation Space
@@ -86,7 +85,7 @@ controlled blue robot first and the yellow opponent second.
 | 9 | cos of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
 | 10 | world-frame x velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
 | 11 | world-frame y velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
-| 12 | yaw rate of the controlled blue robot | -Inf | Inf | `b0_robot` | rad/s, / 30.0 (`MAX_W`) |
+| 12 | yaw rate of the controlled blue robot | -Inf | Inf | `b0_robot` | rad/s, / 35.9 (`MAX_W`) |
 | 13 | whether the controlled blue robot has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
 | 14 | x position of the yellow opponent | -1.05 | 1.05 | `y0_robot` | m, / 6.0 (`FIELD_HALF_X`) |
 | 15 | y position of the yellow opponent | -1.067 | 1.067 | `y0_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
@@ -94,7 +93,7 @@ controlled blue robot first and the yellow opponent second.
 | 17 | cos of the yaw of the yellow opponent | -1 | 1 | `y0_robot` | unitless |
 | 18 | world-frame x velocity of the yellow opponent | -Inf | Inf | `y0_robot` | m/s, / 3.3 (`MAX_V`) |
 | 19 | world-frame y velocity of the yellow opponent | -Inf | Inf | `y0_robot` | m/s, / 3.3 (`MAX_V`) |
-| 20 | yaw rate of the yellow opponent | -Inf | Inf | `y0_robot` | rad/s, / 30.0 (`MAX_W`) |
+| 20 | yaw rate of the yellow opponent | -Inf | Inf | `y0_robot` | rad/s, / 35.9 (`MAX_W`) |
 | 21 | whether the yellow opponent has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
 
 Element 21 is the one the task turns on: it is the opponent's possession flag, computed the
@@ -123,8 +122,8 @@ opponent carry it away.
 
 The `+0.05` holding bonus is the only dense signal that distinguishes touching the ball from
 taking it. It is not potential-based, but it is bounded per step and cannot exceed
-`0.05 * 1250 = 62.5` over the horizon — and in practice it cannot be farmed for long,
-because holding the ball for 31 consecutive steps ends the episode with the `+10` bonus
+`0.05 * 1200 = 60` over the horizon — and in practice it cannot be farmed for long,
+because holding the ball for 30 consecutive steps ends the episode with the `+10` bonus
 anyway.
 
 `ENERGY = 0.001` multiplies the squared norm of the whole flat action, summing over all 7
@@ -160,7 +159,7 @@ about the yellow robot is driven: it has no drive command, so it coasts if pushe
 ### Termination
 
 - **Success.** `holds(0)` has been true for `hold_seconds = 0.5` s of continuous simulated
-  time — 31 control steps at the default rate. The counter resets to zero the moment
+  time — 30 control steps at the default rate. The counter resets to zero the moment
   `holds(0)` goes false, so the half-second has to be unbroken. `holds` itself already
   tolerates a 50 ms gap in ball/dribbler contact, which is what makes an unbroken half
   second achievable with a bar that sticks and re-grips.
@@ -182,14 +181,14 @@ long enough.
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**20 s**, and at the default `control_hz=60` the actual `dt` is 0.016 s, so **1250 steps**.
+**20 s**, and at the default `control_hz=60` `dt` is exactly 1/60 s, so **1200 steps**.
 
 ## Arguments
 
 | parameter | type | default | description |
 |---|---|---|---|
 | `tier` | `int` | `1` | `1` = roller wheels with real slip, the default; `0` = the faster kinematic chassis |
-| `control_hz` | `int` | `60` | requested control rate; rounded to a whole number of 2 ms physics steps, so 60 becomes 62.5 Hz |
+| `control_hz` | `int` | `60` | control rate, exact: it must divide the 960 Hz physics rate (30, 60, 120, ...), or the env raises `ValueError` |
 | `horizon_s` | `float` | `20.0` | truncation horizon, in seconds |
 | `render_mode` | `str \| None` | `None` | `"human"` or `"rgb_array"` |
 

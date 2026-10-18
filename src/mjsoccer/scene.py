@@ -56,22 +56,22 @@ DRIBBLER_OMEGA = 314.0
 # one-step force on KICK_TABLE_N, per (tier, plunger), the way the firmware's own
 # calibration table maps speed to pulse width. Measured with a seated, settled ball, robot
 # and dribbler stopped, by .scratch/physics-fidelity/candidate-09/calibrate.py -- rerun it
-# whenever the plunger, the ball or the contact parameters change.
+# whenever the plunger, the ball, the contact parameters or the timestep change.
 KICK_SPEED_MAX = 6.5
 KICK_TABLE_N = tuple(np.arange(0.0, 501.0, 25.0))  # the actuators' ctrlrange is 0..500
 # m/s at each force, (tier, plunger) -> a prefix of KICK_TABLE_N, cut at the first point
-# past the cap: the full curves still saw a little above it. The cap takes ~290-345 N.
+# past the cap: the full curves still saw a little above it. The cap takes ~285-365 N.
 KICK_TABLE_MS = {
-    (0, 0): (0.0, 0.34, 2.01, 2.9, 3.48, 3.99, 4.35, 4.73, 5.09, 5.56, 5.76, 6.1, 6.45, 6.68),
-    (0, 1): (0.0, 0.95, 1.91, 2.79, 3.51, 4.07, 4.52, 4.91, 5.31, 5.61, 5.97, 6.32, 6.58),
-    (1, 0): (0.0, 0.38, 2.02, 2.91, 3.5, 3.99, 4.38, 4.72, 5.09, 5.56, 5.76, 6.1, 6.39, 6.68),
-    (1, 1): (0.0, 0.95, 1.89, 2.7, 3.32, 3.84, 4.27, 4.67, 4.99, 5.27, 5.64, 5.73, 6.08, 6.2, 6.59),
+    (0, 0): (0.0, 0.4, 2.05, 2.96, 3.53, 3.93, 4.44, 4.79, 5.15, 5.62, 5.79, 6.12, 6.4, 6.66),
+    (0, 1): (0.0, 0.96, 1.89, 2.75, 3.47, 4.04, 4.52, 4.96, 5.38, 5.78, 6.06, 6.4, 6.67),
+    (1, 0): (0.0, 0.06, 1.96, 2.81, 3.38, 3.85, 4.35, 4.67, 5.04, 5.32, 5.7, 6.03, 6.31, 6.6),
+    (1, 1): (0.0, 0.92, 1.88, 2.67, 3.29, 3.84, 4.17, 4.62, 4.93, 5.22, 5.33, 5.54, 5.89, 6.0, 6.33, 6.6),
 }
-# The 2 ms step cannot resolve the plate hitting the ball: the plate closes ~9 mm per step,
-# so exit speed swung +-35 % with force. The control step a plunger fires on is run at
-# timestep / FIRING_SUBSTEPS, which matches a global 0.25 ms step to ~3-7 % (tier 1
-# chip up to ~11 %, absorbed by the table). Delete this if the global step ever gets that small (13).
-FIRING_SUBSTEPS = 8
+# A 2 ms step could not resolve the plate hitting the ball: the plate closed ~9 mm per step,
+# so exit speed swung +-35 % with force (ticket 09), and 1 ms still saws. The control step a
+# plunger fires on is run at timestep / FIRING_SUBSTEPS, ~0.26 ms on the 1/960 s step (ticket
+# 13), which the table above was measured at. Delete this if the global step gets that small.
+FIRING_SUBSTEPS = 4
 assert all(np.all(np.diff(v) > 0) for v in KICK_TABLE_MS.values()), "np.interp needs it rising"
 
 # RoboCup SSL Division A, from the rulebook. Asserted against the CAD in `_check_field`

@@ -31,7 +31,7 @@ from gymnasium import spaces
 from . import scene
 
 MAX_V = 3.3  # m/s -- the tier-0 chassis servo ctrlrange (ticket 12), used to normalise observations
-MAX_W = 30.0  # rad/s, likewise
+MAX_W = 35.9  # rad/s, likewise: wheel no-load, the kinematic yaw ceiling (ticket 13)
 MAX_BALL_V = 8.0  # m/s -- kicks cap at 6.5 (scene.KICK_SPEED_MAX) off a standing robot, ~8.5 moving
 POSSESSION_GRACE = 0.05  # s of no ball/dribbler contact before the ball counts as lost
 # A robot is over when its own +z is more than 60 deg off world +z. Well past anything
@@ -66,7 +66,15 @@ class BaseEnv(gym.Env):
         )
         self.data = mujoco.MjData(self.model)
 
-        self.decimation = max(1, round(1.0 / (control_hz * self.model.opt.timestep)))
+        # Exact or refused (ticket 13): rounding turned a requested 60 Hz into 62.5 and
+        # silently changed every horizon, lock and grace measured in steps.
+        steps = 1.0 / (control_hz * self.model.opt.timestep)
+        self.decimation = round(steps)
+        if self.decimation < 1 or abs(steps - self.decimation) > 1e-6:
+            raise ValueError(
+                f"control_hz={control_hz} is {steps:.3f} physics steps of "
+                f"{self.model.opt.timestep:.6g} s; it must divide {1 / self.model.opt.timestep:.6g} Hz"
+            )
         self.dt = self.decimation * self.model.opt.timestep
         self.metadata = dict(self.metadata, render_fps=round(1.0 / self.dt))
         self.max_steps = max(1, round(horizon_s / self.dt))
@@ -133,7 +141,7 @@ class BaseEnv(gym.Env):
         try:
             for _ in range(n):
                 mujoco.mj_step(self.model, self.data)
-        finally:  # never leave the cached model at dt / 8 for every other env
+        finally:  # never leave the cached model at dt / FIRING_SUBSTEPS for every other env
             self.model.opt.timestep = dt
         self.steps += 1
         np.maximum(self._plunger_lock - 1, 0, out=self._plunger_lock)

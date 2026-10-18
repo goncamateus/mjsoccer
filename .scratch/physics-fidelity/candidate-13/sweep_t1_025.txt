@@ -1,0 +1,2 @@
+dt_ms vfwd a_fwd vspin roll2s cor kick50 kick100 chip100 kick1_100 heldCP heldCPmin heldDr tilt99 meanv sps_GTB sps_SD
+0.25 1.901 1.589 31.80 5.470 0.129 3.33 6.51 6.40 6.45 120.0 120 119.0 3.60 0.176 65 11
