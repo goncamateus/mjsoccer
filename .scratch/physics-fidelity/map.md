@@ -161,6 +161,17 @@ diagnóstico revertido, e precisam reverter.
   tombamento e o envelope do tier 0 sem o mecanismo; `README.md` resume; rodas ±95 nas seis páginas.
   A auditoria ganha uma tabela de status (descreve o `147d2af`) e corrige `W3` (3.68 / 2.82 m/s²),
   `B9`, `P4`, `C2`, `B6`. `docs/analysis/` não existe no repositório: nada a commitar.
+- [Calibração da restituição da bola](issues/17-ball-restitution-calibration.md): **piso
+  `solref="0.012 0.225"`, parede `"0.012 0.25"`**. A 1/960 s, de 0.5 a 6.5 m/s, o piso lê
+  0.476–0.547 (média 0.513) e a parede 0.485–0.529 (média 0.509), tudo em 0.47–0.56 também a 0.5 ms.
+  0.012 é a menor constante de tempo que passa a regra de 5 % do `13` (lida para v ≥ 1: a 0.5 m/s o
+  piso diverge 6–9 % em qualquer `solref`, causa não isolada). COR 0.5 pede `dampratio` ~0.22–0.25,
+  que endurece a mola: ~13 mm de penetração e ~9 ms de contato a 6.5 m/s, da ordem de hoje. Um valor
+  único só cabe em `0.02 0.22` (21 mm). O COR do MuJoCo sobe com a velocidade (o real cai), mas cabe
+  na faixa até 6.5 m/s. A parede vai por `<pair>` bola↔`col_f_walls_*`, não pela geom da bola (que
+  mudaria o chute do `09`); o `<pair>` não herda atrito: repetir `condim 4`,
+  `0.6 0.6 0.005 0.0002 0.0002`. Nada em `models/` foi editado. Números em
+  [`candidate-17/`](candidate-17/).
 
 ## Not yet specified
 
