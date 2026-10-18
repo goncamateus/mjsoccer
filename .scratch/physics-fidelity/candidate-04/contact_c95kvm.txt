@@ -1,0 +1,2 @@
+rest: contact frac [0.99 0.99 0.99 0.99] mean Fn [7.22 6.02 5.88 7.29] N (mg=26.4) |v| end 0.00
+fwd: contact frac [0.62 0.39 0.4  0.64] mean Fn [8.17 4.89 5.61 7.73] N (mg=26.4) |v| end 1.53

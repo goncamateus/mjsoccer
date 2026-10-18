@@ -1,7 +1,7 @@
 # Qual enrolamento do EC 45 flat 50 W este robô usa?
 
 Type: task
-Status: open
+Status: resolved
 Blocked by: —
 
 ## Pergunta
@@ -35,3 +35,10 @@ O que resolve, do mais barato primeiro:
 Se não puder ser resolvido, o `04` segue com o 251601 e o registra como suposição declarada, com a
 faixa de 1.54–3.51 m/s² escrita na documentação — mas uma linha da equipe remove a maior incerteza
 deste mapa inteiro, então pergunte antes de assumir.
+
+## Answer
+
+Resolvido em 2026-10-17, confirmado pela equipe: **251601** (EC 45 flat Ø42.8 mm, 50 W, 24 V,
+`k_M = 33.5` mN·m/A, stall 780 mN·m). A suposição do `01` vira fato; nenhum número do `01` muda.
+`forcerange = 0.078` N·m e `a_max` 2.98 m/s² frontal (torque) / 2.45 m/s² (atrito, μ 0.25 do `05`)
+ficam como estão, e a faixa 1.54–3.51 m/s² não precisa ir para a documentação.

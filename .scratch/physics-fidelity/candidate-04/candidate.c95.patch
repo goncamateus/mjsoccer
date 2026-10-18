@@ -1,0 +1,596 @@
+--- a/robot_rollers.xml	2026-08-09 18:34:44.706988613 -0300
++++ b/robot_rollers.xml	2026-10-17 21:32:33.507024729 -0300
+@@ -308,121 +308,121 @@
+           <joint name="roll_wheel1_roller_1" type="hinge" axis="-1.27676e-15 -1 -4.13558e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="1.29619e-17 5.93925e-05 1.29073e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 1.01161e-24" />
+           <geom name="r_vis_roller_1" type="mesh" mesh="r_v_roller" pos="1.38778e-17 0 1.38778e-17" quat="1 -5.70477e-17 2.58564e-17 6.34404e-20" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_1_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_1_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_2" pos="0.0194816 -1.38778e-17 0.0135841" quat="0.069513 0.345459 0.703682 -0.616975">
+           <joint name="roll_wheel1_roller_2" type="hinge" axis="1.77636e-15 -1 -2.7478e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-1.4794e-17 5.93925e-05 -7.90939e-18" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -4.33036e-26" />
+           <geom name="r_vis_roller_2" type="mesh" mesh="r_v_roller" pos="-1.38778e-17 0 -6.93889e-18" quat="1 0 1.50067e-17 2.10587e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_3" pos="0.0143304 0 0.0189394" quat="0.178737 0.437722 0.684144 -0.555337">
+           <joint name="roll_wheel1_roller_3" type="hinge" axis="-9.4369e-16 -1 -3.80251e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.19436e-19 5.93925e-05 -9.68387e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -7.96049e-25 -8.89982e-27 3.82557e-25" />
+           <geom name="r_vis_roller_3" type="mesh" mesh="r_v_roller" pos="0 -3.46945e-18 0" quat="1 0 -2.61037e-17 2.96505e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_4" pos="0.00777644 -1.38778e-17 0.0224408" quat="0.28356 0.519207 0.64776 -0.480025">
+           <joint name="roll_wheel1_roller_4" type="hinge" axis="1.55431e-15 -1 -2.67841e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.18072e-19 5.93925e-05 5.96685e-18" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -7.14156e-25 -7.59259e-27 1.38307e-25" />
+           <geom name="r_vis_roller_4" type="mesh" mesh="r_v_roller" pos="0 -3.46945e-18 6.93889e-18" quat="1 -2.75632e-17 2.13975e-17 1.8168e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_5" pos="0.000461248 -1.38778e-17 0.0237455" quat="0.381401 0.587907 0.595427 -0.392893">
+           <joint name="roll_wheel1_roller_5" type="hinge" axis="1.7035e-15 -1 -2.5778e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.21313e-19 5.93925e-05 -9.69557e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -9.08744e-25 -7.82219e-27 3.84301e-25" />
+           <geom name="r_vis_roller_5" type="mesh" mesh="r_v_roller" pos="0 -1.73472e-18 0" quat="1 -1.14742e-17 -2.86904e-17 4.5451e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_5_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_5_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_6" pos="-0.0068991 -1.38778e-17 0.0227259" quat="0.469851 0.642131 0.528432 -0.296087">
+           <joint name="roll_wheel1_roller_6" type="hinge" axis="1.66533e-15 -1 -2.7478e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-1.47924e-17 5.93925e-05 5.97592e-18" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 5.81506e-25" />
+           <geom name="r_vis_roller_6" type="mesh" mesh="r_v_roller" pos="-1.38778e-17 -2.71051e-19 6.93889e-18" quat="1 5.43186e-17 2.85267e-17 -1.07968e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_6_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_6_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_7" pos="-0.0135841 -2.77556e-17 0.0194816" quat="0.546731 0.680544 0.448425 -0.19199">
+           <joint name="roll_wheel1_roller_7" type="hinge" axis="-1.33227e-15 -1 -3.9968e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-1.47911e-17 5.93925e-05 -9.72866e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -4.23922e-25" />
+           <geom name="r_vis_roller_7" type="mesh" mesh="r_v_roller" pos="-1.38778e-17 1.73472e-18 0" quat="1 -9.12225e-18 -4.65486e-19 -2.19108e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_7_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_7_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_8" pos="-0.0189394 -1.38778e-17 0.0143304" quat="0.610149 0.702199 0.357377 -0.083166">
+           <joint name="roll_wheel1_roller_8" type="hinge" axis="2.16493e-15 -1 -2.47025e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.18301e-19 5.93925e-05 -9.68575e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -7.27884e-25 -8.84516e-27 -2.14353e-25" />
+           <geom name="r_vis_roller_8" type="mesh" mesh="r_v_roller" pos="0 -3.46945e-18 0" quat="1 3.37131e-17 3.69731e-18 2.00928e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_8_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_8_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_9" pos="-0.0224408 -1.38778e-17 0.00777644" quat="0.658543 0.706564 0.257528 0.027706">
+           <joint name="roll_wheel1_roller_9" type="hinge" axis="3.88578e-16 -1 -2.94209e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.13324e-19 5.93925e-05 -9.70676e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 2.50708e-25" />
+           <geom name="r_vis_roller_9" type="mesh" mesh="r_v_roller" pos="0 0 0" quat="1 -1.45327e-17 -5.56442e-18 -2.18028e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_9_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_9_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_10" pos="-0.0237455 -1.38778e-17 0.000461248" quat="0.690722 0.693531 0.151339 0.137896">
+           <joint name="roll_wheel1_roller_10" type="hinge" axis="2.58821e-15 -1 -2.13978e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="6.02384e-18 5.93925e-05 -9.64118e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 2.98568e-25" />
+           <geom name="r_vis_roller_10" type="mesh" mesh="r_v_roller" pos="6.93889e-18 0 0" quat="1 5.42135e-17 -1.48003e-17 -7.27443e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_10_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_10_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_11" pos="-0.0227259 -1.38778e-17 -0.0068991" quat="0.705892 0.66342 0.0414229 0.24469">
+           <joint name="roll_wheel1_roller_11" type="hinge" axis="4.44089e-16 -1 -3.10862e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-7.85475e-18 5.93925e-05 -9.90286e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -3.22303e-24" />
+           <geom name="r_vis_roller_11" type="mesh" mesh="r_v_roller" pos="-6.93889e-18 0 0" quat="1 -5.71921e-17 8.77e-18 -5.30917e-19" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_11_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_11_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_12" pos="-0.0194816 -1.38778e-17 -0.0135841" quat="0.703682 0.616975 -0.069513 0.345459">
+           <joint name="roll_wheel1_roller_12" type="hinge" axis="1.16573e-15 -1 -2.85882e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-7.8537e-18 5.93925e-05 -9.70709e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -7.87916e-26" />
+           <geom name="r_vis_roller_12" type="mesh" mesh="r_v_roller" pos="-6.93889e-18 6.93889e-18 0" quat="1 0 -2.50473e-18 -9.29788e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_12_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_12_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_13" pos="-0.0143304 -1.38778e-17 -0.0189394" quat="0.684144 0.555337 -0.178737 0.437722">
+           <joint name="roll_wheel1_roller_13" type="hinge" axis="1.05471e-15 -1 -2.77556e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="6.02235e-18 5.93925e-05 -9.6886e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 5.86035e-26" />
+           <geom name="r_vis_roller_13" type="mesh" mesh="r_v_roller" pos="6.93889e-18 -3.46945e-18 0" quat="1 1.04049e-17 1.461e-17 5.31421e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_13_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_13_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_14" pos="-0.00777644 0 -0.0224408" quat="0.64776 0.480025 -0.28356 0.519207">
+           <joint name="roll_wheel1_roller_14" type="hinge" axis="9.4369e-16 -1 -3.08087e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-4.38325e-18 5.93925e-05 -9.82504e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -2.5331e-24" />
+           <geom name="r_vis_roller_14" type="mesh" mesh="r_v_roller" pos="-3.46945e-18 3.46945e-18 0" quat="1 0 2.14151e-17 -1.77861e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_14_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_14_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_15" pos="-0.000461248 0 -0.0237455" quat="0.595427 0.392893 -0.381401 0.587907">
+           <joint name="roll_wheel1_roller_15" type="hinge" axis="7.28584e-16 -1 -3.03577e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="2.55064e-18 5.93925e-05 -9.67201e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -7.58176e-25 -7.75853e-27 4.38683e-26" />
+           <geom name="r_vis_roller_15" type="mesh" mesh="r_v_roller" pos="3.46945e-18 -3.46945e-18 0" quat="1 3.43306e-17 -1.20705e-17 2.434e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_15_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_15_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_16" pos="0.0068991 -1.38778e-17 -0.0227259" quat="0.528432 0.296087 -0.469851 0.642131">
+           <joint name="roll_wheel1_roller_16" type="hinge" axis="9.4369e-16 -1 -3.1225e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.15095e-19 5.93925e-05 -1.485e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -8.64443e-25" />
+           <geom name="r_vis_roller_16" type="mesh" mesh="r_v_roller" pos="0 -1.0842e-19 -1.38778e-17" quat="1 2.67127e-17 1.23077e-17 -6.89501e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_16_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_16_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_17" pos="0.0135841 -1.38778e-17 -0.0194816" quat="0.448425 0.19199 -0.546731 0.680544">
+           <joint name="roll_wheel1_roller_17" type="hinge" axis="2.22045e-15 -1 -2.2482e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.16671e-19 5.93925e-05 -9.80767e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -1.07477e-24" />
+           <geom name="r_vis_roller_17" type="mesh" mesh="r_v_roller" pos="0 -1.73472e-18 0" quat="1 -6.20831e-17 8.17653e-18 6.36671e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_17_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_17_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_18" pos="0.0189394 0 -0.0143304" quat="0.357377 0.083166 -0.610149 0.702199">
+           <joint name="roll_wheel1_roller_18" type="hinge" axis="1.77636e-15 -1 -2.66454e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-7.86213e-18 5.93925e-05 1.29032e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -1.02396e-24 -7.8062e-27 -2.44405e-25" />
+           <geom name="r_vis_roller_18" type="mesh" mesh="r_v_roller" pos="-6.93889e-18 -3.46945e-18 1.38778e-17" quat="1 -3.78475e-17 2.66717e-17 6.16053e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_18_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_18_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_19" pos="0.0224408 0 -0.00777644" quat="0.257528 -0.027706 -0.658543 0.706564">
+           <joint name="roll_wheel1_roller_19" type="hinge" axis="8.88178e-16 -1 -2.94209e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="6.02526e-18 5.93925e-05 -9.87808e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -2.04146e-24" />
+           <geom name="r_vis_roller_19" type="mesh" mesh="r_v_roller" pos="6.93889e-18 1.04083e-17 0" quat="1 -9.17892e-17 2.13151e-17 -1.92335e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_19_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_19_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel1_roller_20" pos="0.0237455 -1.38778e-17 -0.000461248" quat="0.151339 -0.137896 -0.690722 0.693531">
+           <joint name="roll_wheel1_roller_20" type="hinge" axis="2.85535e-15 -1 -1.61503e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="1.2961e-17 5.93925e-05 -9.7025e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -3.09311e-26" />
+           <geom name="r_vis_roller_20" type="mesh" mesh="r_v_roller" pos="1.38778e-17 0 0" quat="1 0 9.56108e-18 7.02418e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel1_roller_20_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel1_roller_20_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+       </body>
+       <body name="wheel2" pos="-0.0562857 0.0562857 0.0300892" quat="-0.0315918 0.920726 0.381377 0.0762694">
+@@ -439,121 +439,121 @@
+           <joint name="roll_wheel2_roller_1_2" type="hinge" axis="-1.05471e-15 -1 -4.30211e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="1.29614e-17 5.93925e-05 -9.58369e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 3.71663e-24" />
+           <geom name="r_vis_roller_1_2" type="mesh" mesh="r_v_roller" pos="1.38778e-17 0 0" quat="1 -6.20148e-17 -2.32791e-17 4.09097e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_1_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_1_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_2_2" pos="0.0194816 0 0.0135841" quat="0.069513 0.345459 0.703682 -0.616975">
+           <joint name="roll_wheel2_roller_2_2" type="hinge" axis="2.05391e-15 -1 -2.58127e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-7.85584e-18 5.93925e-05 -1.48413e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 1.32059e-24" />
+           <geom name="r_vis_roller_2_2" type="mesh" mesh="r_v_roller" pos="-6.93889e-18 3.46945e-18 -1.38778e-17" quat="1 3.65414e-18 -5.10166e-17 8.69956e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_2_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_2_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_3_2" pos="0.0143304 1.38778e-17 0.0189394" quat="0.178737 0.437722 0.684144 -0.555337">
+           <joint name="roll_wheel2_roller_3_2" type="hinge" axis="-2.22045e-16 -1 -3.38618e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.13924e-19 5.93925e-05 -1.48415e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -3.46429e-25" />
+           <geom name="r_vis_roller_3_2" type="mesh" mesh="r_v_roller" pos="0 3.46945e-18 -1.38778e-17" quat="1 9.48844e-17 1.37351e-17 -1.67527e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_3_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_3_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_4_2" pos="0.00777644 0 0.0224408" quat="0.28356 0.519207 0.64776 -0.480025">
+           <joint name="roll_wheel2_roller_4_2" type="hinge" axis="1.27676e-15 -1 -3.1225e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="1.2961e-17 5.93925e-05 -9.59455e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -2.13591e-25" />
+           <geom name="r_vis_roller_4_2" type="mesh" mesh="r_v_roller" pos="1.38778e-17 -1.56125e-17 0" quat="1 1.37319e-16 -1.94478e-17 7.1207e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_4_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_4_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_5_2" pos="0.000461248 -1.38778e-17 0.0237455" quat="0.381401 0.587907 0.595427 -0.392893">
+           <joint name="roll_wheel2_roller_5_2" type="hinge" axis="1.84575e-15 -1 -2.75387e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-7.85994e-18 5.93925e-05 -1.48527e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -8.92832e-25 -8.10094e-27 5.25329e-27" />
+           <geom name="r_vis_roller_5_2" type="mesh" mesh="r_v_roller" pos="-6.93889e-18 -2.60209e-18 -1.38778e-17" quat="1 -5.62112e-17 1.31125e-17 4.32198e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_5_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_5_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_6_2" pos="-0.0068991 -1.38778e-17 0.0227259" quat="0.469851 0.642131 0.528432 -0.296087">
+           <joint name="roll_wheel2_roller_6_2" type="hinge" axis="2.38698e-15 -1 -2.73392e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-4.38202e-18 5.93925e-05 -9.65022e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 1.23725e-25" />
+           <geom name="r_vis_roller_6_2" type="mesh" mesh="r_v_roller" pos="-3.46945e-18 -5.63785e-18 0" quat="1 5.36231e-17 5.09779e-18 -2.81295e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_6_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_6_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_7_2" pos="-0.0135841 0 0.0194816" quat="0.546731 0.680544 0.448425 -0.19199">
+           <joint name="roll_wheel2_roller_7_2" type="hinge" axis="-1.44329e-15 -1 -3.747e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.19873e-19 5.93925e-05 -9.91741e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -8.22279e-25 -7.10636e-27 -8.34545e-25" />
+           <geom name="r_vis_roller_7_2" type="mesh" mesh="r_v_roller" pos="0 1.73472e-18 0" quat="1 -2.07265e-16 3.80986e-18 3.33276e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_7_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_7_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_8_2" pos="-0.0189394 0 0.0143304" quat="0.610149 0.702199 0.357377 -0.083166">
+           <joint name="roll_wheel2_roller_8_2" type="hinge" axis="2.27596e-15 -1 -2.38698e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.12116e-19 5.93925e-05 1.29009e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -1.49121e-24" />
+           <geom name="r_vis_roller_8_2" type="mesh" mesh="r_v_roller" pos="0 1.38778e-17 1.38778e-17" quat="1 0 2.77481e-17 -3.19728e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_8_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_8_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_9_2" pos="-0.0224408 -1.38778e-17 0.00777644" quat="0.658543 0.706564 0.257528 0.027706">
+           <joint name="roll_wheel2_roller_9_2" type="hinge" axis="7.77156e-16 -1 -2.80331e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.17406e-19 5.93925e-05 -1.48585e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -6.74139e-25 -8.04621e-27 -2.19405e-24" />
+           <geom name="r_vis_roller_9_2" type="mesh" mesh="r_v_roller" pos="0 -3.46945e-18 -1.38778e-17" quat="1 0 -4.76018e-18 1.25572e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_9_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_9_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_10_2" pos="-0.0237455 0 0.000461248" quat="0.690722 0.693531 0.151339 0.137896">
+           <joint name="roll_wheel2_roller_10_2" type="hinge" axis="2.56739e-15 -1 -1.88825e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="1.29627e-17 5.93925e-05 1.28978e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -3.17127e-25" />
+           <geom name="r_vis_roller_10_2" type="mesh" mesh="r_v_roller" pos="1.38778e-17 3.46945e-18 1.38778e-17" quat="1 -9.88843e-17 1.49013e-17 -7.21911e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_10_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_10_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_11_2" pos="-0.0227259 0 -0.0068991" quat="0.705892 0.66342 0.0414229 0.24469">
+           <joint name="roll_wheel2_roller_11_2" type="hinge" axis="8.88178e-16 -1 -2.85882e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.15948e-19 5.93925e-05 -9.88728e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -2.48068e-24" />
+           <geom name="r_vis_roller_11_2" type="mesh" mesh="r_v_roller" pos="0 0 0" quat="1 -8.01375e-17 -7.0176e-18 2.84301e-19" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_11_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_11_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_12_2" pos="-0.0194816 0 -0.0135841" quat="0.703682 0.616975 -0.069513 0.345459">
+           <joint name="roll_wheel2_roller_12_2" type="hinge" axis="9.99201e-16 -1 -2.80331e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.19753e-19 5.93925e-05 5.96363e-18" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -8.1505e-25 -8.43316e-27 -1.43273e-25" />
+           <geom name="r_vis_roller_12_2" type="mesh" mesh="r_v_roller" pos="0 -3.46945e-18 6.93889e-18" quat="1 -5.23417e-17 -1.30603e-17 3.23143e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_12_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_12_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_13_2" pos="-0.0143304 1.38778e-17 -0.0189394" quat="0.684144 0.555337 -0.178737 0.437722">
+           <joint name="roll_wheel2_roller_13_2" type="hinge" axis="1.27676e-15 -1 -2.47025e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.16519e-19 5.93925e-05 -7.90318e-18" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -7.33234e-25" />
+           <geom name="r_vis_roller_13_2" type="mesh" mesh="r_v_roller" pos="0 0 -6.93889e-18" quat="1 1.10478e-16 -1.188e-17 5.09451e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_13_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_13_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_14_2" pos="-0.00777644 0 -0.0224408" quat="0.64776 0.480025 -0.28356 0.519207">
+           <joint name="roll_wheel2_roller_14_2" type="hinge" axis="9.4369e-16 -1 -3.03924e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.11682e-19 5.93925e-05 -9.62207e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 8.66072e-26" />
+           <geom name="r_vis_roller_14_2" type="mesh" mesh="r_v_roller" pos="0 0 0" quat="1 9.46352e-17 2.45069e-17 -3.56318e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_14_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_14_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_15_2" pos="-0.000461248 -1.38778e-17 -0.0237455" quat="0.595427 0.392893 -0.381401 0.587907">
+           <joint name="roll_wheel2_roller_15_2" type="hinge" axis="4.75314e-16 -1 -2.62637e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.16948e-19 5.93925e-05 -7.89679e-18" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 5.67835e-25" />
+           <geom name="r_vis_roller_15_2" type="mesh" mesh="r_v_roller" pos="0 1.12757e-17 -6.93889e-18" quat="1 1.16231e-16 3.32374e-18 8.70314e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_15_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_15_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_16_2" pos="0.0068991 0 -0.0227259" quat="0.528432 0.296087 -0.469851 0.642131">
+           <joint name="roll_wheel2_roller_16_2" type="hinge" axis="3.88578e-16 -1 -3.34455e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.12003e-19 5.93925e-05 -1.48478e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 1.02238e-25" />
+           <geom name="r_vis_roller_16_2" type="mesh" mesh="r_v_roller" pos="0 -1.30104e-18 -1.38778e-17" quat="1 0 1.14424e-18 -3.29298e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_16_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_16_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_17_2" pos="0.0135841 0 -0.0194816" quat="0.448425 0.19199 -0.546731 0.680544">
+           <joint name="roll_wheel2_roller_17_2" type="hinge" axis="1.60982e-15 -1 -2.33147e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="1.29656e-17 5.93925e-05 -7.92523e-18" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -5.47647e-25" />
+           <geom name="r_vis_roller_17_2" type="mesh" mesh="r_v_roller" pos="1.38778e-17 -1.73472e-18 -6.93889e-18" quat="1 -1.57052e-16 -1.2114e-17 -3.13352e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_17_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_17_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_18_2" pos="0.0189394 0 -0.0143304" quat="0.357377 0.083166 -0.610149 0.702199">
+           <joint name="roll_wheel2_roller_18_2" type="hinge" axis="1.22125e-15 -1 -2.80331e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-1.47886e-17 5.93925e-05 -9.7522e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -4.70153e-25" />
+           <geom name="r_vis_roller_18_2" type="mesh" mesh="r_v_roller" pos="-1.38778e-17 6.93889e-18 0" quat="1 -3.458e-17 8.34231e-18 -4.33068e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_18_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_18_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_19_2" pos="0.0224408 0 -0.00777644" quat="0.257528 -0.027706 -0.658543 0.706564">
+           <joint name="roll_wheel2_roller_19_2" type="hinge" axis="4.44089e-16 -1 -2.91434e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.18036e-19 5.93925e-05 -1.4844e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -7.11993e-25 -7.77737e-27 3.71641e-25" />
+           <geom name="r_vis_roller_19_2" type="mesh" mesh="r_v_roller" pos="0 -6.93889e-18 -1.38778e-17" quat="1 2.72614e-17 2.36575e-17 1.78649e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_19_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_19_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel2_roller_20_2" pos="0.0237455 0 -0.000461248" quat="0.151339 -0.137896 -0.690722 0.693531">
+           <joint name="roll_wheel2_roller_20_2" type="hinge" axis="2.36616e-15 -1 -2.62811e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="6.0226e-18 5.93925e-05 5.95529e-18" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -1.8575e-24" />
+           <geom name="r_vis_roller_20_2" type="mesh" mesh="r_v_roller" pos="6.93889e-18 0 6.93889e-18" quat="1 -5.6294e-17 -3.17825e-18 3.16865e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel2_roller_20_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel2_roller_20_2_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+       </body>
+       <body name="wheel3" pos="-0.0562857 -0.0562857 0.0300892" quat="0.526414 -0.314486 -0.759237 -0.218048">
+@@ -570,121 +570,121 @@
+           <joint name="roll_wheel3_roller_1_3" type="hinge" axis="-8.88178e-16 -1 -3.98293e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-2.86794e-17 5.93925e-05 1.29181e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -1.05849e-24 -7.12532e-27 6.51218e-25" />
+           <geom name="r_vis_roller_1_3" type="mesh" mesh="r_v_roller" pos="-2.77556e-17 -1.04083e-17 1.38778e-17" quat="1 8.9022e-17 -1.72274e-19 6.64467e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_1_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_1_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_2_3" pos="0.0194816 0 0.0135841" quat="0.069513 0.345459 0.703682 -0.616975">
+           <joint name="roll_wheel3_roller_2_3" type="hinge" axis="1.88738e-15 -1 -2.55351e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.1509e-19 5.93925e-05 -9.67026e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 2.47449e-25" />
+           <geom name="r_vis_roller_2_3" type="mesh" mesh="r_v_roller" pos="0 6.93889e-18 0" quat="1 2.63692e-17 -2.19574e-17 -6.93934e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_2_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_2_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_3_3" pos="0.0143304 -1.38778e-17 0.0189394" quat="0.178737 0.437722 0.684144 -0.555337">
+           <joint name="roll_wheel3_roller_3_3" type="hinge" axis="-8.32667e-16 -1 -3.71925e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.16545e-19 5.93925e-05 -9.74864e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -9.5105e-25" />
+           <geom name="r_vis_roller_3_3" type="mesh" mesh="r_v_roller" pos="0 0 0" quat="1 0 -5.91068e-18 5.31222e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_3_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_3_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_4_3" pos="0.00777644 1.38778e-17 0.0224408" quat="0.28356 0.519207 0.64776 -0.480025">
+           <joint name="roll_wheel3_roller_4_3" type="hinge" axis="1.44329e-15 -1 -3.20577e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.15951e-19 5.93925e-05 -9.63686e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -5.92249e-25" />
+           <geom name="r_vis_roller_4_3" type="mesh" mesh="r_v_roller" pos="0 0 0" quat="1 1.11841e-16 1.85518e-17 3.12942e-19" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_4_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_4_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_5_3" pos="0.000461248 1.38778e-17 0.0237455" quat="0.381401 0.587907 0.595427 -0.392893">
+           <joint name="roll_wheel3_roller_5_3" type="hinge" axis="1.37043e-15 -1 -2.72612e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-7.85435e-18 5.93925e-05 -9.69147e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -2.59822e-25" />
+           <geom name="r_vis_roller_5_3" type="mesh" mesh="r_v_roller" pos="-6.93889e-18 6.93889e-18 0" quat="1 2.73043e-17 -1.06568e-17 -3.86471e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_5_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_5_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_6_3" pos="-0.0068991 1.38778e-17 0.0227259" quat="0.469851 0.642131 0.528432 -0.296087">
+           <joint name="roll_wheel3_roller_6_3" type="hinge" axis="1.9984e-15 -1 -2.77556e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="6.02166e-18 5.93925e-05 -9.63779e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 4.17405e-25" />
+           <geom name="r_vis_roller_6_3" type="mesh" mesh="r_v_roller" pos="6.93889e-18 3.46945e-18 0" quat="1 5.17099e-17 5.0179e-19 1.1106e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_6_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_6_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_7_3" pos="-0.0135841 0 0.0194816" quat="0.546731 0.680544 0.448425 -0.19199">
+           <joint name="roll_wheel3_roller_7_3" type="hinge" axis="-1.88738e-15 -1 -3.88578e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-1.13251e-17 5.93925e-05 -1.48454e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 7.50163e-25" />
+           <geom name="r_vis_roller_7_3" type="mesh" mesh="r_v_roller" pos="-1.04083e-17 6.93889e-18 -1.38778e-17" quat="1 -1.15431e-17 -1.89865e-17 6.85235e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_7_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_7_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_8_3" pos="-0.0189394 0 0.0143304" quat="0.610149 0.702199 0.357377 -0.083166">
+           <joint name="roll_wheel3_roller_8_3" type="hinge" axis="1.94289e-15 -1 -2.498e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.17798e-19 5.93925e-05 1.2909e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -6.97696e-25 -7.38289e-27 9.16857e-26" />
+           <geom name="r_vis_roller_8_3" type="mesh" mesh="r_v_roller" pos="0 -6.93889e-18 1.38778e-17" quat="1 1.04023e-17 8.19147e-18 1.58601e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_8_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_8_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_9_3" pos="-0.0224408 0 0.00777644" quat="0.658543 0.706564 0.257528 0.027706">
+           <joint name="roll_wheel3_roller_9_3" type="hinge" axis="2.22045e-16 -1 -3.08087e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.17402e-19 5.93925e-05 -9.7822e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -6.73914e-25 -8.03972e-27 -8.89962e-26" />
+           <geom name="r_vis_roller_9_3" type="mesh" mesh="r_v_roller" pos="0 -8.23994e-18 0" quat="1 -8.73115e-17 -8.00516e-19 1.25256e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_9_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_9_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_10_3" pos="-0.0237455 -1.38778e-17 0.000461248" quat="0.690722 0.693531 0.151339 0.137896">
+           <joint name="roll_wheel3_roller_10_3" type="hinge" axis="2.34535e-15 -1 -2.16927e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.15695e-19 5.93925e-05 -9.6323e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 1.59213e-25" />
+           <geom name="r_vis_roller_10_3" type="mesh" mesh="r_v_roller" pos="0 -3.46945e-18 0" quat="1 7.14184e-17 -2.17691e-17 -1.8433e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_10_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_10_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_11_3" pos="-0.0227259 0 -0.0068991" quat="0.705892 0.66342 0.0414229 0.24469">
+           <joint name="roll_wheel3_roller_11_3" type="hinge" axis="6.10623e-16 -1 -2.9976e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="1.29583e-17 5.93925e-05 -9.71465e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -8.00345e-25 -8.07846e-27 -2.1882e-25" />
+           <geom name="r_vis_roller_11_3" type="mesh" mesh="r_v_roller" pos="1.38778e-17 3.46945e-18 0" quat="1 0 3.13626e-17 3.02521e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_11_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_11_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_12_3" pos="-0.0194816 0 -0.0135841" quat="0.703682 0.616975 -0.069513 0.345459">
+           <joint name="roll_wheel3_roller_12_3" type="hinge" axis="9.99201e-16 -1 -2.96985e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.16454e-19 5.93925e-05 -9.74595e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -8.87558e-25" />
+           <geom name="r_vis_roller_12_3" type="mesh" mesh="r_v_roller" pos="0 3.46945e-18 0" quat="1 0 1.31184e-17 4.54042e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_12_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_12_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_13_3" pos="-0.0143304 -1.38778e-17 -0.0189394" quat="0.684144 0.555337 -0.178737 0.437722">
+           <joint name="roll_wheel3_roller_13_3" type="hinge" axis="1.11022e-15 -1 -2.94209e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.14345e-19 5.93925e-05 -9.72047e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -5.53447e-26" />
+           <geom name="r_vis_roller_13_3" type="mesh" mesh="r_v_roller" pos="0 0 0" quat="1 -1.38765e-17 -3.77317e-18 -1.32073e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_13_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_13_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_14_3" pos="-0.00777644 0 -0.0224408" quat="0.64776 0.480025 -0.28356 0.519207">
+           <joint name="roll_wheel3_roller_14_3" type="hinge" axis="1.11022e-15 -1 -3.28904e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="6.02284e-18 5.93925e-05 -9.70477e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 9.04488e-25" />
+           <geom name="r_vis_roller_14_3" type="mesh" mesh="r_v_roller" pos="6.93889e-18 0 0" quat="1 -5.73577e-17 1.14057e-17 1.19484e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_14_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_14_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_15_3" pos="-0.000461248 0 -0.0237455" quat="0.595427 0.392893 -0.381401 0.587907">
+           <joint name="roll_wheel3_roller_15_3" type="hinge" axis="9.19403e-16 -1 -2.80505e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="1.29639e-17 5.93925e-05 -9.90263e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -2.1248e-24" />
+           <geom name="r_vis_roller_15_3" type="mesh" mesh="r_v_roller" pos="1.38778e-17 0 0" quat="1 -1.16297e-16 1.79592e-17 -1.74134e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_15_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_15_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_16_3" pos="0.0068991 0 -0.0227259" quat="0.528432 0.296087 -0.469851 0.642131">
+           <joint name="roll_wheel3_roller_16_3" type="hinge" axis="8.32667e-16 -1 -2.85882e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-1.47958e-17 5.93925e-05 -7.92469e-18" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -7.10217e-25 -8.74624e-27 -8.84112e-25" />
+           <geom name="r_vis_roller_16_3" type="mesh" mesh="r_v_roller" pos="-1.38778e-17 0 -6.93889e-18" quat="1 -1.33417e-16 4.92926e-18 1.76163e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_16_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_16_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_17_3" pos="0.0135841 0 -0.0194816" quat="0.448425 0.19199 -0.546731 0.680544">
+           <joint name="roll_wheel3_roller_17_3" type="hinge" axis="2.22045e-15 -1 -2.35922e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-1.47932e-17 5.93925e-05 -7.92138e-18" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -1.1399e-24" />
+           <geom name="r_vis_roller_17_3" type="mesh" mesh="r_v_roller" pos="-1.38778e-17 3.46945e-18 -6.93889e-18" quat="1 -7.9799e-17 9.58216e-18 -4.61958e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_17_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_17_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_18_3" pos="0.0189394 0 -0.0143304" quat="0.357377 0.083166 -0.610149 0.702199">
+           <joint name="roll_wheel3_roller_18_3" type="hinge" axis="1.4988e-15 -1 -2.91434e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="1.29576e-17 5.93925e-05 5.97073e-18" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -8.39574e-25 -7.44861e-27 -4.44767e-25" />
+           <geom name="r_vis_roller_18_3" type="mesh" mesh="r_v_roller" pos="1.38778e-17 -2.25514e-17 6.93889e-18" quat="1 4.97717e-17 1.20858e-17 3.57525e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_18_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_18_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_19_3" pos="0.0224408 1.38778e-17 -0.00777644" quat="0.257528 -0.027706 -0.658543 0.706564">
+           <joint name="roll_wheel3_roller_19_3" type="hinge" axis="5.55112e-16 -1 -3.01148e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.16525e-19 5.93925e-05 5.97457e-18" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 3.81917e-25" />
+           <geom name="r_vis_roller_19_3" type="mesh" mesh="r_v_roller" pos="0 -2.27682e-18 6.93889e-18" quat="1 4.893e-17 -1.10875e-17 5.14337e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_19_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_19_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel3_roller_20_3" pos="0.0237455 1.38778e-17 -0.000461248" quat="0.151339 -0.137896 -0.690722 0.693531">
+           <joint name="roll_wheel3_roller_20_3" type="hinge" axis="2.32106e-15 -1 -2.44249e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.22225e-19 5.93925e-05 5.97821e-18" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -9.63507e-25 -8.56833e-27 8.23544e-25" />
+           <geom name="r_vis_roller_20_3" type="mesh" mesh="r_v_roller" pos="0 -5.20417e-18 6.93889e-18" quat="1 6.68393e-17 -4.03831e-17 5.31284e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel3_roller_20_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel3_roller_20_3_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+       </body>
+       <body name="wheel4" pos="0.0398 -0.0689356 0.0300892" quat="-0.124825 -0.256649 0.957826 -0.0334468">
+@@ -701,121 +701,121 @@
+           <joint name="roll_wheel4_roller_1_4" type="hinge" axis="-7.77156e-16 -1 -3.85803e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="1.29619e-17 5.93925e-05 -1.48416e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 1.33297e-24" />
+           <geom name="r_vis_roller_1_4" type="mesh" mesh="r_v_roller" pos="1.38778e-17 0 -1.38778e-17" quat="1 0 3.40858e-17 -1.58763e-19" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_1_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_1_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_2_4" pos="0.0194816 1.38778e-17 0.0135841" quat="0.069513 0.345459 0.703682 -0.616975">
+           <joint name="roll_wheel4_roller_2_4" type="hinge" axis="2.498e-15 -1 -2.58127e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.15751e-19 5.93925e-05 -9.60181e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 3.32427e-25" />
+           <geom name="r_vis_roller_2_4" type="mesh" mesh="r_v_roller" pos="0 -3.46945e-18 0" quat="1 1.00287e-16 1.22491e-19 -1.37632e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_2_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_2_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_3_4" pos="0.0143304 0 0.0189394" quat="0.178737 0.437722 0.684144 -0.555337">
+           <joint name="roll_wheel4_roller_3_4" type="hinge" axis="-3.88578e-16 -1 -3.52496e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="1.29616e-17 5.93925e-05 1.29289e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 2.26123e-24" />
+           <geom name="r_vis_roller_3_4" type="mesh" mesh="r_v_roller" pos="1.38778e-17 -3.46945e-18 1.38778e-17" quat="1 1.28737e-16 6.75999e-18 2.5899e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_3_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_3_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_4_4" pos="0.00777644 2.77556e-17 0.0224408" quat="0.28356 0.519207 0.64776 -0.480025">
+           <joint name="roll_wheel4_roller_4_4" type="hinge" axis="2.22045e-15 -1 -2.88658e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="1.29651e-17 5.93925e-05 -1.48465e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 3.30798e-25" />
+           <geom name="r_vis_roller_4_4" type="mesh" mesh="r_v_roller" pos="1.38778e-17 -6.93889e-18 -1.38778e-17" quat="1 0 -1.7618e-18 -2.74533e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_4_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_4_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_5_4" pos="0.000461248 2.77556e-17 0.0237455" quat="0.381401 0.587907 0.595427 -0.392893">
+           <joint name="roll_wheel4_roller_5_4" type="hinge" axis="2.18228e-15 -1 -2.63158e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-4.38417e-18 5.93925e-05 -9.88886e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -2.56729e-24" />
+           <geom name="r_vis_roller_5_4" type="mesh" mesh="r_v_roller" pos="-3.46945e-18 8.67362e-18 0" quat="1 -7.5073e-17 -1.30053e-17 -1.00042e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_5_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_5_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_6_4" pos="-0.0068991 2.77556e-17 0.0227259" quat="0.469851 0.642131 0.528432 -0.296087">
+           <joint name="roll_wheel4_roller_6_4" type="hinge" axis="2.44249e-15 -1 -1.95677e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.14758e-19 5.93925e-05 -9.76991e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -2.16518e-25" />
+           <geom name="r_vis_roller_6_4" type="mesh" mesh="r_v_roller" pos="0 -8.67362e-18 0" quat="1 -6.67623e-17 1.52529e-18 -9.73676e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_6_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_6_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_7_4" pos="-0.0135841 2.77556e-17 0.0194816" quat="0.546731 0.680544 0.448425 -0.19199">
+           <joint name="roll_wheel4_roller_7_4" type="hinge" axis="-8.88178e-16 -1 -3.38618e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.15424e-19 5.93925e-05 -9.64902e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 3.18757e-25" />
+           <geom name="r_vis_roller_7_4" type="mesh" mesh="r_v_roller" pos="0 3.46945e-18 0" quat="1 4.71264e-17 -2.91845e-17 -4.12852e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_7_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_7_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_8_4" pos="-0.0189394 1.38778e-17 0.0143304" quat="0.610149 0.702199 0.357377 -0.083166">
+           <joint name="roll_wheel4_roller_8_4" type="hinge" axis="1.94289e-15 -1 -2.10942e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="6.01813e-18 5.93925e-05 -9.78568e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -8.75612e-25 -9.17502e-27 -2.77743e-25" />
+           <geom name="r_vis_roller_8_4" type="mesh" mesh="r_v_roller" pos="6.93889e-18 1.04083e-17 0" quat="1 -8.1997e-17 1.13486e-17 4.08061e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_8_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_8_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_9_4" pos="-0.0224408 1.38778e-17 0.00777644" quat="0.658543 0.706564 0.257528 0.027706">
+           <joint name="roll_wheel4_roller_9_4" type="hinge" axis="2.77556e-16 -1 -2.95597e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="1.29593e-17 5.93925e-05 -9.54734e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -7.41428e-25 -7.87577e-27 2.10558e-24" />
+           <geom name="r_vis_roller_9_4" type="mesh" mesh="r_v_roller" pos="1.38778e-17 -6.93889e-18 0" quat="1 6.68414e-17 1.29192e-17 2.19911e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_9_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_9_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_10_4" pos="-0.0237455 1.38778e-17 0.000461248" quat="0.690722 0.693531 0.151339 0.137896">
+           <joint name="roll_wheel4_roller_10_4" type="hinge" axis="2.21698e-15 -1 -1.82753e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.13287e-19 5.93925e-05 -9.71679e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -3.71174e-26" />
+           <geom name="r_vis_roller_10_4" type="mesh" mesh="r_v_roller" pos="0 -6.93889e-18 0" quat="1 -1.38683e-17 3.17946e-18 -2.21209e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_10_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_10_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_11_4" pos="-0.0227259 0 -0.0068991" quat="0.705892 0.66342 0.0414229 0.24469">
+           <joint name="roll_wheel4_roller_11_4" type="hinge" axis="2.77556e-16 -1 -2.77556e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.16429e-19 5.93925e-05 -1.48334e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 1.86043e-24" />
+           <geom name="r_vis_roller_11_4" type="mesh" mesh="r_v_roller" pos="0 3.46945e-18 -1.38778e-17" quat="1 6.73646e-17 -5.18789e-18 4.33688e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_11_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_11_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_12_4" pos="-0.0194816 1.38778e-17 -0.0135841" quat="0.703682 0.616975 -0.069513 0.345459">
+           <joint name="roll_wheel4_roller_12_4" type="hinge" axis="7.77156e-16 -1 -2.83107e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="1.29626e-17 5.93925e-05 -9.66028e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 1.62698e-24" />
+           <geom name="r_vis_roller_12_4" type="mesh" mesh="r_v_roller" pos="1.38778e-17 0 0" quat="1 -4.08254e-17 9.77492e-18 -6.31002e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_12_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_12_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_13_4" pos="-0.0143304 1.38778e-17 -0.0189394" quat="0.684144 0.555337 -0.178737 0.437722">
+           <joint name="roll_wheel4_roller_13_4" type="hinge" axis="8.32667e-16 -1 -2.77556e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="1.29634e-17 5.93925e-05 -9.73168e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -2.01218e-25" />
+           <geom name="r_vis_roller_13_4" type="mesh" mesh="r_v_roller" pos="1.38778e-17 3.46945e-18 0" quat="1 -2.42777e-17 -5.38823e-18 -1.27373e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_13_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_13_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_14_4" pos="-0.00777644 1.38778e-17 -0.0224408" quat="0.64776 0.480025 -0.28356 0.519207">
+           <joint name="roll_wheel4_roller_14_4" type="hinge" axis="6.66134e-16 -1 -3.28904e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-1.47922e-17 5.93925e-05 -9.81152e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -8.71927e-25" />
+           <geom name="r_vis_roller_14_4" type="mesh" mesh="r_v_roller" pos="-1.38778e-17 0 0" quat="1 -7.56335e-17 8.36785e-18 -1.30005e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_14_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_14_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_15_4" pos="-0.000461248 1.38778e-17 -0.0237455" quat="0.595427 0.392893 -0.381401 0.587907">
+           <joint name="roll_wheel4_roller_15_4" type="hinge" axis="4.54498e-16 -1 -3.19449e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.15752e-19 5.93925e-05 -9.75595e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 -4.30109e-25" />
+           <geom name="r_vis_roller_15_4" type="mesh" mesh="r_v_roller" pos="0 5.20417e-18 0" quat="1 -4.16334e-17 1.57532e-17 -1.36702e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_15_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_15_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_16_4" pos="0.0068991 0 -0.0227259" quat="0.528432 0.296087 -0.469851 0.642131">
+           <joint name="roll_wheel4_roller_16_4" type="hinge" axis="5.55112e-16 -1 -3.30291e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-1.47955e-17 5.93925e-05 1.29006e-17" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -6.91961e-25 -7.70504e-27 -1.49542e-25" />
+           <geom name="r_vis_roller_16_4" type="mesh" mesh="r_v_roller" pos="-1.38778e-17 -1.30104e-18 1.38778e-17" quat="1 -7.16018e-17 8.3287e-18 1.50563e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_16_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_16_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_17_4" pos="0.0135841 1.38778e-17 -0.0194816" quat="0.448425 0.19199 -0.546731 0.680544">
+           <joint name="roll_wheel4_roller_17_4" type="hinge" axis="1.94289e-15 -1 -2.63678e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-9.14705e-19 5.93925e-05 -9.38828e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 1.63446e-24" />
+           <geom name="r_vis_roller_17_4" type="mesh" mesh="r_v_roller" pos="0 -3.46945e-18 0" quat="1 2.76893e-16 1.89688e-17 -1.01803e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_17_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_17_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_18_4" pos="0.0189394 1.38778e-17 -0.0143304" quat="0.357377 0.083166 -0.610149 0.702199">
+           <joint name="roll_wheel4_roller_18_4" type="hinge" axis="1.66533e-15 -1 -2.91434e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="1.29653e-17 5.93925e-05 5.97909e-18" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 8.87558e-25" />
+           <geom name="r_vis_roller_18_4" type="mesh" mesh="r_v_roller" pos="1.38778e-17 1.38778e-17 6.93889e-18" quat="1 6.82811e-17 8.40937e-18 -2.84262e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_18_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_18_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_19_4" pos="0.0224408 0 -0.00777644" quat="0.257528 -0.027706 -0.658543 0.706564">
+           <joint name="roll_wheel4_roller_19_4" type="hinge" axis="8.88178e-16 -1 -3.06699e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="-1.47934e-17 5.93925e-05 -7.90722e-18" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 0 0 3.63358e-25" />
+           <geom name="r_vis_roller_19_4" type="mesh" mesh="r_v_roller" pos="-1.38778e-17 3.46945e-18 -6.93889e-18" quat="1 9.85033e-19 1.03444e-17 -2.84472e-18" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_19_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_19_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+         <body name="wheel4_roller_20_4" pos="0.0237455 0 -0.000461248" quat="0.151339 -0.137896 -0.690722 0.693531">
+           <joint name="roll_wheel4_roller_20_4" type="hinge" axis="2.65413e-15 -1 -2.33234e-15" limited="false" damping="1e-6" armature="1e-7" />
+           <inertial pos="6.02117e-18 5.93925e-05 -9.74661e-19" mass="0.000440446" fullinertia="4.5054e-09 8.07152e-09 4.5054e-09 -6.92996e-25 -8.16709e-27 -9.98403e-25" />
+           <geom name="r_vis_roller_20_4" type="mesh" mesh="r_v_roller" pos="6.93889e-18 0 0" quat="1 4.9965e-18 4.03296e-17 1.52009e-17" material="r_mat_rubber" contype="0" conaffinity="0" group="2" density="0" />
+-          <geom name="col_wheel4_roller_20_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="1.0 0.005 0.0001" density="0" solref="0.004 1" />
++          <geom name="col_wheel4_roller_20_4_c00" type="mesh" mesh="r_c_roller_00" pos="0 0 0" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="4" conaffinity="4" condim="4" friction="0.25 0.005 0.0001" density="0" solref="0.004 1" />
+         </body>
+       </body>
+     </body>
+@@ -824,10 +824,10 @@
+     <velocity name="dribbler_vel" joint="dribbler_spin" kv="0.000146792" ctrlrange="-1500 1500" forcerange="-0.05 0.05" />
+     <motor name="kicker_force" joint="kicker_slide" gear="1" ctrlrange="0 200" />
+     <motor name="chipper_force" joint="chipper_slide" gear="1" ctrlrange="0 200" />
+-    <velocity name="wheel1_vel" joint="wheel1_spin" kv="0.103696" ctrlrange="-200 200" forcerange="-3 3" />
+-    <velocity name="wheel2_vel" joint="wheel2_spin" kv="0.103696" ctrlrange="-200 200" forcerange="-3 3" />
+-    <velocity name="wheel3_vel" joint="wheel3_spin" kv="0.103696" ctrlrange="-200 200" forcerange="-3 3" />
+-    <velocity name="wheel4_vel" joint="wheel4_spin" kv="0.103696" ctrlrange="-200 200" forcerange="-3 3" />
++    <velocity name="wheel1_vel" joint="wheel1_spin" kv="0.103696" ctrlrange="-95 95" forcerange="-0.078 0.078" />
++    <velocity name="wheel2_vel" joint="wheel2_spin" kv="0.103696" ctrlrange="-95 95" forcerange="-0.078 0.078" />
++    <velocity name="wheel3_vel" joint="wheel3_spin" kv="0.103696" ctrlrange="-95 95" forcerange="-0.078 0.078" />
++    <velocity name="wheel4_vel" joint="wheel4_spin" kv="0.103696" ctrlrange="-95 95" forcerange="-0.078 0.078" />
+   </actuator>
+   <sensor>
+     <jointpos name="dribbler_arm_pos" joint="dribbler_pivot" />
+--- a/field.xml	2026-08-09 18:34:42.562122178 -0300
++++ b/field.xml	2026-10-17 21:32:33.508476086 -0300
+@@ -39,7 +39,7 @@
+     <texture name="tex_sky" type="skybox" builtin="gradient" rgb1="0.35 0.42 0.55" rgb2="0.05 0.06 0.09" width="256" height="256" />
+   </asset>
+   <worldbody>
+-    <geom name="floor" type="plane" pos="0 0 0.02" size="6.7 5.2 0.05" material="f_mat_carpet" contype="4" conaffinity="4" condim="3" friction="0.8 0.005 0.0001" group="0" />
++    <geom name="floor" type="plane" pos="0 0 0.02" size="6.7 5.2 0.05" material="f_mat_carpet" contype="4" conaffinity="4" condim="3" friction="0.25 0.005 0.0001" group="0" />
+     <geom name="vis_f_walls_1" type="mesh" mesh="f_v_walls" pos="5.68434e-15 5.68434e-15 0.02" quat="1 0 0 0" material="f_mat_wall" contype="0" conaffinity="0" group="2" density="0" />
+     <geom name="col_f_walls_1_c00" type="mesh" mesh="f_c_walls_00" pos="5.68434e-15 5.68434e-15 0.02" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />
+     <geom name="col_f_walls_1_c01" type="mesh" mesh="f_c_walls_01" pos="5.68434e-15 5.68434e-15 0.02" quat="1 0 0 0" group="3" rgba="0.9 0.3 0.2 0.35" contype="1" conaffinity="1" condim="3" friction="0.6 0.005 0.0001" density="0" solref="0.004 1" />

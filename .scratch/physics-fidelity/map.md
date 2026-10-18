@@ -81,6 +81,15 @@ diagnóstico revertido, e precisam reverter.
   12.3/44.5/59.8° (p99 censurado pelo término a 60°), yaw ≤ 34 rad/s — outro mecanismo, não o giro.
   Números em
   [`baseline/`](baseline/).
+- [Enrolamento do motor](issues/16-motor-winding.md): **251601** (24 V, `k_M` 33.5 mN·m/A),
+  confirmado pela equipe. A suposição do `01` vira fato; nenhum número muda.
+- [Atuadores das rodas](issues/04-wheel-actuator-decision.md): `kv="0.103696" ctrlrange="-95 95"
+  forcerange="-0.078 0.078"`, **sem clip em Python**. Contra o `03`, com μ 0.25: yaw de comando cheio
+  29.2 rad/s (< `MAX_W`), inclinação 0.55°; ação aleatória **0 tombamentos/min** (era 35.9),
+  inclinação p50/p95/p99 0.59/3.04/4.06°. O tombamento da linha de base era autoridade de torque, não
+  giro. `kv` fica como aproximação da malha de velocidade do firmware. Achado lateral: as rodas perdem
+  contato com o piso ao dirigir (`v` real ~1.7-2 m/s de 3.30 em x, 0.17 de 4.04 em y) → novo [`18`](issues/18-wheel-contact-loss.md).
+  Números em [`candidate-04/`](candidate-04/).
 
 ## Not yet specified
 
@@ -100,10 +109,6 @@ diagnóstico revertido, e precisam reverter.
   várias vezes `I_nom` por dezenas de milissegundos; um envelope de torque real conseguiria.
   Registrado pelo `01` como aproximação deliberada. Torna-se especificável se alguém precisar que a
   aceleração de arrancada esteja certa.
-- **`kv` dos servos das rodas.** O `01` deixou `kv = 0.103696` intocado e sinalizou que ele nunca foi
-  derivado do gradiente velocidade/torque do motor de 8.77 rpm/mN·m. Com o novo `forcerange`, o servo
-  satura acima de 0.75 rad/s de erro em vez de 28.9, então `kv` agora governa toda a região
-  proporcional. O `04` pode absorver isso ou pode virar um ticket próprio.
 - **Restituição oblíqua e bola-saindo-do-robô.** O `02` encontrou só valores de configuração sem
   respaldo, e os dois valores publicados de redirecionamento diferem em 3× (TIGERs 0.2, ER-Force
   ~0.60). Nada a decidir até alguém medir ou aparecer uma fonte.

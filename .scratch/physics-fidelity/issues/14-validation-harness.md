@@ -2,7 +2,7 @@
 
 Type: task
 Status: open
-Blocked by: 04, 05
+Blocked by: 04, 05, 18
 
 ## Pergunta
 
@@ -40,3 +40,13 @@ menos de 0.1% dos steps.
 
 Entregar o plano do harness e os valores finais dos critérios em `## Answer`. Escrever os arquivos é
 execução, e acontece depois que o mapa fechar.
+
+## Comments
+
+- 2026-10-17, do `04`: (1) **afirmar** yaw de comando cheio (`w = [95]*4`) < `MAX_W = 30` rad/s
+  como critério — medido 29.2, margem de 2.6 %, dependente do escorregamento com μ 0.25; o `04`
+  decidiu não cortar yaw em Python e conta com este teste para pegar regressão. (2) Linha de base
+  do candidato do `04`: 0 tombamentos/min, inclinação p50/p95/p99 0.59/3.04/4.06°
+  ([`../candidate-04/summary.csv`](../candidate-04/summary.csv)) — a métrica de tombamentos/min do
+  `03` satura em zero, então o critério precisa ser a inclinação p95/p99. (3) Não usar `v_max`/`a_max`
+  cinemáticos até o `18` fechar (o chassi chega a ~1.7-2 m/s em x, não 3.30, e 0.17 m/s em y, não 4.04).

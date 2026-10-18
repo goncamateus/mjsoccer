@@ -1,0 +1,5 @@
+y: cmd=[ 67.2 -95.  -95.   67.2] v_kin=4.04 v_final=1.29 a(10-50%)=0.96 m/s2 t63=0.822s t90=1.228s peak|yaw|=1.57
+x: cmd=[-95.  -77.6  77.6  95. ] v_kin=3.30 v_final=1.87 a(10-50%)=1.97 m/s2 t63=0.600s t90=0.912s peak|yaw|=1.97
+last x/y run: wheel qvel [3.6 0.6 1.2 4.3] act force [-0.078 -0.078  0.078  0.078]
+tilt deg 0.49
+floor contacts {'ball': 1, 'b0_col_wheel1_roller_7': 2, 'b0_col_wheel1_roller_8': 3, 'b0_col_wheel2_roller_8_2': 1, 'b0_col_wheel2_roller_9_2': 3, 'b0_col_wheel3_roller_18_3': 1, 'b0_col_wheel3_roller_19_3': 2, 'b0_col_wheel4_roller_14_4': 2, 'b0_col_wheel4_roller_15_4': 3}

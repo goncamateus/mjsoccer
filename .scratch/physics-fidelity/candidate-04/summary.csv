@@ -1,0 +1,7 @@
+env,episodes,steps,episode_min,tipovers,tips_per_min,tilt_p50,tilt_p95,tilt_p99,tilt_max,steps_per_s_6_procs_parallel
+ContestedPossession-v0,50,62500,16.667,0,0.0000,0.584,3.038,4.058,6.121,356.4
+Dribbling-v0,50,4059,1.082,0,0.0000,0.532,3.028,4.037,6.234,351.2
+GoToBallShoot-v0,50,93750,25.000,0,0.0000,0.590,3.042,4.047,6.744,712.0
+GoToBall-v0,50,62500,16.667,0,0.0000,0.585,3.029,4.043,6.388,685.6
+PassEndurance-v0,50,62500,16.667,0,0.0000,0.586,3.041,4.088,6.417,397.0
+StaticDefenders-v0,50,93750,25.000,0,0.0000,0.587,3.055,4.069,6.805,130.9

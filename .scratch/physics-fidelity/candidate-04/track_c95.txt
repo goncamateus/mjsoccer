@@ -1,0 +1,2 @@
+yaw full: wheel qvel last [94.9 94.3 90.3 95. ] force [ 0.0426  0.0706 -0.078   0.0017] yaw -28.62
+kinematic yaw 35.910238693467335
