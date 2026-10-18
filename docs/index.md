@@ -107,8 +107,8 @@ R     = 0.0796 m                    measured: hub mount radius
 
 `w_i` is positive about each hub's own joint axis. `tasks.wheel_command(env, i, vx, vy, w)`
 reads the same rolling constraint off the compiled model and returns the four actions. All
-four wheels at `-1` (`-95` rad/s) asks for a pure spin of `+35.9` rad/s (kinematic; the
-chassis measures ~30-32 rad/s, the rest is roller slip). **The sign convention is
+four wheels at `-1` (`-95` rad/s) asks for a pure spin of `+35.9` rad/s (kinematic, about the wheel centre;
+the chassis measures 36.2, rolling without slip about its CoM 3 mm behind it). **The sign convention is
 the mirror of rSim's** (`sslrobot.cpp:383-386` is `-vx sin a + vy cos a + R w`, with
 `r = 0.02475`, `R = 0.090`), so a wheel vector ported from rSoccer drives backwards and yaws
 the wrong way (`W2` in [the audit](research/rsoccer-vs-mjsoccer.md)).
@@ -138,11 +138,16 @@ saturates above 0.75 rad/s of error, which approximates a firmware speed loop wi
 clamp (DELIBERATE APPROXIMATION). A constant `forcerange` cannot express an ESC's transient
 overcurrent, so launch acceleration may be low.
 
-**Tier 1 does not yet reach its derived speed.** Measured by the validation sweep, full
-command from rest: 2.47 m/s² forward and 1.87 lateral (inside 1.5× of 2.30, which the
-`validation` suite asserts), but 2 s later only 2.14 m/s forward and 0.43 m/s lateral
-against 3.30 and 4.04. The rollers lose floor contact while driving; that is open as
-ticket 18, and no acceptance criterion uses the kinematic `v_max` until it closes.
+**Tier 1 reaches its derived speed, not its derived acceleration.** Measured (ticket 20):
+3.29 m/s forward at full command, 2 s from rest, and 4.02 m/s lateral with the command
+ramped at 1 m/s². The rollers' collision shape is a smooth ellipsoid with no torsional
+friction and no joint damping, so they spin free and slide nothing along the wheel axle.
+Sustained acceleration is friction-bound below the table, because each wheel pushes along its
+own tangent, 30° or 45° off the motion: ~1.9 m/s² forward and ~1.3 lateral with `μ = 0.25`.
+The launch transient, best 0.1 s window, reads 2.35 forward and 1.85 lateral, inside 1.5× of
+2.30, which the `validation` suite asserts. Past ~1.3 m/s² lateral the chassis turns into a spin:
+the front wheels carry 22 % more load, and the command is body-frame with no heading
+feedback. Ticket 12 re-derives the table from these numbers.
 
 **Body frame.** Tier 1's wheel speeds inherently produce a *body-frame* motion, which is
 also how SSL firmware is commanded. Tier 0 has to be made to agree: its chassis joints are
@@ -227,9 +232,10 @@ bound, so `observation_space.contains` is true of every observation:
 
 Measured under random action, seeds 0-19, six envs: tier 1 robot `|v|` peaks at 0.45 and
 `|omega|` at 0.14 of their divisors; tier 0 at 0.42 and 0.45. Under its own full command
-the tier-1 chassis spins at ~30 rad/s (< `MAX_W`, pinned by `test_full_spin_stays_under_max_w`;
-the figure creeps up as the timestep shrinks, 31.8 at 0.25 ms, which is why `MAX_W` is the
-derived 35.9 and not a measured value) and drives at ~2 m/s. `MAX_V` and `MAX_W` are the tier-0 servo `ctrlrange`, pinned by
+the tier-1 chassis spins at 36.2 rad/s, 1 % past `MAX_W`: it rolls about its CoM, 3 mm behind
+the wheel centre the derived 35.9 assumes, so `|omega|` reads up to 1.01 (ticket 12 decides
+`MAX_W`; `test_full_spin_stays_under_max_w` is an expected failure until then). It drives at
+3.29 m/s, 1.00 of `MAX_V`. `MAX_V` and `MAX_W` are the tier-0 servo `ctrlrange`, pinned by
 `test_velocity_normalisers_are_the_tier0_servo_range`, and the same on both tiers so one
 observation means one speed. The channels that do leave `[-1, 1]` are physical: a chipped
 ball reads up to ~3 in height, a kick off a moving robot reaches ~8.5 m/s (1.06 of
@@ -505,6 +511,7 @@ each env's step count, so a change of rate is never silent.
 two steps. Measured against a 0.25 ms reference, 2 ms carried 12-24 % errors on tier 1 —
 possession retention -24 %, chip speed -11 %, forward acceleration -12 % — and tier 0's
 possession scattered 69-95 of 120. At ~1 ms all three are within 5 %, for half the
-throughput. What stays dt-sensitive at ~1 ms is the tier-1 full spin (-5.6 %) and top
-forward speed (-12 %), both through the roller contact loss tracked by ticket 18. Numbers in
+throughput. The tier-1 full spin (-5.6 %) and top forward speed (-12 %) were dt-sensitive
+too, through braked rollers; with ticket 20's free rollers both match 0.25 ms (36.2 against
+36.1 rad/s, 3.29 m/s on both). Numbers in
 `.scratch/physics-fidelity/candidate-13/`.

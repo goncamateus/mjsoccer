@@ -1,0 +1,12 @@
+before,GoToBall-v0,314.3
+before,ContestedPossession-v0,151.1
+before,StaticDefenders-v0,53.6
+after,GoToBall-v0,326.2
+after,ContestedPossession-v0,164.9
+after,StaticDefenders-v0,62.3
+before,GoToBall-v0,313.3
+before,ContestedPossession-v0,150.7
+before,StaticDefenders-v0,53.7
+after,GoToBall-v0,328.1
+after,ContestedPossession-v0,165.6
+after,StaticDefenders-v0,62.6

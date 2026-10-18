@@ -1,0 +1,13 @@
+models x ramp inf: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.84, 3.28, 3.28, 3.28, 3.29] (100%); a_max 2.56 m/s^2; peak |yaw| 0.4 rad/s ; heading change -0.16 rad
+models y ramp inf: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [-0.52, -0.13, 0.21, 0.17, 0.02] (1%); a_max 5.68 m/s^2; peak |yaw| 20.9 rad/s (> 2 at 0.24 s); heading change -1.69 rad
+models x ramp 1: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.0, 1.99, 2.99, 3.29, 3.29] (100%); a_max 1.21 m/s^2; peak |yaw| 0.0 rad/s ; heading change -0.01 rad
+models x ramp 1.2: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.2, 2.38, 3.28, 3.28, 3.29] (100%); a_max 1.46 m/s^2; peak |yaw| 0.0 rad/s ; heading change -0.01 rad
+models x ramp 1.4: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.39, 2.76, 3.29, 3.28, 3.29] (100%); a_max 1.71 m/s^2; peak |yaw| 0.0 rad/s ; heading change +0.00 rad
+models x ramp 1.6: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.57, 3.14, 3.28, 3.28, 3.28] (100%); a_max 1.85 m/s^2; peak |yaw| 0.0 rad/s ; heading change +0.01 rad
+models x ramp 2: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.83, 3.29, 3.29, 3.29, 3.28] (99%); a_max 2.05 m/s^2; peak |yaw| 0.5 rad/s ; heading change -0.22 rad
+models x ramp 2.3: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.81, 3.29, 3.29, 3.29, 3.29] (100%); a_max 2.21 m/s^2; peak |yaw| 0.4 rad/s ; heading change -0.18 rad
+models y ramp 1: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [0.98, 1.96, 2.95, 3.92, 4.02] (100%); a_max 1.17 m/s^2; peak |yaw| 0.1 rad/s ; heading change +0.23 rad
+models y ramp 1.2: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [1.16, 2.3, 3.34, 4.02, 0.14] (3%); a_max 2.25 m/s^2; peak |yaw| 3.4 rad/s (> 2 at 4.32 s); heading change +1.53 rad
+models y ramp 1.4: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [1.18, 2.01, -0.01, 0.37, -0.21] (-5%); a_max 9.87 m/s^2; peak |yaw| 19.1 rad/s (> 2 at 2.73 s); heading change -2.20 rad
+models y ramp 1.6: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [1.1, 1.36, 0.61, 0.41, 0.36] (9%); a_max 5.36 m/s^2; peak |yaw| 13.6 rad/s (> 2 at 2.04 s); heading change -0.90 rad
+nowall y ramp 1.2 (walls off, as in 19):  kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [1.16, 2.3, 3.34, 4.02, 4.02] (100%); a_max 1.30 m/s^2; peak |yaw| 0.5 rad/s ; heading change +0.86 rad

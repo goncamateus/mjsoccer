@@ -1,0 +1,2 @@
+before: peak yaw 30.13 rad/s; 1s yaw 27.78 wheel 94.2 r/R 0.2951; 2s yaw 29.82 wheel 94.2 r/R 0.3165; 3s yaw 29.91 wheel 94.6 r/R 0.3161; 4s yaw 29.99 wheel 95.0 r/R 0.3157; 5s yaw 29.97 wheel 95.0 r/R 0.3155
+after: peak yaw 36.20 rad/s; 1s yaw 36.09 wheel 94.9 r/R 0.3802; 2s yaw 36.11 wheel 95.0 r/R 0.3802; 3s yaw 36.09 wheel 95.0 r/R 0.3801; 4s yaw 36.06 wheel 95.0 r/R 0.3797; 5s yaw 36.16 wheel 94.9 r/R 0.3809

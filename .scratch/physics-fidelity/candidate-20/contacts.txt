@@ -1,0 +1,12 @@
+before,GoToBall-v0,substeps=131328,all=7.38,ball|floor=1.00,floor|other=0.00,floor|roller=6.38
+before,GoToBallShoot-v0,substeps=196800,all=7.38,ball|floor=1.00,floor|other=0.00,floor|roller=6.38
+before,Dribbling-v0,substeps=15072,all=7.50,ball|floor=0.43,ball|other=0.08,floor|roller=7.00
+before,StaticDefenders-v0,substeps=196800,all=113.89,ball|floor=1.00,floor|other=0.00,floor|roller=112.89
+before,ContestedPossession-v0,substeps=133008,all=21.91,ball|floor=0.19,ball|other=0.66,floor|other=0.00,floor|roller=21.06
+before,PassEndurance-v0,substeps=131328,all=24.99,ball|floor=1.00,floor|other=0.00,floor|roller=23.99
+after,GoToBall-v0,substeps=131328,all=7.28,ball|floor=1.00,floor|other=0.00,floor|roller=6.28
+after,GoToBallShoot-v0,substeps=196800,all=7.29,ball|floor=1.00,floor|other=0.00,floor|roller=6.29
+after,Dribbling-v0,substeps=14192,all=7.32,ball|floor=0.42,ball|other=0.08,floor|roller=6.82
+after,StaticDefenders-v0,substeps=196800,all=79.05,ball|floor=1.00,floor|other=0.00,floor|roller=78.05
+after,ContestedPossession-v0,substeps=133008,all=18.35,ball|floor=0.20,ball|other=0.70,floor|other=0.00,floor|roller=17.46
+after,PassEndurance-v0,substeps=131328,all=19.21,ball|floor=1.00,floor|other=0.00,floor|roller=18.21

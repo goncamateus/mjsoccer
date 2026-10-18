@@ -108,3 +108,10 @@ continua 119/120.
   sustenta ~1.9 m/s² em x (limite 1.95) e ~1.3 em y (1.33). Em y, acima disso, ele gira, porque as
   dianteiras levam 22 % mais carga. O "μg = 2.45" do item 2 esquece o cosseno das rodas. Decidir o
   envelope com esses números quando o `20` fechar.
+- 2026-10-18, do `20`: correção aplicada em `models/`. O tier 1 mede **`v_max` 3.29 / 4.02 m/s**
+  (x degrau / y rampa de 1). O **`a_max` sustentado** fica entre as rampas: x 1.6 acompanha, 2.0
+  já não; y 1.2 acompanha, 1.4 colapsa. Os limites analíticos são 1.95 / 1.33. **`ω_max`: o giro
+  cheio mede 36.2 rad/s**, acima do `MAX_W` 35.9, porque o robô gira em torno do CoM, 3 mm atrás do
+  centro, e não escorrega mais. Três testes de yaw ficam `xfail(strict)` até este ticket decidir
+  `MAX_W`. O critério 5 do `14` (0.1 s, 1.5× de 2.30) passa, mas com 6 % de folga no lateral.
+  Números em [`../candidate-20/`](../candidate-20/).

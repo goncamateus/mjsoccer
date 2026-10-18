@@ -130,3 +130,8 @@ giro com posse. (b) O raspão a 6 m/s gera 33 rad/s de yaw; é o único cenário
   parada (`holds()`/120, 8 seeds, tier 0 / tier 1): Dribbling-v0 119 / 114, ContestedPossession-v0
   82-93 / 89-96. O critério "p50 da posse dentro de 5% de `docs/index.md:199-212`" deve usar estes
   números (a seção já foi atualizada).
+- 2026-10-18, do `20`: roletes livres aplicados. Critério 5 medido de novo: 2.24 / 1.63 m/s² no
+  teste (eixo comandado) e 2.35 / 1.85 no `accel.py`; passa, mas é transiente, porque o sustentado
+  é 1.95 / 1.33. O critério 2 falha nos giros cheios (36.2 > 35.9) por causa da geometria, não por
+  defeito. Os três testes ficam `xfail(strict)` até o `12` decidir `MAX_W`. O critério 7 sobe de 3 %
+  a 16 % no tier 1. Sweep com seeds 0-4 em [`../candidate-20/sweep/`](../candidate-20/sweep/).

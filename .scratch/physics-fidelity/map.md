@@ -188,6 +188,11 @@ diagnóstico revertido, e precisam reverter.
   as dianteiras levam 22 % mais carga, saturadas empurram mais, e o momento sobra. Com μ 0.25, o
   `a_max` sustentado é ~1.9 m/s² em x e ~1.3 em y, não 2.30; o `12` espera o `20`. Números em
   [`candidate-19/`](candidate-19/).
+- [Correção dos roletes](issues/20-roller-fix.md): aplicada em `models/` (elipsoide, `condim 3`,
+  `damping` 0, 80 roletes). Tier 1 mede `v_max` 3.29 / 4.02 m/s, a vazão sobe de 3 % a 16 % no tier 1 e
+  a bola continua batendo nos roletes. O giro cheio chega a **36.2 rad/s, acima do `MAX_W` 35.9**: rola sem
+  escorregar em torno do CoM, 3 mm atrás do centro. Três testes de yaw ficam `xfail(strict)` e o
+  [`12`](issues/12-tier0-envelope.md) decide `ω_max` e `a_max`. Números em [`candidate-20/`](candidate-20/).
 
 ## Not yet specified
 
