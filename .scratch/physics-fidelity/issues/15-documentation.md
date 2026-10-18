@@ -73,3 +73,8 @@ deste mapa, então deveriam ser commitados, e a comparação de CoM do documento
   tombamento) continua aqui: terminar a 60° e pagar −100 é a política confirmada, e 60° agora tem
   fonte medida — fica a ~1° da fronteira de recuperação estática (59-67° conforme o azimute,
   mediana 61°, `candidate-10/recover.txt`), não é um número arbitrário.
+- 2026-10-18, do `11`: item 3 feito — `docs/index.md` troca o "roughly [-1, 1]" por uma tabela de
+  limites verdadeiros do `Box` e os extremos medidos; as tabelas Min/Max das seis páginas de
+  ambiente seguem; `FLOOR_Z`, `WALL_HALF_X/Y` na tabela de constantes; altura da bola e regra de gol
+  medidas acima do carpete. Fora do `11`: `docs/research/rsoccer-vs-mjsoccer.md` (`U2`, `U4`, `L9`)
+  ainda descreve o gol de 0.155 m sobre z do mundo e o deslocamento da altura como atuais.

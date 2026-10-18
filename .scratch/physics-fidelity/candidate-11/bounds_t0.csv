@@ -1,0 +1,7 @@
+env,steps,outside,min_gap,channel
+GoToBall-v0,12500,0,0.0214,2
+GoToBallShoot-v0,18750,0,0.0214,2
+Dribbling-v0,912,0,0.0189,2
+StaticDefenders-v0,18750,0,0.0214,2
+ContestedPossession-v0,12500,0,0.0208,2
+PassEndurance-v0,12500,0,0.0214,2

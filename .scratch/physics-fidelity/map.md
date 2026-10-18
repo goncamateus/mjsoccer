@@ -124,6 +124,14 @@ diagnóstico revertido, e precisam reverter.
   (59-67° conforme o azimute, mediana 61°; com momento de queda a fronteira real é mais baixa). Novo registro no step de tombamento: `info["tilt_deg"]` e `info["tip_step"]`. Momento
   endireitador fechado — reabrir só se uma política treinada tombar. Números em
   [`candidate-10/`](candidate-10/).
+- [Contrato de observação](issues/11-observation-contract.md): **descreve o simulador, sem clip.**
+  `MAX_V`/`MAX_W` ficam 4/30, presos ao `ctrlrange` do tier 0 por teste (o tier 1 já fica abaixo
+  depois do `04`). Altura da bola e `in_goal` passam a medir **acima do carpete** (`FLOOR_Z = 0.02`):
+  bola parada lia 0.267, agora 0.139, e o gol ganha os 20 mm que faltavam (0.135 → 0.155 m, muda a
+  regra de gol). `Box` com limite finito só onde a física garante (posição do robô pelas paredes,
+  sin/cos, `has_ball`, z ≥ 0, waypoint); bola x/y e velocidades ilimitadas. 0 observações fora em ~152
+  mil steps. `MAX_BALL_V` fica 8 (chute em movimento lê ~1.06). Números em
+  [`candidate-11/`](candidate-11/).
 
 ## Not yet specified
 

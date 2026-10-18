@@ -82,6 +82,13 @@ FIELD_HALF_Y = 4.5
 GOAL_HALF_Y = 0.9
 GOAL_DEPTH = 0.18
 GOAL_HEIGHT = 0.155
+# The carpet plane is at z = 0.02, not 0 (models/field.xml). Every height that means
+# "above the carpet" -- the ball-z observation, the crossbar test -- subtracts it.
+FLOOR_Z = 0.02
+# Inner faces of the perimeter wall. A robot centre cannot get past them, so they bound
+# the robot position observations. The ball can: the wall is 0.2 m tall and a chip clears it.
+WALL_HALF_X = 6.3
+WALL_HALF_Y = 4.8
 
 
 @dataclass(frozen=True)
@@ -301,6 +308,15 @@ def _check_field(model: mujoco.MjModel) -> None:
     # The posts sit outside the mouth, so their outer edge must bracket the 1.8 m opening.
     assert GOAL_HALF_Y < hi[1] < GOAL_HALF_Y + 0.06, f"goal mouth outer edge {hi[1]}"
 
+    lo, hi = aabb(lambda n: n.startswith("col_f_walls"))
+    # Pins the outer faces (the wall is 20 mm thick), so the inner ones sit within ~5 mm of
+    # the constants -- far inside the ~90 mm a robot centre keeps off the wall.
+    assert WALL_HALF_X < max(-lo[0], hi[0]) < WALL_HALF_X + 0.025, f"wall at x {hi[0]}"
+    assert WALL_HALF_Y < max(-lo[1], hi[1]) < WALL_HALF_Y + 0.025, f"wall at y {hi[1]}"
+
+    floor = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "floor")
+    assert data.geom_xpos[floor][2] == FLOOR_Z, f"carpet at z = {data.geom_xpos[floor][2]}"
+
 
 def in_field(x: float, y: float, margin: float = 0.0) -> bool:
     return abs(x) <= FIELD_HALF_X - margin and abs(y) <= FIELD_HALF_Y - margin
@@ -311,5 +327,5 @@ def in_goal(pos, sign: float = 1.0) -> bool:
     return bool(
         sign * pos[0] > FIELD_HALF_X
         and abs(pos[1]) < GOAL_HALF_Y
-        and pos[2] < GOAL_HEIGHT
+        and pos[2] - FLOOR_Z < GOAL_HEIGHT
     )

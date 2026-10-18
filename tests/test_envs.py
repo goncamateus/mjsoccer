@@ -448,5 +448,64 @@ def test_action_space_is_uniform(env_id, tier, dim):
     env.close()
 
 
+@pytest.mark.parametrize("tier", TIERS)
+def test_ball_height_is_above_the_carpet(tier):
+    """A ball resting on the carpet reads its own radius, not its world z.
+
+    The floor plane sits at z = 0.02 (models/field.xml), so dividing world z by
+    GOAL_HEIGHT read 0.267 for a ball at rest instead of 0.0215 / 0.155 = 0.139 (ticket 11).
+    """
+    env = gym.make("GoToBall-v0", tier=tier)
+    obs, _ = env.reset(seed=0)
+    for _ in range(30):
+        obs, *_ = env.step(np.zeros(env.action_space.shape))
+    env.close()
+    assert obs[2] == pytest.approx(0.0215 / 0.155, abs=0.01)
+
+
+def test_crossbar_is_measured_from_the_carpet():
+    """The goal is 0.155 m tall above the carpet, not above the world origin 20 mm below
+    it, where it was 0.135 m of mouth (ticket 11)."""
+    x = S.FIELD_HALF_X + 0.05
+    assert S.in_goal((x, 0.0, 0.02 + 0.15))
+    assert not S.in_goal((x, 0.0, 0.02 + 0.16))
+
+
+@pytest.mark.parametrize("tier", TIERS)
+def test_observation_bounds_are_true(tier):
+    """The Box declares a finite bound only where the simulator guarantees one (ticket 11).
+
+    Robots cannot leave the 6.3 x 4.8 m wall box; sin/cos and has_ball are bounded by
+    construction; the ball sits on an infinite carpet plane. Everything else -- ball x/y
+    (a chip clears the 0.2 m wall), every velocity, ball height -- has no ceiling.
+    test_steps_finite then checks the bounds hold under random action.
+    """
+    inf = np.inf
+    rx, ry = 6.3 / 6.0, 4.8 / 4.5
+    ball = ([-inf, -inf, 0.0, -inf, -inf, -inf], [inf] * 6)
+    robot = ([-rx, -ry, -1, -1, -inf, -inf, -inf, 0], [rx, ry, 1, 1, inf, inf, inf, 1])
+    wp = np.hypot(6.0 + 6.3, 4.5 + 4.8)
+    for env_id, extra in (("StaticDefenders-v0", 0), ("Dribbling-v0", 2)):
+        env = gym.make(env_id, tier=tier)
+        n = len(env.unwrapped.robots)
+        hi = ball[1] + robot[1] * n + [wp / 6.0, wp / 4.5][:extra]
+        lo = ball[0] + robot[0] * n + [-wp / 6.0, -wp / 4.5][:extra]
+        np.testing.assert_allclose(env.observation_space.low, lo, rtol=1e-6)
+        np.testing.assert_allclose(env.observation_space.high, hi, rtol=1e-6)
+        env.close()
+
+
+def test_velocity_normalisers_are_the_tier0_servo_range():
+    """MAX_V and MAX_W are the tier-0 chassis servo ctrlrange (ticket 11), shared by both
+    tiers so one observation means one speed. Tier 1 stays under them on its own drive
+    (test_full_spin_stays_under_max_w). If ticket 12 retunes the tier-0 servos, this fails
+    and the normalisers get revisited rather than drifting apart."""
+    from mjsoccer.base import MAX_V, MAX_W
+
+    _, robots, _ = S.build(1, 0, tier=0)
+    np.testing.assert_array_equal(robots[0].drive_range[:, 1], (MAX_V, MAX_V, MAX_W))
+    np.testing.assert_array_equal(robots[0].drive_range[:, 0], (-MAX_V, -MAX_V, -MAX_W))
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-q"]))

@@ -128,6 +128,10 @@ class DribblingEnv(_BallTask):
     """
 
     extra_obs = 2  # the current waypoint, in the robot's own frame
+    # No component is longer than the farthest an in-field waypoint can be from a robot
+    # inside the walls.
+    _reach = np.hypot(S.FIELD_HALF_X + S.WALL_HALF_X, S.FIELD_HALF_Y + S.WALL_HALF_Y)
+    extra_obs_bound = (_reach / S.FIELD_HALF_X, _reach / S.FIELD_HALF_Y)
     n_waypoints = 4
     waypoint_tol = 0.3
 

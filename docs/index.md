@@ -118,7 +118,7 @@ characterised at.
 
 ## Observation space
 
-Flat `Box(-inf, inf, (6 + 8 * n_robots + extra_obs,), float32)`, where `n_robots` is every
+Flat `Box((6 + 8 * n_robots + extra_obs,), float32)`, bounded per channel below, where `n_robots` is every
 robot in the model, controlled or not.
 
 ```
@@ -141,14 +141,32 @@ Every entry is normalised by a constant from `base.py` or `scene.py`:
 |---|---|---|
 | ball x, robot x | `scene.FIELD_HALF_X` | 6.0 m |
 | ball y, robot y | `scene.FIELD_HALF_Y` | 4.5 m |
-| ball z | `scene.GOAL_HEIGHT` | 0.155 m |
+| ball z above the carpet (`z - scene.FLOOR_Z`) | `scene.GOAL_HEIGHT` | 0.155 m |
 | ball vx, vy, vz | `base.MAX_BALL_V` | 8.0 m/s (kicks are capped at 6.5 off a standing robot) |
 | robot vx, vy | `base.MAX_V` | 4.0 m/s (the tier-0 chassis servo ctrlrange) |
 | robot omega | `base.MAX_W` | 30.0 rad/s (likewise) |
 
-The declared `Box` is unbounded because nothing clips these: a ball can be above
-`GOAL_HEIGHT`, and a tier-1 chassis pushed by another robot can exceed `MAX_V`. In normal
-play the values sit in roughly `[-1, 1]`.
+Nothing clips these. The declared `Box` is finite only where the simulator guarantees a
+bound, so `observation_space.contains` is true of every observation:
+
+| channel | bound | why |
+|---|---|---|
+| robot x, y | ±1.05, ±1.067 | the inner wall faces, `scene.WALL_HALF_X = 6.3`, `WALL_HALF_Y = 4.8` m |
+| sin, cos yaw | ±1 | by construction |
+| `has_ball` | 0, 1 | by construction |
+| ball z | 0 to `inf` | the ball sits on the carpet; a chip has no ceiling |
+| ball x, y | `inf` | a chip clears the 0.2 m wall |
+| every velocity | `inf` | collisions have no ceiling |
+| Dribbling waypoint | ±2.57, ±3.427 | an in-field waypoint seen from a robot inside the walls |
+
+Measured under random action, seeds 0-19, six envs: tier 1 robot `|v|` peaks at 0.38 and
+`|omega|` at 0.14 of their divisors; tier 0 at 0.51 and 0.88. Under its own full command
+the tier-1 chassis spins at 29.2 rad/s (< `MAX_W`, pinned by `test_full_spin_stays_under_max_w`)
+and drives at ~2 m/s. `MAX_V` and `MAX_W` are the tier-0 servo `ctrlrange`, pinned by
+`test_velocity_normalisers_are_the_tier0_servo_range`, and the same on both tiers so one
+observation means one speed. The channels that do leave `[-1, 1]` are physical: a chipped
+ball reads up to ~3 in height, a kick off a moving robot reaches ~8.5 m/s (1.06 of
+`MAX_BALL_V`), and a robot behind the goal line or by the side wall reads up to ~1.05.
 
 ## Tiers
 
@@ -273,7 +291,9 @@ not a geometric fact.
 | `FIELD_HALF_Y` | 4.5 m | half the field width |
 | `GOAL_HALF_Y` | 0.9 m | half the 1.8 m goal mouth |
 | `GOAL_DEPTH` | 0.18 m | how far the goal extends behind the line |
-| `GOAL_HEIGHT` | 0.155 m | the crossbar height, and the ball-z normaliser |
+| `GOAL_HEIGHT` | 0.155 m | the crossbar height above the carpet, and the ball-z normaliser |
+| `FLOOR_Z` | 0.02 m | the carpet plane's world z; every "height" subtracts it |
+| `WALL_HALF_X`, `WALL_HALF_Y` | 6.3, 4.8 m | the inner wall faces; they bound the robot position observations |
 
 `scene._check_field` asserts every one of them against the CAD at build time, by taking the
 world-space AABB of the line meshes and the goalpost collision geoms. It is cheap, and it is
@@ -282,7 +302,7 @@ x = 6.0 on a field whose goal is elsewhere trains a policy to shoot at nothing, 
 check downstream still passes.
 
 `scene.in_field(x, y)` and `scene.in_goal(pos, sign=1.0)` are derived from these. A ball is
-in the goal when its centre is past the goal line, inside the mouth and under the crossbar.
+in the goal when its centre is past the goal line, inside the mouth and under the crossbar, its centre height measured from the carpet.
 
 ## Rendering
 

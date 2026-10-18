@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Action Space | `Box(-1.0, 1.0, (7,), float32)` on the default tier 1, `Box(-1.0, 1.0, (6,), float32)` on tier 0 |
-| Observation Space | `Box(-inf, inf, (14,), float32)` |
+| Observation Space | `Box((14,), float32)`, bounded per row below |
 | import | `gym.make("GoToBallShoot-v0")` |
 
 ## Description
@@ -64,7 +64,7 @@ reasoning behind each.
 
 ## Observation Space
 
-`Box(-inf, inf, (14,), float32)`: 6 ball elements plus 8 for the single robot. Note that
+`Box((14,), float32)`, bounded per row below: 6 ball elements plus 8 for the single robot. Note that
 the goal is not in the observation — it is at a fixed place on a fixed field, so its
 position is a constant a policy can absorb into its weights.
 
@@ -72,12 +72,12 @@ position is a constant a policy can absorb into its weights.
 |---|---|---|---|---|---|
 | 0 | ball x position | -Inf | Inf | `ball` | m, / 6.0 (`FIELD_HALF_X`) |
 | 1 | ball y position | -Inf | Inf | `ball` | m, / 4.5 (`FIELD_HALF_Y`) |
-| 2 | ball height | -Inf | Inf | `ball` | m, / 0.155 (`GOAL_HEIGHT`) |
+| 2 | ball height above the carpet | 0 | Inf | `ball` | m, / 0.155 (`GOAL_HEIGHT`) |
 | 3 | ball x velocity | -Inf | Inf | `ball` | m/s, / 8.0 (`MAX_BALL_V`) |
 | 4 | ball y velocity | -Inf | Inf | `ball` | m/s, / 8.0 (`MAX_BALL_V`) |
 | 5 | ball z velocity | -Inf | Inf | `ball` | m/s, / 8.0 (`MAX_BALL_V`) |
-| 6 | x position of the controlled blue robot | -Inf | Inf | `b0_robot` | m, / 6.0 (`FIELD_HALF_X`) |
-| 7 | y position of the controlled blue robot | -Inf | Inf | `b0_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
+| 6 | x position of the controlled blue robot | -1.05 | 1.05 | `b0_robot` | m, / 6.0 (`FIELD_HALF_X`) |
+| 7 | y position of the controlled blue robot | -1.067 | 1.067 | `b0_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
 | 8 | sin of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
 | 9 | cos of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
 | 10 | world-frame x velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 4.0 (`MAX_V`) |
@@ -87,7 +87,7 @@ position is a constant a policy can absorb into its weights.
 
 Positions and velocities are divided by the constants shown in the Unit column; yaw is
 given as its sine and cosine so the wrap at +/-pi is not a discontinuity in the input. Ball
-height is normalised by `GOAL_HEIGHT = 0.155 m`, which makes a chipped ball read greater
+height is measured from the carpet and normalised by `GOAL_HEIGHT = 0.155 m`, which makes a chipped ball read greater
 than 1 exactly when it is too high to score.
 
 ## Rewards
@@ -133,7 +133,7 @@ ball-to-goal distance.
 ### Termination
 
 - **Goal.** `scene.in_goal(ball)`: the ball centre is past `x = 6.0`, inside the mouth
-  (`|y| < 0.9`) and under the crossbar (`z < 0.155`). `info["goal"]` is `True`.
+  (`|y| < 0.9`) and under the crossbar (`z - FLOOR_Z < 0.155`, centre height above the carpet). `info["goal"]` is `True`.
 - **Ball out of the field.** `scene.in_field` fails for the ball centre (`|x| > 6.0 m` or
   `|y| > 4.5 m`) *and* `info["goal"]` is false, so a scored ball is never also reported as
   out. `info["ball_out"]` is set. A shot that crosses the goal line wide, or over the

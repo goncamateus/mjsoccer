@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Action Space | `Box(-1.0, 1.0, (7,), float32)` on the default tier 1, `Box(-1.0, 1.0, (6,), float32)` on tier 0 |
-| Observation Space | `Box(-inf, inf, (62,), float32)` |
+| Observation Space | `Box((62,), float32)`, bounded per row below |
 | import | `gym.make("StaticDefenders-v0")` |
 
 ## Description
@@ -66,7 +66,7 @@ locks are independent, so a kick cannot block a chip. See
 
 ## Observation Space
 
-`Box(-inf, inf, (62,), float32)`: 6 ball elements plus 8 for each of the 7 robots. Robots
+`Box((62,), float32)`, bounded per row below: 6 ball elements plus 8 for each of the 7 robots. Robots
 appear in attach order — the controlled blue robot first, then the six yellow ones, which
 is the same ordering rule as everywhere else in the suite, so indices 0-13 mean exactly what
 they mean in `GoToBallShoot-v0`.
@@ -75,60 +75,60 @@ they mean in `GoToBallShoot-v0`.
 |---|---|---|---|---|---|
 | 0 | ball x position | -Inf | Inf | `ball` | m, / 6.0 (`FIELD_HALF_X`) |
 | 1 | ball y position | -Inf | Inf | `ball` | m, / 4.5 (`FIELD_HALF_Y`) |
-| 2 | ball height | -Inf | Inf | `ball` | m, / 0.155 (`GOAL_HEIGHT`) |
+| 2 | ball height above the carpet | 0 | Inf | `ball` | m, / 0.155 (`GOAL_HEIGHT`) |
 | 3 | ball x velocity | -Inf | Inf | `ball` | m/s, / 8.0 (`MAX_BALL_V`) |
 | 4 | ball y velocity | -Inf | Inf | `ball` | m/s, / 8.0 (`MAX_BALL_V`) |
 | 5 | ball z velocity | -Inf | Inf | `ball` | m/s, / 8.0 (`MAX_BALL_V`) |
-| 6 | x position of the controlled blue robot | -Inf | Inf | `b0_robot` | m, / 6.0 (`FIELD_HALF_X`) |
-| 7 | y position of the controlled blue robot | -Inf | Inf | `b0_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
+| 6 | x position of the controlled blue robot | -1.05 | 1.05 | `b0_robot` | m, / 6.0 (`FIELD_HALF_X`) |
+| 7 | y position of the controlled blue robot | -1.067 | 1.067 | `b0_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
 | 8 | sin of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
 | 9 | cos of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
 | 10 | world-frame x velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 4.0 (`MAX_V`) |
 | 11 | world-frame y velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 4.0 (`MAX_V`) |
 | 12 | yaw rate of the controlled blue robot | -Inf | Inf | `b0_robot` | rad/s, / 30.0 (`MAX_W`) |
 | 13 | whether the controlled blue robot has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
-| 14 | x position of the yellow robot 0 | -Inf | Inf | `y0_robot` | m, / 6.0 (`FIELD_HALF_X`) |
-| 15 | y position of the yellow robot 0 | -Inf | Inf | `y0_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
+| 14 | x position of the yellow robot 0 | -1.05 | 1.05 | `y0_robot` | m, / 6.0 (`FIELD_HALF_X`) |
+| 15 | y position of the yellow robot 0 | -1.067 | 1.067 | `y0_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
 | 16 | sin of the yaw of the yellow robot 0 | -1 | 1 | `y0_robot` | unitless |
 | 17 | cos of the yaw of the yellow robot 0 | -1 | 1 | `y0_robot` | unitless |
 | 18 | world-frame x velocity of the yellow robot 0 | -Inf | Inf | `y0_robot` | m/s, / 4.0 (`MAX_V`) |
 | 19 | world-frame y velocity of the yellow robot 0 | -Inf | Inf | `y0_robot` | m/s, / 4.0 (`MAX_V`) |
 | 20 | yaw rate of the yellow robot 0 | -Inf | Inf | `y0_robot` | rad/s, / 30.0 (`MAX_W`) |
 | 21 | whether the yellow robot 0 has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
-| 22 | x position of the yellow robot 1 | -Inf | Inf | `y1_robot` | m, / 6.0 (`FIELD_HALF_X`) |
-| 23 | y position of the yellow robot 1 | -Inf | Inf | `y1_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
+| 22 | x position of the yellow robot 1 | -1.05 | 1.05 | `y1_robot` | m, / 6.0 (`FIELD_HALF_X`) |
+| 23 | y position of the yellow robot 1 | -1.067 | 1.067 | `y1_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
 | 24 | sin of the yaw of the yellow robot 1 | -1 | 1 | `y1_robot` | unitless |
 | 25 | cos of the yaw of the yellow robot 1 | -1 | 1 | `y1_robot` | unitless |
 | 26 | world-frame x velocity of the yellow robot 1 | -Inf | Inf | `y1_robot` | m/s, / 4.0 (`MAX_V`) |
 | 27 | world-frame y velocity of the yellow robot 1 | -Inf | Inf | `y1_robot` | m/s, / 4.0 (`MAX_V`) |
 | 28 | yaw rate of the yellow robot 1 | -Inf | Inf | `y1_robot` | rad/s, / 30.0 (`MAX_W`) |
 | 29 | whether the yellow robot 1 has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
-| 30 | x position of the yellow robot 2 | -Inf | Inf | `y2_robot` | m, / 6.0 (`FIELD_HALF_X`) |
-| 31 | y position of the yellow robot 2 | -Inf | Inf | `y2_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
+| 30 | x position of the yellow robot 2 | -1.05 | 1.05 | `y2_robot` | m, / 6.0 (`FIELD_HALF_X`) |
+| 31 | y position of the yellow robot 2 | -1.067 | 1.067 | `y2_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
 | 32 | sin of the yaw of the yellow robot 2 | -1 | 1 | `y2_robot` | unitless |
 | 33 | cos of the yaw of the yellow robot 2 | -1 | 1 | `y2_robot` | unitless |
 | 34 | world-frame x velocity of the yellow robot 2 | -Inf | Inf | `y2_robot` | m/s, / 4.0 (`MAX_V`) |
 | 35 | world-frame y velocity of the yellow robot 2 | -Inf | Inf | `y2_robot` | m/s, / 4.0 (`MAX_V`) |
 | 36 | yaw rate of the yellow robot 2 | -Inf | Inf | `y2_robot` | rad/s, / 30.0 (`MAX_W`) |
 | 37 | whether the yellow robot 2 has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
-| 38 | x position of the yellow robot 3 | -Inf | Inf | `y3_robot` | m, / 6.0 (`FIELD_HALF_X`) |
-| 39 | y position of the yellow robot 3 | -Inf | Inf | `y3_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
+| 38 | x position of the yellow robot 3 | -1.05 | 1.05 | `y3_robot` | m, / 6.0 (`FIELD_HALF_X`) |
+| 39 | y position of the yellow robot 3 | -1.067 | 1.067 | `y3_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
 | 40 | sin of the yaw of the yellow robot 3 | -1 | 1 | `y3_robot` | unitless |
 | 41 | cos of the yaw of the yellow robot 3 | -1 | 1 | `y3_robot` | unitless |
 | 42 | world-frame x velocity of the yellow robot 3 | -Inf | Inf | `y3_robot` | m/s, / 4.0 (`MAX_V`) |
 | 43 | world-frame y velocity of the yellow robot 3 | -Inf | Inf | `y3_robot` | m/s, / 4.0 (`MAX_V`) |
 | 44 | yaw rate of the yellow robot 3 | -Inf | Inf | `y3_robot` | rad/s, / 30.0 (`MAX_W`) |
 | 45 | whether the yellow robot 3 has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
-| 46 | x position of the yellow robot 4 | -Inf | Inf | `y4_robot` | m, / 6.0 (`FIELD_HALF_X`) |
-| 47 | y position of the yellow robot 4 | -Inf | Inf | `y4_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
+| 46 | x position of the yellow robot 4 | -1.05 | 1.05 | `y4_robot` | m, / 6.0 (`FIELD_HALF_X`) |
+| 47 | y position of the yellow robot 4 | -1.067 | 1.067 | `y4_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
 | 48 | sin of the yaw of the yellow robot 4 | -1 | 1 | `y4_robot` | unitless |
 | 49 | cos of the yaw of the yellow robot 4 | -1 | 1 | `y4_robot` | unitless |
 | 50 | world-frame x velocity of the yellow robot 4 | -Inf | Inf | `y4_robot` | m/s, / 4.0 (`MAX_V`) |
 | 51 | world-frame y velocity of the yellow robot 4 | -Inf | Inf | `y4_robot` | m/s, / 4.0 (`MAX_V`) |
 | 52 | yaw rate of the yellow robot 4 | -Inf | Inf | `y4_robot` | rad/s, / 30.0 (`MAX_W`) |
 | 53 | whether the yellow robot 4 has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
-| 54 | x position of the yellow robot 5 | -Inf | Inf | `y5_robot` | m, / 6.0 (`FIELD_HALF_X`) |
-| 55 | y position of the yellow robot 5 | -Inf | Inf | `y5_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
+| 54 | x position of the yellow robot 5 | -1.05 | 1.05 | `y5_robot` | m, / 6.0 (`FIELD_HALF_X`) |
+| 55 | y position of the yellow robot 5 | -1.067 | 1.067 | `y5_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
 | 56 | sin of the yaw of the yellow robot 5 | -1 | 1 | `y5_robot` | unitless |
 | 57 | cos of the yaw of the yellow robot 5 | -1 | 1 | `y5_robot` | unitless |
 | 58 | world-frame x velocity of the yellow robot 5 | -Inf | Inf | `y5_robot` | m/s, / 4.0 (`MAX_V`) |
@@ -198,7 +198,7 @@ Identical to [`GoToBallShoot-v0`](go_to_ball_shoot.md).
 ### Termination
 
 - **Goal.** `scene.in_goal(ball)`: the ball centre is past `x = 6.0`, inside the mouth
-  (`|y| < 0.9`) and under the crossbar (`z < 0.155`). `info["goal"]` is `True`.
+  (`|y| < 0.9`) and under the crossbar (`z - FLOOR_Z < 0.155`, centre height above the carpet). `info["goal"]` is `True`.
 - **Ball out of the field.** `scene.in_field` fails for the ball centre (`|x| > 6.0 m` or
   `|y| > 4.5 m`) *and* `info["goal"]` is false, so a scored ball is never also reported as
   out. `info["ball_out"]` is set. A shot deflected wide off a defender ends the episode.

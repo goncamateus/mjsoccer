@@ -32,7 +32,7 @@ from . import scene
 
 MAX_V = 4.0  # m/s -- the tier-0 chassis servo ctrlrange, used to normalise observations
 MAX_W = 30.0  # rad/s, likewise
-MAX_BALL_V = 8.0  # m/s -- kicks are capped at 6.5 (scene.KICK_SPEED_MAX) off a standing robot
+MAX_BALL_V = 8.0  # m/s -- kicks cap at 6.5 (scene.KICK_SPEED_MAX) off a standing robot, ~8.5 moving
 POSSESSION_GRACE = 0.05  # s of no ball/dribbler contact before the ball counts as lost
 # A robot is over when its own +z is more than 60 deg off world +z. Well past anything
 # driving produces -- the roller chassis pitches a couple of degrees under hard
@@ -51,6 +51,7 @@ class BaseEnv(gym.Env):
     n_yellow = 0
     n_controlled = 1
     extra_obs = 0  # task-specific observations appended by _task_obs
+    extra_obs_bound = np.inf  # |bound| of each, scalar or one per extra
 
     def __init__(
         self,
@@ -75,8 +76,21 @@ class BaseEnv(gym.Env):
         self.action_space = spaces.Box(
             -1.0, 1.0, (self.n_controlled * self.act_dim,), dtype=np.float32
         )
-        n_obs = 6 + 8 * len(self.robots) + self.extra_obs
-        self.observation_space = spaces.Box(-np.inf, np.inf, (n_obs,), dtype=np.float32)
+        # Finite only where the simulator guarantees it (ticket 11): nothing clips, so a
+        # bound that play can exceed would be a lie, not a normalisation.
+        inf = np.inf
+        rx = scene.WALL_HALF_X / scene.FIELD_HALF_X
+        ry = scene.WALL_HALF_Y / scene.FIELD_HALF_Y
+        extra = np.broadcast_to(self.extra_obs_bound, (self.extra_obs,))
+        n = len(self.robots)
+        # ball x, y, z, v; then per robot x, y, sin, cos, vx, vy, omega, has_ball
+        low = np.concatenate(
+            [[-inf, -inf, 0, -inf, -inf, -inf], [-rx, -ry, -1, -1, -inf, -inf, -inf, 0] * n, -extra]
+        )
+        high = np.concatenate([[inf] * 6, [rx, ry, 1, 1, inf, inf, inf, 1] * n, extra])
+        self.observation_space = spaces.Box(
+            low.astype(np.float32), high.astype(np.float32), dtype=np.float32
+        )
 
         self.render_mode = render_mode
         self._renderer = None
@@ -244,7 +258,7 @@ class BaseEnv(gym.Env):
         out = [
             bp[0] / scene.FIELD_HALF_X,
             bp[1] / scene.FIELD_HALF_Y,
-            bp[2] / scene.GOAL_HEIGHT,
+            (bp[2] - scene.FLOOR_Z) / scene.GOAL_HEIGHT,
             bv[0] / MAX_BALL_V,
             bv[1] / MAX_BALL_V,
             bv[2] / MAX_BALL_V,

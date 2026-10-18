@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Action Space | `Box(-1.0, 1.0, (7,), float32)` on the default tier 1, `Box(-1.0, 1.0, (6,), float32)` on tier 0 |
-| Observation Space | `Box(-inf, inf, (14,), float32)` |
+| Observation Space | `Box((14,), float32)`, bounded per row below |
 | import | `gym.make("GoToBall-v0")` |
 
 ## Description
@@ -62,18 +62,18 @@ is.
 
 ## Observation Space
 
-`Box(-inf, inf, (14,), float32)`: 6 ball elements plus 8 for the single robot.
+`Box((14,), float32)`, bounded per row below: 6 ball elements plus 8 for the single robot.
 
 | Num | Observation | Min | Max | Name in XML / source | Unit |
 |---|---|---|---|---|---|
 | 0 | ball x position | -Inf | Inf | `ball` | m, / 6.0 (`FIELD_HALF_X`) |
 | 1 | ball y position | -Inf | Inf | `ball` | m, / 4.5 (`FIELD_HALF_Y`) |
-| 2 | ball height | -Inf | Inf | `ball` | m, / 0.155 (`GOAL_HEIGHT`) |
+| 2 | ball height above the carpet | 0 | Inf | `ball` | m, / 0.155 (`GOAL_HEIGHT`) |
 | 3 | ball x velocity | -Inf | Inf | `ball` | m/s, / 8.0 (`MAX_BALL_V`) |
 | 4 | ball y velocity | -Inf | Inf | `ball` | m/s, / 8.0 (`MAX_BALL_V`) |
 | 5 | ball z velocity | -Inf | Inf | `ball` | m/s, / 8.0 (`MAX_BALL_V`) |
-| 6 | x position of the controlled blue robot | -Inf | Inf | `b0_robot` | m, / 6.0 (`FIELD_HALF_X`) |
-| 7 | y position of the controlled blue robot | -Inf | Inf | `b0_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
+| 6 | x position of the controlled blue robot | -1.05 | 1.05 | `b0_robot` | m, / 6.0 (`FIELD_HALF_X`) |
+| 7 | y position of the controlled blue robot | -1.067 | 1.067 | `b0_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
 | 8 | sin of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
 | 9 | cos of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
 | 10 | world-frame x velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 4.0 (`MAX_V`) |
@@ -83,7 +83,8 @@ is.
 
 Positions and velocities are divided by the constants shown in the Unit column; yaw is
 given as its sine and cosine so the wrap at +/-pi is not a discontinuity in the input. The
-`Box` is declared unbounded because nothing clips these values.
+bounds are what the simulator guarantees, not a clip: nothing clips, and every `Inf` is a
+channel with no physical ceiling (see [Observation](../index.md#observation-space)).
 
 ## Rewards
 
