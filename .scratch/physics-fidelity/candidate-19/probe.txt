@@ -1,0 +1,2 @@
+at rest: roller-roller contacts 0
+k=0.2: roller-roller contacts 0 over 1920 steps, mean |F| 0.000 N; pairs e.g. []

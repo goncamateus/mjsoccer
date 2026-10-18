@@ -1,0 +1,36 @@
+base x ramp inf: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.47, 2.1, 2.31, 2.35, 2.4] (73%); a_max 2.75 m/s^2; peak |yaw| 1.1 rad/s ; heading change +0.28 rad
+base y ramp inf: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [-0.03, 0.01, -0.06, 0.08, -0.01] (-0%); a_max 2.53 m/s^2; peak |yaw| 9.0 rad/s (> 2 at 0.30 s); heading change -1.71 rad
+base y ramp 1: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [0.41, 0.71, 0.39, 0.17, -0.08] (-2%); a_max 2.25 m/s^2; peak |yaw| 7.3 rad/s (> 2 at 2.52 s); heading change -1.74 rad
+base_c3 x ramp inf: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.59, 2.33, 2.47, 2.42, 2.54] (77%); a_max 2.40 m/s^2; peak |yaw| 0.8 rad/s ; heading change +0.51 rad
+base_c3 y ramp inf: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [-0.25, 0.09, 0.15, 0.09, 0.0] (0%); a_max 4.04 m/s^2; peak |yaw| 15.3 rad/s (> 2 at 0.29 s); heading change +2.74 rad
+base_c3 y ramp 1: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [0.45, 0.42, 0.07, 0.07, 0.1] (3%); a_max 1.45 m/s^2; peak |yaw| 13.3 rad/s (> 2 at 1.51 s); heading change -1.27 rad
+base_d0 x ramp inf: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.48, 2.21, 2.41, 2.5, 2.51] (76%); a_max 2.72 m/s^2; peak |yaw| 0.6 rad/s ; heading change -0.09 rad
+base_d0 y ramp inf: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [0.02, 0.08, -0.07, 0.1, -0.05] (-1%); a_max 2.69 m/s^2; peak |yaw| 9.7 rad/s (> 2 at 0.34 s); heading change -1.38 rad
+base_d0 y ramp 1: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [0.44, 0.68, 0.18, 0.23, -0.06] (-1%); a_max 2.39 m/s^2; peak |yaw| 8.2 rad/s (> 2 at 2.45 s); heading change +0.18 rad
+base_c3_d0 x ramp inf: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.56, 2.44, 2.64, 2.66, 2.66] (81%); a_max 2.54 m/s^2; peak |yaw| 0.6 rad/s ; heading change +0.52 rad
+base_c3_d0 y ramp inf: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [-0.21, 0.03, 0.15, 0.06, -0.03] (-1%); a_max 3.60 m/s^2; peak |yaw| 15.6 rad/s (> 2 at 0.34 s); heading change -2.88 rad
+base_c3_d0 y ramp 1: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [0.49, 0.66, -0.21, 0.12, 0.1] (2%); a_max 2.34 m/s^2; peak |yaw| 12.8 rad/s (> 2 at 1.86 s); heading change +2.19 rad
+hull x ramp inf: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.66, 2.49, 2.7, 2.77, 2.74] (83%); a_max 2.66 m/s^2; peak |yaw| 0.5 rad/s ; heading change +0.12 rad
+hull y ramp inf: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [-0.31, -0.15, 0.16, -0.05, -0.04] (-1%); a_max 3.12 m/s^2; peak |yaw| 10.4 rad/s (> 2 at 0.28 s); heading change -2.32 rad
+hull y ramp 1: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [0.62, 1.13, 1.27, -0.69, 0.58] (14%); a_max 4.82 m/s^2; peak |yaw| 7.3 rad/s (> 2 at 3.29 s); heading change +1.10 rad
+hull_c3 x ramp inf: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.72, 2.69, 2.9, 2.98, 2.98] (90%); a_max 2.41 m/s^2; peak |yaw| 0.5 rad/s ; heading change -0.11 rad
+hull_c3 y ramp inf: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [-0.41, 0.38, 0.07, 0.04, 0.07] (2%); a_max 4.40 m/s^2; peak |yaw| 17.6 rad/s (> 2 at 0.32 s); heading change +1.99 rad
+hull_c3 y ramp 1: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [0.75, 1.3, 1.21, -0.27, -0.47] (-12%); a_max 6.59 m/s^2; peak |yaw| 10.9 rad/s (> 2 at 3.05 s); heading change -1.65 rad
+hull_d0 x ramp inf: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.65, 2.54, 2.81, 2.8, 2.81] (85%); a_max 2.39 m/s^2; peak |yaw| 0.4 rad/s ; heading change +0.13 rad
+hull_d0 y ramp inf: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [-0.24, -0.27, 0.24, 0.02, -0.02] (-1%); a_max 3.47 m/s^2; peak |yaw| 10.5 rad/s (> 2 at 0.33 s); heading change -2.53 rad
+hull_d0 y ramp 1: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [0.61, 1.18, 1.67, 1.64, 1.03] (25%); a_max 0.97 m/s^2; peak |yaw| 1.9 rad/s ; heading change +2.22 rad
+hull_c3_d0 x ramp inf: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.75, 2.86, 3.02, 3.02, 3.04] (92%); a_max 2.59 m/s^2; peak |yaw| 0.5 rad/s ; heading change -0.12 rad
+hull_c3_d0 y ramp inf: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [-0.41, 0.39, 0.06, 0.07, 0.11] (3%); a_max 4.98 m/s^2; peak |yaw| 18.4 rad/s (> 2 at 0.36 s); heading change +2.09 rad
+hull_c3_d0 y ramp 1: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [0.77, 1.4, 1.88, 2.07, 2.23] (55%); a_max 1.10 m/s^2; peak |yaw| 1.4 rad/s ; heading change +2.10 rad
+ellip x ramp inf: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.62, 2.47, 2.74, 2.83, 2.85] (86%); a_max 2.53 m/s^2; peak |yaw| 0.4 rad/s ; heading change -0.19 rad
+ellip y ramp inf: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [-0.2, -0.2, 0.15, -0.09, 0.02] (1%); a_max 3.23 m/s^2; peak |yaw| 10.8 rad/s (> 2 at 0.33 s); heading change -2.00 rad
+ellip y ramp 1: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [0.57, 0.96, 1.34, 0.67, -0.87] (-22%); a_max 0.95 m/s^2; peak |yaw| 6.1 rad/s (> 2 at 3.76 s); heading change -1.94 rad
+ellip_c3 x ramp inf: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.8, 3.13, 3.27, 3.27, 3.27] (99%); a_max 2.43 m/s^2; peak |yaw| 0.6 rad/s ; heading change -0.32 rad
+ellip_c3 y ramp inf: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [-0.49, 0.25, -0.09, 0.1, 0.05] (1%); a_max 4.50 m/s^2; peak |yaw| 19.9 rad/s (> 2 at 0.27 s); heading change -0.13 rad
+ellip_c3 y ramp 1: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [0.97, 1.75, 2.07, 1.92, 1.76] (44%); a_max 1.17 m/s^2; peak |yaw| 1.4 rad/s ; heading change +2.76 rad
+ellip_d0 x ramp inf: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.65, 2.54, 2.84, 2.9, 2.93] (89%); a_max 2.40 m/s^2; peak |yaw| 0.4 rad/s ; heading change +0.01 rad
+ellip_d0 y ramp inf: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [-0.25, -0.24, 0.18, -0.07, -0.01] (-0%); a_max 3.52 m/s^2; peak |yaw| 10.4 rad/s (> 2 at 0.31 s); heading change -2.81 rad
+ellip_d0 y ramp 1: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [0.55, 1.05, 1.47, 1.24, -0.6] (-15%); a_max 1.03 m/s^2; peak |yaw| 5.0 rad/s (> 2 at 3.93 s); heading change +3.10 rad
+ellip_c3_d0 x ramp inf: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.84, 3.28, 3.28, 3.28, 3.29] (100%); a_max 2.56 m/s^2; peak |yaw| 0.4 rad/s ; heading change -0.16 rad
+ellip_c3_d0 y ramp inf: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [-0.52, -0.13, 0.21, 0.17, 0.02] (1%); a_max 5.68 m/s^2; peak |yaw| 20.9 rad/s (> 2 at 0.24 s); heading change -1.69 rad
+ellip_c3_d0 y ramp 1: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [0.98, 1.96, 2.95, 3.92, 4.02] (100%); a_max 1.17 m/s^2; peak |yaw| 0.1 rad/s ; heading change +0.23 rad

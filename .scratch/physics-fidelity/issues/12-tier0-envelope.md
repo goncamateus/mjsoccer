@@ -2,7 +2,7 @@
 
 Type: grilling
 Status: open
-Blocked by: 04, 19
+Blocked by: 04, 20
 
 ## Pergunta
 
@@ -102,3 +102,9 @@ continua 119/120.
   medida no `14` é 1.87 m/s², abaixo de 2.30. Em y, o comando cheio vira giro. A causa não é a perda de contato, é o arrasto axial dos roletes (e, em y, o yaw), e isso vai
   para o [`19`](19-wheel-axial-scrub.md). Decidir de novo quando o `19` der o envelope que o tier 1
   alcança: ou o tier 0 desce até ele, ou o tier 1 sobe até 3.30.
+- 2026-10-18, do `19`: o arrasto axial é o rolete freado (casco poligonal, atrito torcional,
+  amortecimento da junta), e a correção vai para o [`20`](20-roller-fix.md). Com ela, o tier 1 chega a
+  3.29 m/s em x e 4.02 em y. O `a_max` 2.30 não é alcançável: limitado por atrito com μ 0.25, o tier 1
+  sustenta ~1.9 m/s² em x (limite 1.95) e ~1.3 em y (1.33). Em y, acima disso, ele gira, porque as
+  dianteiras levam 22 % mais carga. O "μg = 2.45" do item 2 esquece o cosseno das rodas. Decidir o
+  envelope com esses números quando o `20` fechar.

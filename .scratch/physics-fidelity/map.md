@@ -132,7 +132,7 @@ diagnóstico revertido, e precisam reverter.
   sin/cos, `has_ball`, z ≥ 0, waypoint); bola x/y e velocidades ilimitadas. 0 observações fora em ~152
   mil steps. `MAX_BALL_V` fica 8 (chute em movimento lê ~1.06). Números em
   [`candidate-11/`](candidate-11/).
-- [Envelope do tier 0](issues/12-tier0-envelope.md) (**reaberto pelo `18`**, espera o `19`): **"o mesmo envelope" = os quatro limites por
+- [Envelope do tier 0](issues/12-tier0-envelope.md) (**reaberto pelo `18`**, espera o `20`): **"o mesmo envelope" = os quatro limites por
   eixo**, isotrópicos, o menor entre frontal e lateral do envelope *derivado* do tier 1: `v_max`
   3.30 m/s (`ctrlrange`, era 4), `a_max` 2.30 m/s² (`forcerange` ±6.1918 N, era 19.1261),
   `α_max` 55.1 rad/s² (±0.5273 N·m, era 3.427), `ω_max` 30 (fica, teto que o tier 1 garante).
@@ -180,6 +180,14 @@ diagnóstico revertido, e precisam reverter.
   a causa é o arrasto axial dos roletes, ~0.85 N por roda, que cancela o empurrão, e em y o comando
   cheio vira giro (4–9 rad/s) → novo [`19`](issues/19-wheel-axial-scrub.md); o [`12`](issues/12-tier0-envelope.md)
   reabre. Números em [`candidate-18/`](candidate-18/).
+- [Arrasto axial e colapso em yaw](issues/19-wheel-axial-scrub.md): o arrasto é o rolete **freado**.
+  O casco de 32 vértices põe a normal 0.8 mm fora do eixo do rolete, o atrito torcional (`condim 4`)
+  entra no giro quando o eixo inclina, e o amortecimento da junta (1e-6) faz o rolete chegar lento ao
+  contato. Rolete elipsoide + `condim 3` + `damping` 0 levam o arrasto de 3.41 a 0.009 N, e o tier 1 a
+  3.29 / 4.02 m/s (x / y) → novo [`20`](issues/20-roller-fix.md) aplica. O colapso em y não é defeito:
+  as dianteiras levam 22 % mais carga, saturadas empurram mais, e o momento sobra. Com μ 0.25, o
+  `a_max` sustentado é ~1.9 m/s² em x e ~1.3 em y, não 2.30; o `12` espera o `20`. Números em
+  [`candidate-19/`](candidate-19/).
 
 ## Not yet specified
 

@@ -1,0 +1,12 @@
+ellip_c3_d0 x ramp 1: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.0, 1.99, 2.99, 3.29, 3.29] (100%); a_max 1.21 m/s^2; peak |yaw| 0.0 rad/s ; heading change -0.01 rad
+ellip_c3_d0 x ramp 1.2: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.2, 2.38, 3.28, 3.28, 3.29] (100%); a_max 1.46 m/s^2; peak |yaw| 0.0 rad/s ; heading change -0.01 rad
+ellip_c3_d0 x ramp 1.4: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.39, 2.76, 3.29, 3.28, 3.29] (100%); a_max 1.71 m/s^2; peak |yaw| 0.0 rad/s ; heading change +0.00 rad
+ellip_c3_d0 x ramp 1.6: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.57, 3.14, 3.28, 3.28, 3.28] (100%); a_max 1.85 m/s^2; peak |yaw| 0.0 rad/s ; heading change +0.01 rad
+ellip_c3_d0 x ramp 2: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.83, 3.29, 3.29, 3.29, 3.28] (99%); a_max 2.05 m/s^2; peak |yaw| 0.5 rad/s ; heading change -0.22 rad
+ellip_c3_d0 x ramp 2.3: kinematic 3.30 m/s; v at 1/2/3/4/4.5 s [1.81, 3.29, 3.29, 3.29, 3.29] (100%); a_max 2.21 m/s^2; peak |yaw| 0.4 rad/s ; heading change -0.18 rad
+ellip_c3_d0 y ramp 1: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [0.98, 1.96, 2.95, 3.92, 4.02] (100%); a_max 1.17 m/s^2; peak |yaw| 0.1 rad/s ; heading change +0.23 rad
+ellip_c3_d0 y ramp 1.2: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [1.16, 2.3, 3.34, 4.02, 4.02] (100%); a_max 1.30 m/s^2; peak |yaw| 0.5 rad/s ; heading change +0.86 rad
+ellip_c3_d0 y ramp 1.4: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [1.18, 2.01, -0.01, 0.37, -0.21] (-5%); a_max 9.87 m/s^2; peak |yaw| 19.1 rad/s (> 2 at 2.73 s); heading change -2.20 rad
+ellip_c3_d0 y ramp 1.6: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [1.1, 1.36, 0.31, -0.6, -0.16] (-4%); a_max 9.20 m/s^2; peak |yaw| 16.1 rad/s (> 2 at 2.04 s); heading change +0.76 rad
+ellip_c3_d0 y ramp 2: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [0.89, 0.27, 0.04, 0.0, 0.07] (2%); a_max 5.32 m/s^2; peak |yaw| 19.6 rad/s (> 2 at 0.50 s); heading change +0.98 rad
+ellip_c3_d0 y ramp 2.3: kinematic 4.04 m/s; v at 1/2/3/4/4.5 s [0.64, -0.15, -0.05, 0.0, 0.13] (3%); a_max 4.53 m/s^2; peak |yaw| 19.2 rad/s (> 2 at 0.36 s); heading change +1.29 rad
