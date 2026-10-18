@@ -303,6 +303,31 @@ def goto_ball_policy(obs: np.ndarray, kp: float = 2.0, kw: float = 1.25) -> np.n
     )
 
 
+WHEEL_R = 0.030089  # m, effective rolling radius of the direct-drive wheel (ticket 01)
+
+
+def wheel_command(env: BaseEnv, i: int, vx: float, vy: float, w: float) -> np.ndarray:
+    """Body-frame (vx m/s, vy m/s, w rad/s) as robot `i`'s four tier-1 wheel actions.
+
+    The rolling constraint of each wheel, read off the compiled model: a wheel spinning at
+    +q about its axis `a` carries its hub along `a x z` at q * WHEEL_R, so it must turn at
+    (roll . v_hub) / WHEEL_R. Scaled down as a whole when a wheel would pass its ctrlrange, so
+    the direction survives saturation. Kinematics only -- slip is what tier 1 adds.
+    """
+    r, m, d = env.robots[i], env.model, env.data
+    R = d.xmat[r.body].reshape(3, 3)
+    q = np.empty(len(r.drive))
+    for k, act in enumerate(r.drive):
+        j = m.actuator_trnid[act, 0]
+        b = m.jnt_bodyid[j]
+        p = R.T @ (d.xpos[b] - d.xpos[r.body])
+        axis = R.T @ (d.xmat[b].reshape(3, 3) @ m.jnt_axis[j])
+        roll = np.cross(axis, (0.0, 0.0, 1.0))
+        q[k] = roll @ (vx - w * p[1], vy + w * p[0], 0.0) / WHEEL_R
+    action = q / r.drive_range[:, 1]
+    return (action / max(1.0, float(np.abs(action).max()))).astype(np.float32)
+
+
 def main(argv=None) -> int:
     import argparse
 

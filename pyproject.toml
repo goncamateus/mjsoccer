@@ -28,3 +28,8 @@ rl = [
     "tqdm>=4.67",       # progress_bar=True in model.learn
     "rich>=14.0",       # same
 ]
+
+[tool.pytest.ini_options]
+# The acceptance-criteria scenarios (ticket 14) take minutes; run them with -m validation.
+addopts = "-m 'not validation'"
+markers = ["validation: slow acceptance-criteria scenarios (tests/test_validation.py)"]

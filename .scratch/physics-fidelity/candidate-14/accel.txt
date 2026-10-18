@@ -1,0 +1,2 @@
+forward: a_max 2.47 m/s^2 (0.1 s window), v at 2 s 2.14 m/s, peak 2.14
+lateral: a_max 1.87 m/s^2 (0.1 s window), v at 2 s 0.43 m/s, peak 0.78

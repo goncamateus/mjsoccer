@@ -250,6 +250,51 @@ def test_goto_ball_is_solvable():
     assert np.mean(returns) > 5.0, f"mean return {np.mean(returns):.2f}"
 
 
+def test_wheel_command_full_spin_is_every_wheel_at_its_limit():
+    """95 rad/s at every wheel is the 35.9 rad/s kinematic yaw ceiling (ticket 01)."""
+    from mjsoccer.tasks import wheel_command
+
+    env = gym.make("GoToBall-v0", tier=1).unwrapped
+    env.reset(seed=0)
+    np.testing.assert_allclose(np.abs(wheel_command(env, 0, 0.0, 0.0, 35.9)), 1.0, atol=1e-3)
+    env.close()
+
+
+@pytest.mark.parametrize("cmd", [(1.0, 0.0, 0.0), (0.0, 0.5, 0.0), (0.0, 0.0, 10.0), (-1.0, 0.0, 0.0)])
+def test_wheel_command_drives_the_body_frame(cmd):
+    """wheel_command turns a body-frame (vx, vy, omega) into tier-1 wheel actions, so the
+    scripted controllers mean the same thing on both tiers (ticket 14).
+
+    Direction, not magnitude: the chassis settles at 80 % of 1 m/s forward, 61 % of 0.5
+    lateral and 88 % of 10 rad/s, which is the wheels losing the floor (ticket 18), not
+    the map. Speed is only held to "more than half".
+    """
+    from mjsoccer.tasks import wheel_command
+
+    env = gym.make("GoToBall-v0", tier=1).unwrapped
+    env.reset(seed=0)
+    r = env.robots[0]
+    env.ball.place(env.data, 5.5, 4.0)
+    r.place(env.data, 0.0, 0.0, 0.7)
+    action = np.zeros(env.action_space.shape, dtype=np.float32)
+    for _ in range(90):
+        action[:4] = wheel_command(env, 0, *cmd)
+        env.step(action)
+    R = env.data.xmat[r.body].reshape(3, 3)
+    vx, vy, w = r.velocity(env.data)
+    body = R.T @ (vx, vy, 0.0)
+    env.close()
+    v, want = body[:2], np.array(cmd[:2])
+    if cmd[2]:
+        assert np.linalg.norm(v) < 0.05 and w > 0.5 * cmd[2], f"moved {v}, {w:.2f} rad/s"
+    else:
+        assert v @ want / (np.linalg.norm(v) * np.linalg.norm(want)) > 0.99, f"moved {v}"
+        assert np.linalg.norm(v) > 0.5 * np.linalg.norm(want), f"moved {v}"
+        # Measured 0.07 forward, 0.06 lateral, 0.15 reversing: the 3.5 mm CoM offset
+        # (ticket 03) pulls the chassis round, the map does not.
+        assert abs(w) < 0.3, f"a straight command yawed at {w:.2f} rad/s"
+
+
 def test_kicker_rearms():
     """A kick action held down must not pin the plunger out.
 

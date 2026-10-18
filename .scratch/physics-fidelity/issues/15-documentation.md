@@ -93,3 +93,8 @@ deste mapa, então deveriam ser commitados, e a comparação de CoM do documento
   1/960), a tabela de vazão medida de novo, `MAX_W` 35.9 e a retenção nova; as seis páginas de
   ambiente dizem 1200/1800/2400 steps e `/ 35.9`. Fora do `13`: `docs/research/rsoccer-vs-mjsoccer.md`
   e `docs/analysis/` ainda falam em 2 ms / 62.5 Hz / decimation 8.
+- 2026-10-18, do `14`: documentar `pytest -m validation` e `scripts/validation_sweep.py` ao lado dos
+  outros comandos; a vazão de `docs/index.md` (~1000 / ~240 steps/s) medida hoje num processo é
+  1515 / 322 (GoToBall) e 356 / 54 (StaticDefenders) — atualizar com a fonte
+  ([`../candidate-14/throughput.csv`](../candidate-14/throughput.csv)). Registrar que girar no lugar
+  com a bola a ≥ 10 rad/s (dribbler a 157 rad/s) perde a bola em ≤ 5 steps.

@@ -50,7 +50,7 @@ tickets `research`. CodeGraph (`codegraph_*`) antes de ler código-fonte à mão
 As exceções são os tickets `task`, que rodam medições — esses podem mexer em `models/` só como
 diagnóstico revertido, e precisam reverter.
 **Exceção registrada (2026-10-17):** a pedido explícito, as edições do `04` e do `05` já entraram em
-`models/` antes do mapa fechar — ver os Comments do `05`. O `06`, o `07`, o `08`, o `09`, o `10`, o `11`, o `12` e o `13` entraram do mesmo jeito, também a pedido explícito.
+`models/` antes do mapa fechar — ver os Comments do `05`. O `06`, o `07`, o `08`, o `09`, o `10`, o `11`, o `12`, o `13` e o `14` entraram do mesmo jeito, também a pedido explícito.
 
 ## Decisions so far
 
@@ -147,6 +147,15 @@ diagnóstico revertido, e precisam reverter.
   firmware. `FIRING_SUBSTEPS` 8 → 4, tabela de chute medida de novo; `ω_max` do tier 0 e `MAX_W` →
   **35.9** (teto cinemático; o giro resolvido do tier 1 passa de 30). O "caos" de retenção do `12`
   era resolução: agora 112-118 nos dois tiers. Números em [`candidate-13/`](candidate-13/).
+
+- [Harness de validação](issues/14-validation-harness.md): `scripts/validation_sweep.py` (os sete
+  cenários da §13.2, seeds 0-49, CSV) + suíte `pytest -m validation` + `tasks.wheel_command` (ação de
+  corpo → rodas do tier 1). **0 tombamentos em todos os cenários**; ação aleatória inclinação
+  p95/p99 ≤ 2.62/3.86° (pior id), yaw p99 ≤ 2.6 rad/s; pior yaw 33.3 (raspão a 6 m/s); aceleração do tier 1
+  2.47 / 1.87 m/s². Critérios finais: inclinação p95 < 4°/p99 < 5° (tombamentos/min satura em zero),
+  yaw p99 < 35.9, roll p99 < 15°, posse ≥ 109/106, aceleração 1.5× de 2.30, vazão 10 %; o 6
+  (aprendizado) tem comandos mas **não foi rodado**. Girar com a bola a ≥ 10 rad/s perde a bola.
+  Números em [`candidate-14/`](candidate-14/).
 
 ## Not yet specified
 

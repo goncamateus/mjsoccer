@@ -1,0 +1,132 @@
+scenario,env,tier,param,pair,steps_active,p50,p95,p99,max
+random,StaticDefenders-v0,1,None,floor|roller,89801,0.4591,0.6806,0.8276,1.36453
+random,StaticDefenders-v0,1,None,body|floor,64,0.0063,0.2189,0.3754,0.38147
+random,StaticDefenders-v0,1,None,floor|hub,1,0.0,0.0,0.0,0.0
+competent,StaticDefenders-v0,1,None,robot~body|body,10,0.05,2.2298,2.4711,2.53144
+competent,StaticDefenders-v0,1,None,ball|mech,4730,0.0276,0.0351,0.1128,2.32674
+competent,StaticDefenders-v0,1,None,floor|roller,21433,0.4429,0.5941,0.6684,0.94842
+competent,StaticDefenders-v0,1,None,robot~body|hub,40,0.0789,0.2594,0.5144,0.56107
+competent,StaticDefenders-v0,1,None,ball|body,10,0.0453,0.0953,0.0983,0.09904
+random,StaticDefenders-v0,0,None,body|wall,111,0.3364,1.4181,2.0617,2.59452
+random,StaticDefenders-v0,0,None,body|goal,7,0.2844,0.8525,0.8759,0.88181
+competent,StaticDefenders-v0,0,None,robot~body|body,1305,0.0734,0.1061,0.1664,218.09728
+competent,StaticDefenders-v0,0,None,body|wall,6312,0.1191,0.1888,0.5122,5.69357
+competent,StaticDefenders-v0,0,None,ball|mech,3012,0.038,0.1524,0.2836,1.88616
+competent,StaticDefenders-v0,0,None,ball|body,38,0.0871,0.284,0.3489,0.36058
+spin,GoToBall-v0,1,0.2,floor|roller,300,0.4419,0.5205,0.5693,0.81652
+spin,GoToBall-v0,1,0.6,floor|roller,300,0.4465,0.5456,0.5794,0.88591
+spin,GoToBall-v0,1,0.4,floor|roller,300,0.4431,0.5345,0.5813,0.86091
+spin,GoToBall-v0,1,0.8,floor|roller,300,0.4464,0.5799,0.6324,0.87077
+head_on,ContestedPossession-v0,1,1,floor|roller,60,0.4767,0.6228,0.7808,0.93872
+head_on,ContestedPossession-v0,1,1,robot~body|body,54,0.0925,0.1566,0.6294,0.80204
+spin,GoToBall-v0,1,1.0,floor|roller,300,0.4424,0.5965,0.6279,0.87077
+wall,GoToBall-v0,1,"(2, 5)",hub|wall,1,1.4103,1.4103,1.4103,1.41028
+wall,GoToBall-v0,1,"(2, 5)",body|wall,3,0.7527,1.3048,1.3538,1.36609
+wall,GoToBall-v0,1,"(2, 5)",floor|roller,60,0.4454,0.6682,0.8372,0.89519
+wall,GoToBall-v0,1,"(4, 5)",body|wall,2,2.0053,2.1599,2.1736,2.17704
+wall,GoToBall-v0,1,"(4, 5)",floor|roller,60,0.4227,0.7587,0.9333,0.96425
+wall,GoToBall-v0,1,"(2, 30)",body|wall,3,0.4314,2.8159,3.0278,3.08081
+wall,GoToBall-v0,1,"(2, 30)",floor|roller,60,0.4714,0.7501,0.8256,0.86681
+wall,GoToBall-v0,1,"(2, 30)",hub|wall,1,0.373,0.373,0.373,0.37304
+wall,GoToBall-v0,1,"(2, 15)",hub|wall,1,2.04,2.04,2.04,2.04001
+wall,GoToBall-v0,1,"(2, 15)",floor|roller,60,0.4529,0.7209,0.8352,0.89021
+wall,GoToBall-v0,1,"(2, 15)",body|wall,1,0.317,0.317,0.317,0.31696
+head_on,ContestedPossession-v0,1,2,robot~body|body,51,0.0955,0.1758,1.4733,2.71739
+head_on,ContestedPossession-v0,1,2,floor|roller,60,0.4725,0.6077,0.8469,0.95447
+wall,GoToBall-v0,1,"(4, 15)",hub|wall,1,3.2874,3.2874,3.2874,3.28744
+wall,GoToBall-v0,1,"(4, 15)",body|wall,1,1.295,1.295,1.295,1.29503
+wall,GoToBall-v0,1,"(4, 15)",floor|roller,60,0.4473,0.7231,0.9381,0.95956
+wall,GoToBall-v0,1,"(4, 30)",hub|wall,2,1.9109,3.6308,3.7837,3.82189
+wall,GoToBall-v0,1,"(4, 30)",body|wall,2,2.0093,3.6389,3.7838,3.81998
+wall,GoToBall-v0,1,"(4, 30)",floor|roller,60,0.4381,0.7811,1.2097,1.62126
+wall,GoToBall-v0,1,"(6, 5)",body|wall,1,3.2814,3.2814,3.2814,3.28143
+wall,GoToBall-v0,1,"(6, 5)",floor|roller,57,0.444,0.8899,1.0934,1.15242
+head_on,ContestedPossession-v0,1,3,robot~body|body,46,0.1005,0.3322,2.4499,4.02935
+head_on,ContestedPossession-v0,1,3,floor|roller,60,0.4737,0.6464,1.0048,1.40363
+head_on,ContestedPossession-v0,1,4,robot~body|body,42,0.1004,0.2314,21.3638,35.93283
+head_on,ContestedPossession-v0,1,4,floor|roller,58,0.454,0.694,0.9632,1.10049
+wall,GoToBall-v0,1,"(6, 15)",hub|wall,1,4.9755,4.9755,4.9755,4.97546
+wall,GoToBall-v0,1,"(6, 15)",body|wall,2,1.0292,1.6771,1.7346,1.74904
+wall,GoToBall-v0,1,"(6, 15)",floor|roller,54,0.4537,1.0228,1.3275,1.52543
+wall,GoToBall-v0,1,"(6, 30)",body|wall,2,3.5136,4.964,5.093,5.1252
+wall,GoToBall-v0,1,"(6, 30)",hub|wall,1,4.9099,4.9099,4.9099,4.90993
+wall,GoToBall-v0,1,"(6, 30)",floor|roller,59,0.4462,0.909,1.2718,1.322
+dribble_turn,Dribbling-v0,1,20,floor|roller,120,0.4436,0.5689,0.5834,0.59314
+dribble_turn,Dribbling-v0,1,20,ball|mech,7,0.0275,0.0443,0.0464,0.04693
+dribble_turn,Dribbling-v0,1,20,ball|body,1,0.0159,0.0159,0.0159,0.01594
+dribble_turn,Dribbling-v0,1,30,floor|roller,120,0.4518,0.568,0.5875,0.65845
+dribble_turn,Dribbling-v0,1,30,ball|mech,7,0.022,0.0471,0.0522,0.05353
+dribble_turn,Dribbling-v0,1,30,ball|body,1,0.0145,0.0145,0.0145,0.0145
+dribble_turn,Dribbling-v0,1,10,floor|roller,120,0.4425,0.5209,0.5453,0.57289
+dribble_turn,Dribbling-v0,1,10,ball|mech,7,0.0289,0.0469,0.049,0.04951
+dribble_turn,Dribbling-v0,1,10,ball|body,1,0.015,0.015,0.015,0.015
+kick_recoil,Dribbling-v0,1,0,floor|roller,60,0.4409,0.492,0.5587,0.56176
+kick_recoil,Dribbling-v0,1,0,ball|mech,1,0.3004,0.3004,0.3004,0.30036
+dribble_turn,Dribbling-v0,1,50,floor|roller,120,0.4556,0.6031,0.6318,0.66612
+dribble_turn,Dribbling-v0,1,50,ball|mech,7,0.0084,0.0528,0.0585,0.05994
+dribble_turn,Dribbling-v0,1,50,ball|body,1,0.0213,0.0213,0.0213,0.02127
+dribble_turn,Dribbling-v0,1,0,floor|roller,120,0.401,0.4185,0.4418,0.44431
+dribble_turn,Dribbling-v0,1,0,ball|mech,119,0.0461,0.0561,0.0599,0.06117
+kick_recoil,Dribbling-v0,1,2,floor|roller,59,0.4463,0.7073,1.0826,1.3181
+kick_recoil,Dribbling-v0,1,2,ball|mech,1,0.2997,0.2997,0.2997,0.29973
+kick_recoil,Dribbling-v0,1,4,floor|roller,60,0.4434,0.6884,1.0563,1.05926
+kick_recoil,Dribbling-v0,1,4,ball|mech,1,0.2989,0.2989,0.2989,0.29895
+random,GoToBall-v0,1,None,floor|roller,59874,0.4593,0.6789,0.8235,1.27716
+random,GoToBall-v0,1,None,body|floor,36,0.0195,0.2766,0.3627,0.40162
+random,GoToBallShoot-v0,1,None,floor|roller,89794,0.4593,0.6797,0.8234,1.36808
+random,GoToBallShoot-v0,1,None,body|floor,64,0.0066,0.119,0.2566,0.33432
+random,Dribbling-v0,1,None,floor|roller,4880,0.4576,0.6765,0.8267,1.10557
+random,Dribbling-v0,1,None,ball|mech,82,0.0865,0.2894,0.2966,0.29763
+random,Dribbling-v0,1,None,body|floor,2,0.0394,0.0746,0.0777,0.07845
+random,ContestedPossession-v0,1,None,floor|roller,59873,0.4592,0.6788,0.823,1.40752
+random,ContestedPossession-v0,1,None,body|floor,42,0.0,0.1536,0.2879,0.30567
+random,PassEndurance-v0,1,None,floor|roller,59864,0.459,0.677,0.8235,1.42695
+random,PassEndurance-v0,1,None,body|floor,39,0.0,0.1815,0.3122,0.3716
+competent,GoToBall-v0,1,None,floor|roller,11874,0.4542,0.6102,0.6844,0.9387
+competent,GoToBallShoot-v0,1,None,floor|roller,18229,0.4487,0.602,0.681,1.02278
+competent,GoToBallShoot-v0,1,None,ball|mech,1598,0.0278,0.0363,0.2542,0.3016
+competent,GoToBallShoot-v0,1,None,ball|body,11,0.064,0.1035,0.108,0.10907
+competent,Dribbling-v0,1,None,floor|roller,35372,0.4253,0.5072,0.5417,0.63402
+competent,Dribbling-v0,1,None,ball|mech,34826,0.0274,0.0346,0.0372,0.04301
+competent,ContestedPossession-v0,1,None,robot~body|body,3081,0.0674,0.1198,0.7668,9.14421
+competent,ContestedPossession-v0,1,None,robot~body|hub,4302,0.0622,0.0923,0.2223,5.37143
+competent,ContestedPossession-v0,1,None,ball|mech,2449,0.0217,0.1125,0.5251,3.33741
+competent,ContestedPossession-v0,1,None,floor|roller,23715,0.4487,0.5886,0.6539,1.37227
+competent,ContestedPossession-v0,1,None,body|floor,2,0.5917,0.9221,0.9514,0.95877
+competent,ContestedPossession-v0,1,None,ball|body,16,0.026,0.3322,0.3656,0.37394
+competent,ContestedPossession-v0,1,None,robot~roller|roller,310,0.0334,0.0979,0.1223,0.30442
+competent,ContestedPossession-v0,1,None,robot~hub|hub,379,0.0616,0.1104,0.1348,0.17525
+competent,ContestedPossession-v0,1,None,ball|roller,2,0.0148,0.0276,0.0287,0.02898
+competent,ContestedPossession-v0,1,None,ball|hub,1,0.0182,0.0182,0.0182,0.01825
+competent,PassEndurance-v0,1,None,robot~body|body,2,1.2659,1.5804,1.6084,1.61536
+competent,PassEndurance-v0,1,None,robot~body|hub,4,0.4319,1.23,1.3226,1.3458
+competent,PassEndurance-v0,1,None,floor|roller,18677,0.4486,0.6019,0.6766,0.94334
+competent,PassEndurance-v0,1,None,ball|mech,1785,0.0277,0.0362,0.2529,0.30202
+competent,PassEndurance-v0,1,None,ball|body,14,0.0602,0.1175,0.1251,0.12695
+random,GoToBall-v0,0,None,body|goal,14,0.4974,1.9435,2.0071,2.02307
+random,GoToBall-v0,0,None,body|wall,28,0.3057,1.3099,1.7526,1.8772
+random,GoToBallShoot-v0,0,None,body|wall,61,0.4043,1.6022,2.023,2.24165
+random,GoToBallShoot-v0,0,None,body|goal,33,0.3872,1.3679,1.8158,1.90642
+random,Dribbling-v0,0,None,ball|mech,79,0.0948,0.2779,0.2982,0.3094
+random,ContestedPossession-v0,0,None,body|goal,16,0.3753,1.6714,2.6163,2.85258
+random,ContestedPossession-v0,0,None,ball|mech,2,0.9545,1.8136,1.89,1.90905
+random,ContestedPossession-v0,0,None,body|wall,59,0.3094,1.4608,1.8088,1.82111
+random,ContestedPossession-v0,0,None,robot~body|body,9,0.1026,0.8001,0.9233,0.95405
+random,PassEndurance-v0,0,None,body|wall,18,0.5266,1.3549,1.4035,1.41567
+random,PassEndurance-v0,0,None,body|goal,4,0.2162,1.2419,1.3635,1.39383
+competent,GoToBall-v0,0,None,body|wall,6,3.0395,5.6902,5.7377,5.7496
+competent,GoToBall-v0,0,None,ball|mech,6,0.3122,0.4451,0.4549,0.45733
+competent,GoToBall-v0,0,None,ball|body,24,0.0643,0.1697,0.1798,0.18212
+competent,GoToBallShoot-v0,0,None,body|wall,10,2.6561,6.2236,6.32,6.34412
+competent,GoToBallShoot-v0,0,None,body|goal,2,2.6803,5.072,5.2846,5.33778
+competent,GoToBallShoot-v0,0,None,ball|mech,5565,0.0354,0.0382,0.0385,0.4986
+competent,GoToBallShoot-v0,0,None,ball|body,54,0.031,0.2158,0.288,0.29156
+competent,Dribbling-v0,0,None,ball|mech,28873,0.0356,0.0383,0.0385,0.0403
+competent,ContestedPossession-v0,0,None,robot~body|body,5209,0.1097,0.1497,1.4083,314.30128
+competent,ContestedPossession-v0,0,None,ball|body,82,0.0556,1.828,3.6963,4.23891
+competent,ContestedPossession-v0,0,None,ball|mech,1120,0.0356,0.2474,1.7493,4.12337
+competent,ContestedPossession-v0,0,None,body|wall,2,0.3632,0.6294,0.653,0.65895
+competent,PassEndurance-v0,0,None,body|wall,2,3.5716,6.6407,6.9135,6.98169
+competent,PassEndurance-v0,0,None,robot~body|body,3,0.4928,4.3229,4.6634,4.74847
+competent,PassEndurance-v0,0,None,ball|mech,660,0.0356,0.1568,0.4595,0.49028
+competent,PassEndurance-v0,0,None,ball|body,47,0.0212,0.1755,0.1926,0.19871

@@ -37,3 +37,8 @@ Até isto fechar, o `14` não deve usar `v_max`/`a_max` cinemáticos como crité
   **o passo não é o mecanismo dominante**. O giro cheio também depende do passo (31.8 / 30.9 / 30.0 /
   29.2 rad/s), por isso `MAX_W` virou o teto cinemático 35.9. O passo agora é 1/960 s; medir as
   variantes deste ticket a ≤ 0.5 ms para tirar o passo da conta.
+- 2026-10-18, do `14`: medido a 1/960 s, comando cheio pela env, 2 s
+  ([`../candidate-14/accel.txt`](../candidate-14/accel.txt)): frontal 2.47 m/s², `v` 2.14 m/s;
+  lateral 1.87 m/s², pico 0.78, **0.43 m/s em 2 s**. A aceleração passa no critério 5 do `14`; a
+  velocidade é deste ticket. `tasks.wheel_command` dá o comando de rodas de qualquer `(vx, vy, ω)`
+  para as variantes daqui.
