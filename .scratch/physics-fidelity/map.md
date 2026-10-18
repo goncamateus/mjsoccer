@@ -49,6 +49,8 @@ tickets `research`. CodeGraph (`codegraph_*`) antes de ler código-fonte à mão
 **Mode.** Planejamento. Os tickets produzem decisões; as edições acontecem depois que o mapa fechar.
 As exceções são os tickets `task`, que rodam medições — esses podem mexer em `models/` só como
 diagnóstico revertido, e precisam reverter.
+**Exceção registrada (2026-10-17):** a pedido explícito, as edições do `04` e do `05` já entraram em
+`models/` antes do mapa fechar — ver os Comments do `05`.
 
 ## Decisions so far
 

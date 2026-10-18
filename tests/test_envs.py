@@ -85,6 +85,72 @@ def test_ball_pairs_replicated(tier):
     assert len(seen) == len(robots) * len(want), f"only matched {sorted(seen)}"
 
 
+@pytest.mark.parametrize("tier", TIERS)
+def test_ball_inertia_is_measured(tier):
+    """The ball's moment of inertia is the measured golf ball's, not a solid sphere's.
+
+    I = beta * m * r^2 with beta = 0.5 (.scratch/physics-fidelity/research/
+    02-physical-constants.md:23, TIGERs BallParameters.java:49). MuJoCo
+    infers 0.4 from a sphere geom on its own, which compiles and steps without complaint
+    and quietly changes every spin transfer, backspin and kick.
+    """
+    import mujoco
+
+    model, _, _ = S.build(1, 0, tier)
+    b = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "ball")
+    beta = model.body_inertia[b] / (model.body_mass[b] * 0.0215**2)
+    np.testing.assert_allclose(model.body_mass[b], 0.046, rtol=1e-9)
+    np.testing.assert_allclose(beta, [0.5, 0.5, 0.5], rtol=1e-6)
+
+
+def test_roller_floor_friction_is_measured():
+    """Roller rubber on carpet slides at mu = 0.25 (Williams et al., IEEE T-RA 18(3) 2002).
+
+    There is no explicit pair for it, so MuJoCo takes the elementwise max of the two geoms:
+    setting only the roller leaves the floor's own value in charge. That is what bounds the
+    chassis to ~2.45 m/s^2, friction-limited rather than torque-limited.
+    """
+    import mujoco
+
+    model, _, _ = S.build(1, 0, tier=1)  # rollers exist only on tier 1
+    floor = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "floor")
+    rollers = [g for g in range(model.ngeom) if "roller" in mj_geom_name(model, g)
+               and model.geom_contype[g]]
+    assert len(rollers) > 4, "found no roller collision geoms"
+    for g in rollers:
+        mu = max(model.geom_friction[g][0], model.geom_friction[floor][0])
+        assert mu == pytest.approx(0.25), f"{mj_geom_name(model, g)}: roller/floor mu {mu}"
+
+
+def test_full_spin_stays_under_max_w():
+    """Every wheel at the top of its ctrlrange must spin the chassis slower than MAX_W.
+
+    Nothing clips yaw in Python (ticket 04): the bound comes from the motor envelope
+    (+-95 rad/s, +-0.078 N*m) slipping on mu = 0.25 rollers. Measured 29.2 rad/s peak
+    against a kinematic 35.9 -- a 2.6% margin that any contact or actuator change can
+    erase, and an observation normalised by MAX_W would then read past its bound.
+    """
+    import mujoco
+
+    from mjsoccer.base import MAX_W
+
+    model, robots, ball = S.build(1, 0, tier=1)  # the wheel actuators are tier 1 only
+    r = robots[0]
+    data = mujoco.MjData(model)
+    r.place(data, 0.0, 0.0, 0.0)
+    ball.place(data, 4.0, 3.0)  # far away: nothing else in contact
+    mujoco.mj_forward(model, data)
+    peak_w = peak_tilt = 0.0
+    for _ in range(round(5.0 / model.opt.timestep)):
+        data.ctrl[list(r.drive)] = r.drive_range[:, 1]
+        mujoco.mj_step(model, data)
+        R = data.xmat[r.body].reshape(3, 3)
+        peak_w = max(peak_w, abs((R @ data.qvel[r.qvel_adr + 3 : r.qvel_adr + 6])[2]))
+        peak_tilt = max(peak_tilt, np.degrees(np.arccos(np.clip(R[2, 2], -1, 1))))
+    assert peak_w < MAX_W, f"full-command yaw {peak_w:.1f} rad/s exceeds MAX_W = {MAX_W}"
+    assert peak_tilt < 15.0, f"chassis tilted {peak_tilt:.1f} deg spinning in place"
+
+
 def mj_geom_name(model, gid: int) -> str:
     import mujoco
 
@@ -111,9 +177,11 @@ def test_deterministic(env_id):
     np.testing.assert_array_equal(traces[0][1], traces[1][1])
 
 
-@pytest.mark.parametrize("env_id,index", [("ContestedPossession-v0", 1), ("Dribbling-v0", 0)])
+@pytest.mark.parametrize(
+    "env_id,index,min_held", [("ContestedPossession-v0", 1, 70), ("Dribbling-v0", 0, 106)]
+)
 @pytest.mark.parametrize("tier", TIERS)
-def test_seated_ball_is_possessed(env_id, index, tier):
+def test_seated_ball_is_possessed(env_id, index, min_held, tier):
     """Tasks that begin with the ball carried must actually begin that way.
 
     Both the seating and the detection have failed silently here before -- a ball placed
@@ -121,12 +189,13 @@ def test_seated_ball_is_possessed(env_id, index, tier):
     reads the wrong sign on this model, so `has_ball` was False with the ball parked
     square in the mouth. Either way the episode looks fine and the task is unsolvable.
 
-    Both tiers, because they do not retain alike. Measured over 8 seeds, contact steps out
-    of 120 idle ones: ContestedPossession 96-103 on tier 0 against 87-95 on tier 1,
-    Dribbling a flat 120 against 111-112. Real wheel slip lets the chassis recoil off the
-    ball it is holding, which costs about 8% of the contact steps. The threshold sits under
-    the worse tier rather than between them -- a ball that is actually dropped scores near
-    zero, so there is no risk of that slipping through a lower bar.
+    Both tiers, because they do not retain alike. Measured over 8 seeds, holds() steps out
+    of 120 idle ones: ContestedPossession 82-93 on tier 0 against 89-96 on tier 1,
+    Dribbling 119 against 114. The threshold sits under the worse tier rather than between
+    them, with room for seed noise (ContestedPossession tier 0 bottoms out at 82) -- a ball
+    that is actually dropped scores near zero, so there is no risk of that
+    slipping through a lower bar. Dribbling's is tighter: ticket 05's contact changes may
+    not cost it more than 5% of the 111-112 it held before them.
     """
     env = gym.make(env_id, tier=tier).unwrapped
     for seed in range(5):
@@ -141,7 +210,7 @@ def test_seated_ball_is_possessed(env_id, index, tier):
 
         held = sum(int(env.holds(index)) for _ in range(120) if env.step(
             np.zeros(env.action_space.shape, dtype=np.float32)) or True)
-        assert held > 80, f"seed {seed}: carried only {held}/120 idle steps on tier {tier}"
+        assert held >= min_held, f"seed {seed}: carried only {held}/120 idle steps on tier {tier}"
     env.close()
 
 

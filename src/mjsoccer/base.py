@@ -253,7 +253,7 @@ class BaseEnv(gym.Env):
         self,
         r: scene.RobotIds,
         distance: float = 0.20,
-        speed: float = 2.0,
+        speed: float = 1.0,
         settle: float = 0.35,
     ) -> None:
         """Roll a ball into a robot's dribbler and let the mechanism catch it.
@@ -263,10 +263,12 @@ class BaseEnv(gym.Env):
         46 g ball that overlap is a compressed spring worth several newtons. Below ~0.1 mm
         MuJoCo stops generating the contact at all, so there is no overlap that works.
 
-        So do what the real robot does -- spin the bar up, roll a ball in at 2 m/s, let it
-        be caught. Fixed distance, fixed speed, no timestep dependence, and the ball ends
-        up in the pocket the dribbler actually holds it in rather than one chosen with a
-        ruler. Must be called from _reset_task, after reset() has run mj_forward.
+        So do what the real robot does -- spin the bar up, roll a ball in at 1 m/s, let it
+        be caught. Not faster: with the measured ball inertia (beta = 0.5) a ball arriving
+        at 2 m/s from 200 mm rebounds off the bar and rolls out of reach on both tiers.
+        Fixed distance, fixed speed, no timestep dependence, and the ball ends up in the
+        pocket the dribbler actually holds it in rather than one chosen with a ruler. Must
+        be called from _reset_task, after reset() has run mj_forward.
         """
         x, y, _ = r.pose(self.data)
         f = r.forward(self.data)

@@ -68,7 +68,7 @@ it, which is what keeps a single action head transferable across the suite.
 
 | control | tier 1 actuator (default) | tier 0 actuator | ctrlrange | commanded |
 |---|---|---|---|---|
-| `w1..w4` | `wheel{1..4}_vel` | — | -200 .. 200 rad/s | `a * 200` |
+| `w1..w4` | `wheel{1..4}_vel` | — | -95 .. 95 rad/s, ±0.078 N·m | `a * 95` |
 | `vx` | — | `vel_x` | -4 .. 4 m/s | `a * 4` |
 | `vy` | — | `vel_y` | -4 .. 4 m/s | `a * 4` |
 | `omega` | — | `vel_yaw` | -30 .. 30 rad/s | `a * 30` |
@@ -185,14 +185,14 @@ rate — the same criterion the retention sweeps use before calling a ball lost.
 window, not the raw contact.
 
 That distinction is worth a number, because the two differ a lot and by tier. A ball seated
-in the mouth for 120 idle steps, measured on `Dribbling-v0`:
+in the mouth for 120 idle steps, measured on `Dribbling-v0` over 8 seeds:
 
 | | raw ball/dribbler contact | `holds()` |
 |---|---|---|
-| tier 0 | 83% of steps | 100% |
-| tier 1 (default) | **55%** of steps | 93% |
+| tier 0 | 74% of steps | 99% |
+| tier 1 (default) | **65%** of steps | 95% |
 
-On the default tier the bar is genuinely off the ball on nearly half the steps, and the
+On the default tier the bar is genuinely off the ball on a third of the steps, and the
 grace window is the whole reason a carry task is solvable at all. Read a raw contact count
 as "has the ball" and tier 1 looks like a robot that keeps dropping it.
 
@@ -201,19 +201,27 @@ steps out of 120 idle ones — the robot seated on the ball, no drive command gi
 
 | env | tier 0 | tier 1 (default) |
 |---|---|---|
-| `ContestedPossession-v0` | 96-103 / 120 | 87-95 / 120 |
-| `Dribbling-v0` | a flat 120 / 120 | 111-112 / 120 |
+| `ContestedPossession-v0` | 82-93 / 120 | 89-96 / 120 |
+| `Dribbling-v0` | 119 / 120 | 114 / 120 |
 
-Tier 0 holds a ball it is not even trying to hold; on `Dribbling-v0` it never once drops
-contact. Tier 1 loses about 8% of those contact steps, because real wheel slip lets the
-chassis recoil off the ball it is carrying — a rigid kinematic chassis has nothing to
-recoil with. The grace window absorbs most of the difference, so `holds` stays usable on
-both, but any retention number, ball-lost rate or possession-gated reward is tier-dependent
-and comparing one across tiers is comparing two different mechanisms.
+Tier 0 holds a ball it is not even trying to hold; on `Dribbling-v0` it drops it for a single
+step. Tier 1 loses about 4% there, because real wheel slip lets the chassis recoil off the
+ball it is carrying — a rigid kinematic chassis has nothing to recoil with. On
+`ContestedPossession-v0`, where a defender is pressing, the order flips. The grace window
+absorbs most of the difference, so `holds` stays usable on both, but any retention number,
+ball-lost rate or possession-gated reward is tier-dependent and comparing one across tiers
+is comparing two different mechanisms.
+
+These numbers are from after ticket 05's contact changes (roller μ 0.25, ball β 0.5, the
+motor-envelope wheel actuators of ticket 04). Before them `Dribbling-v0` held 120 / 111-112
+and `ContestedPossession-v0` 96-103 / 87-95; the 5% retention budget ticket 05 was allowed
+is enforced by `test_seated_ball_is_possessed`.
 
 `Dribbling-v0` and `ContestedPossession-v0` start with the ball already in a mouth, seated
 the way the mechanism actually takes one: `BaseEnv.seat_ball` spins the bar up, rolls a
-ball in at 2 m/s from 200 mm, and lets it be caught over 0.35 s of physics. Placing the ball
+ball in at 1 m/s from 200 mm, and lets it be caught over 0.35 s of physics. Not faster: with
+the measured ball inertia (β = 0.5) a ball arriving at 2 m/s from 200 mm rebounds off the
+bar and rolls out of reach on both tiers — at 1.0-1.5 m/s it is caught. Placing the ball
 at the sphere/bar tangency instead is a launcher, not a seat — the contact needs a few
 tenths of a millimetre of overlap to exist at all, and on a 46 g ball that overlap is a
 compressed spring worth several newtons. Below ~0.1 mm MuJoCo stops generating the contact

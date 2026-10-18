@@ -1,0 +1,6 @@
+Dribbling-v0 tier 0: min 119 max 119 median 119.0 [119, 119, 119, 119, 119, 119, 119, 119]
+Dribbling-v0 tier 1: min 114 max 114 median 114.0 [114, 114, 114, 114, 114, 114, 114, 114]
+ContestedPossession-v0 tier 0: min 82 max 93 median 88.0 [82, 86, 88, 88, 87, 90, 93, 90]
+ContestedPossession-v0 tier 1: min 89 max 96 median 90.0 [89, 93, 89, 96, 90, 92, 89, 90]
+Dribbling-v0 tier 0: raw contact 74%, holds 99%
+Dribbling-v0 tier 1: raw contact 65%, holds 95%

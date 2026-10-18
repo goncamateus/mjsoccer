@@ -70,3 +70,23 @@ ticket de tarefa, [`17-ball-restitution-calibration.md`](17-ball-restitution-cal
 responsável por encontrar a dampratio do `solref` que atinge a faixa de COR nas duas superfícies.
 Todas as edições aqui continuam condicionadas à verificação de duração de posse do Dribbling-v0 do
 `14` antes de entrar.
+
+## Comments
+
+- 2026-10-17, **aplicado** (por pedido explícito, antes do mapa fechar — exceção ao Mode do
+  `map.md`), junto com o atuador do `04`, porque o μ 0.25 só foi verificado com ele (`c95`).
+  `models/` agora = `candidate-04/candidate.c95.patch` + `diaginertia` da bola (β = 0.5) em
+  `models/ball.xml`. COR continua no `17`; o resto das linhas é "sem mudança".
+  Testes em `tests/test_envs.py`: `test_ball_inertia_is_measured`,
+  `test_roller_floor_friction_is_measured`, `test_full_spin_stays_under_max_w` (critério (1) do
+  `04`) e `test_seated_ball_is_possessed` com piso de 106/120 no Dribbling-v0.
+- **Gate de posse do Dribbling-v0** (`candidate-05/possession.py`, 8 seeds, `holds()` em 120 steps
+  parados): antes 120 / 111-112 (tier 0 / tier 1, reproduz `docs/index.md`), depois 119 / **114**
+  — passa. ContestedPossession-v0 (não é o gate): 96-103 / 87-95 → 82-93 / 89-96.
+  Saídas em `candidate-05/possession_{current,c05}.txt`.
+- **Achado: β = 0.5 quebra a captura de `seat_ball` a 2 m/s.** Com β 0.4 e 0.45 a bola é presa;
+  com 0.5 ela ricocheteia na barra a ~0.13 m/s e rola para fora do alcance, nos dois tiers (posse 0/120
+  em todas as seeds). Retenção não é o problema: semeada com β 0.4 e trocada para 0.5 em runtime,
+  o Dribbling tier 1 segura 114/120. Varredura de captura (0.15/0.20/0.30 m × 0.5-3 m/s): pega a
+  1.0-1.5 m/s, falha a ≥ 2 m/s a partir de 0.2 m. Correção mínima: `seat_ball` rola a 1 m/s.
+  Consequência real para passes recebidos — fica com o `08`.

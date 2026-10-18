@@ -50,3 +50,7 @@ execução, e acontece depois que o mapa fechar.
   ([`../candidate-04/summary.csv`](../candidate-04/summary.csv)) — a métrica de tombamentos/min do
   `03` satura em zero, então o critério precisa ser a inclinação p95/p99. (3) Não usar `v_max`/`a_max`
   cinemáticos até o `18` fechar (o chassi chega a ~1.7-2 m/s em x, não 3.30, e 0.17 m/s em y, não 4.04).
+- 2026-10-17, do `05`: edições do `04`+`05` aplicadas em `models/`. Nova linha de base de posse
+  parada (`holds()`/120, 8 seeds, tier 0 / tier 1): Dribbling-v0 119 / 114, ContestedPossession-v0
+  82-93 / 89-96. O critério "p50 da posse dentro de 5% de `docs/index.md:199-212`" deve usar estes
+  números (a seção já foi atualizada).

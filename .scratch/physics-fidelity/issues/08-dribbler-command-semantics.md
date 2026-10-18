@@ -31,3 +31,9 @@ O que resolve: o que a interface do dribbler do robô real aceita — um duty cy
 liga/desliga — e se 314 rad/s é em si um valor com fonte (`scene.py:43`) ou um chute. Note que isso
 muda o contrato de ações, então precisa entrar antes que o `15` o documente, e interage com o `05`
 (velocidade da barra e μ do contato definem juntos o orçamento de retenção).
+
+## Comments
+
+- 2026-10-17, do `05`: com a inércia medida da bola (β = 0.5), uma bola chegando a ≥ 2 m/s de
+  200 mm ricocheteia na barra girando e não é presa (com β 0.4 era). A 1.0-1.5 m/s é presa. Isso
+  limita a recepção de passes; ver os Comments do `05`. `seat_ball` agora rola a 1 m/s.

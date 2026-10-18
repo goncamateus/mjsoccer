@@ -4,7 +4,9 @@
   <worldbody>
     <body name="ball" pos="0.35 0 0.0415">
       <freejoint name="ball_free" />
-      <geom name="ball" type="sphere" size="0.0215" mass="0.046" rgba="1.0 0.45 0.05 1" contype="7" conaffinity="7" condim="4" friction="0.35 0.004 0.0002" solref="0.006 1" />
+      <!-- beta = I / (m r^2) = 0.5, measured (.scratch/physics-fidelity/research/02-physical-constants.md:23); a bare sphere geom would infer 0.4 -->
+      <inertial pos="0 0 0" mass="0.046" diaginertia="1.063175e-05 1.063175e-05 1.063175e-05" />
+      <geom name="ball" type="sphere" size="0.0215" rgba="1.0 0.45 0.05 1" contype="7" conaffinity="7" condim="4" friction="0.35 0.004 0.0002" solref="0.006 1" />
     </body>
   </worldbody>
 </mujoco>
