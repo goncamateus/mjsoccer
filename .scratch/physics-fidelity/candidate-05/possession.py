@@ -15,6 +15,7 @@ for env_id, index in [("Dribbling-v0", 0), ("ContestedPossession-v0", 1)]:
         for seed in range(8):
             env.reset(seed=seed)
             zero = np.zeros(env.action_space.shape, dtype=np.float32)
+            zero[-1] = 0.5  # 157 rad/s, the old neutral: ticket 08 made a = 0 mean off
             n = 0
             for _ in range(120):
                 env.step(zero)
@@ -30,6 +31,7 @@ for tier in (0, 1):
     for seed in range(8):
         env.reset(seed=seed)
         zero = np.zeros(env.action_space.shape, dtype=np.float32)
+        zero[-1] = 0.5  # 157 rad/s, the old neutral: ticket 08 made a = 0 mean off
         for _ in range(120):
             env.step(zero)
             raw += int(env._grace[0] == env._grace_steps)

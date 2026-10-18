@@ -23,7 +23,7 @@ sideways hard enough, turns faster than the ball can follow, or drives into anyt
 Carrying the ball fast and carrying it at all are in direct tension.
 
 How hard that is depends on the tier. Sitting still on a seated ball, tier 0 keeps contact
-on every one of 120 idle steps while the default tier 1 keeps it on 111-112, because wheel
+on every one of 120 idle steps (bar at `dribble = 0.5`) while the default tier 1 keeps it on 111-112, because wheel
 slip lets the chassis recoil off the ball it is holding — see
 [Possession](../index.md#possession). Retention numbers from this environment are therefore
 only comparable within a tier.
@@ -62,8 +62,8 @@ the three chassis rows, and kicker, chipper and dribbler shift down to indices 3
 | 5 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
 
 Row 6 on the default tier 1 — row 5 on tier 0 — is the one the task actually turns on:
-`[-1, 1]` maps to `[0, 314] rad/s`, and a resting action of `-1` means a stopped bar, which
-drops the ball. The bar is never driven backwards — a reversed bar throws the ball out of
+`a <= 0` is a stopped bar, which drops the ball, and `(0, 1]` maps to `(0, 314] rad/s` -- so a
+zero action does not hold it. The bar is never driven backwards — a reversed bar throws the ball out of
 the mouth. Rows 0-3 on tier 1 are the four wheel servos, whose slip is what makes retention
 harder here than on tier 0 (see [Possession](../index.md#possession)); rows 0-2 on tier 0
 are instead a *body-frame* velocity that is rotated into the world-axis chassis slides

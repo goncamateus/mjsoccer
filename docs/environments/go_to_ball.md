@@ -55,8 +55,8 @@ with them is left to the roller contacts, which can slip. Rows 0-2 on tier 0 are
 *body-frame* velocity that is rotated into the world-axis chassis slides before being
 written, which is what makes the two tiers mean the same thing. The
 kicker and chipper are triggers, not proportional: any action above zero writes the full
-200 N for one control step and then locks that plunger out for 250 ms. The dribbler maps
-`[-1, 1]` onto `[0, 314] rad/s` and is never driven backwards. See
+200 N for one control step and then locks that plunger out for 250 ms. The dribbler is
+off for `a <= 0`, maps `(0, 1]` onto `(0, 314] rad/s` and is never driven backwards. See
 [the action space contract](../index.md#action-space) for why each of those is the way it
 is.
 

@@ -208,8 +208,11 @@ def test_seated_ball_is_possessed(env_id, index, min_held, tier):
         assert 0.07 < local[0] < 0.12, f"seed {seed}: ball at x={local[0]:.3f} in robot frame"
         assert abs(local[1]) < 0.03, f"seed {seed}: ball off-centre by {local[1]:.3f} m"
 
-        held = sum(int(env.holds(index)) for _ in range(120) if env.step(
-            np.zeros(env.action_space.shape, dtype=np.float32)) or True)
+        # No drive, bar at half speed. a = 0.5 is 157 rad/s, the old affine map's neutral, so
+        # the numbers above survive ticket 08 making a = 0 mean off.
+        hold = np.zeros(env.action_space.shape, dtype=np.float32)
+        hold[-1] = 0.5
+        held = sum(int(env.holds(index)) for _ in range(120) if env.step(hold) or True)
         assert held >= min_held, f"seed {seed}: carried only {held}/120 idle steps on tier {tier}"
     env.close()
 
@@ -273,6 +276,22 @@ def test_kicker_rearms():
     # its 30 mm stop and never releases a ball, which the fire count alone cannot see.
     assert max(travel) > 0.005, f"plunger barely moved, max {max(travel) * 1e3:.1f} mm"
     assert min(travel) < 0.002, f"plunger never retracted, min {min(travel) * 1e3:.1f} mm"
+
+
+@pytest.mark.parametrize("a,omega", [(-1.0, 0.0), (-0.3, 0.0), (0.0, 0.0), (0.5, 157.0), (1.0, 314.0)])
+def test_dribbler_neutral_is_off(a, omega):
+    """Half-range map (ticket 08): a <= 0 is off, (0, 1] is (0, DRIBBLER_OMEGA].
+
+    Neutral and the mean of action_space.sample() must not spin the bar.
+    """
+    env = gym.make("GoToBallShoot-v0").unwrapped
+    env.reset(seed=0)
+    action = np.zeros(env.action_space.shape, dtype=np.float32)
+    action[-1] = a
+    env.step(action)
+    ctrl = float(env.data.ctrl[env.robots[0].dribble])
+    env.close()
+    assert ctrl == pytest.approx(omega)
 
 
 def test_chipper_rearms():

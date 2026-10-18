@@ -59,8 +59,8 @@ velocity that is rotated into the world-axis chassis
 slides before being written. The kicker and chipper are triggers, not proportional: any
 action above zero writes the full 200 N for one control step and then locks that plunger out
 for 250 ms — the two locks are independent, so a kick cannot block a chip. A flat kick
-leaves the mouth at 6-7 m/s. The dribbler maps `[-1, 1]` onto `[0, 314] rad/s` and is never
-driven backwards. See [the action space contract](../index.md#action-space) for the
+leaves the mouth at 6-7 m/s. The dribbler is off for `a <= 0`, maps `(0, 1]` onto `(0, 314] rad/s`,
+and is never driven backwards. See [the action space contract](../index.md#action-space) for the
 reasoning behind each.
 
 ## Observation Space

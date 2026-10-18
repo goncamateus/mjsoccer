@@ -106,6 +106,11 @@ diagnóstico revertido, e precisam reverter.
   tropeço**: zero contatos de casco com ação aleatória; robô↔robô a comando cheio ≤ 3.1°, parede ≤ 1.7°.
   Custo da malha não é gargalo (poda: ruído; sem cubos: +2-6 %). Aplicado em `models/`, nos dois tiers.
   Números em [`candidate-07/`](candidate-07/).
+- [Semântica do comando do dribbler](issues/08-dribbler-command-semantics.md): **meia faixa**,
+  `ctrl = 314 * max(a, 0)`. Neutro = desligado; continua contínuo porque o firmware recebe velocidade
+  (confirmado pela equipe). **314 rad/s não tem fonte** — suposição declarada em `scene.py` e
+  `docs/index.md`. Testes de retenção seguram `dribble = 0.5` (= 157 rad/s, o neutro antigo), então os
+  números do `05` não mudam.
 
 ## Not yet specified
 

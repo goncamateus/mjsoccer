@@ -1,7 +1,7 @@
 # Decisão: o que uma ação de dribbler igual a 0 deve significar
 
 Type: grilling
-Status: open
+Status: resolved
 Blocked by: —
 
 ## Pergunta
@@ -37,3 +37,18 @@ muda o contrato de ações, então precisa entrar antes que o `15` o documente, 
 - 2026-10-17, do `05`: com a inércia medida da bola (β = 0.5), uma bola chegando a ≥ 2 m/s de
   200 mm ricocheteia na barra girando e não é presa (com β 0.4 era). A 1.0-1.5 m/s é presa. Isso
   limita a recepção de passes; ver os Comments do `05`. `seat_ball` agora rola a 1 m/s.
+
+## Answer
+
+Resolvido em 2026-10-17, com a equipe: o firmware do dribbler recebe uma **velocidade** (duty
+cycle), não um liga/desliga, e **314 rad/s não tem fonte** — é um chute (~3000 rpm).
+
+Escolhida a opção 2, **meia faixa**: `ctrl = DRIBBLER_OMEGA * max(a, 0)` (`base.py`). `a ≤ 0` →
+desligado, `(0, 1]` → `(0, 314]`. Neutro agora é desligado, e `action_space.sample()` dribla metade
+do tempo em vez de sempre. Continua contínuo porque o hardware recebe velocidade; o custo é metade
+da resolução da ação. `scene.py:43` e `docs/index.md` registram o 314 como suposição declarada.
+
+Consequência: o `test_seated_ball_is_possessed` media retenção com ação zero, que até aqui girava a
+barra a 157 rad/s. Ele agora segura `dribble = 0.5` (= 157 rad/s exato), então os números de
+retenção do `05` em `docs/index.md` ficam bit a bit iguais e não precisaram ser remedidos. Novo
+`test_dribbler_neutral_is_off` fixa o mapa. O `15` pode documentar o contrato como está.

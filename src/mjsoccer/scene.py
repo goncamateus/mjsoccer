@@ -36,10 +36,11 @@ MODELS_DIR = Path(
 SCENES = {0: "scene.xml", 1: "scene_rollers.xml"}
 ROBOTS = {0: "robot_kinematic.xml", 1: "robot_rollers.xml"}
 
-# The dribbler bar's design operating point, rad/s. Not readable off the model: the
+# The dribbler bar's speed at full command, rad/s, standing in for its design operating point. Not readable off the model: the
 # actuator's ctrlrange is deliberately ~5x this to leave room for the speed feedforward a
 # real controller adds on top, so scaling the action by ctrlrange would command a bar
-# speed the mechanism was never characterised at.
+# speed the mechanism was never characterised at. Unsourced (ticket 08): an assumed
+# ~3000 rpm, not a team firmware setpoint. Replace it when the real one is known.
 DRIBBLER_OMEGA = 314.0
 
 # Possession is read off ball/dribbler *contact*, not off the arm-deflection sensor.

@@ -161,9 +161,11 @@ class BaseEnv(gym.Env):
             if a[k + j] > 0.0 and self._plunger_lock[index, j] == 0:
                 self.data.ctrl[actuator] = scene.KICK_FORCE
                 self._plunger_lock[index, j] = self._kick_cooldown
-        # [-1, 1] -> [0, design speed]. Never negative: a bar driven backwards throws the
-        # ball out of the mouth.
-        self.data.ctrl[r.dribble] = scene.DRIBBLER_OMEGA * (a[k + 2] + 1.0) * 0.5
+        # Half range (ticket 08): a <= 0 is off, (0, 1] is (0, design speed], so a neutral or
+        # sampled action does not dribble. Still a speed, not a switch, because that is what
+        # the firmware takes. Never negative: a bar driven backwards throws the ball out of
+        # the mouth.
+        self.data.ctrl[r.dribble] = scene.DRIBBLER_OMEGA * max(float(a[k + 2]), 0.0)
 
     # ------------------------------------------------------------ observation
 

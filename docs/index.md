@@ -74,7 +74,7 @@ it, which is what keeps a single action head transferable across the suite.
 | `omega` | — | `vel_yaw` | -30 .. 30 rad/s | `a * 30` |
 | `kick` | `kicker_force` | `kicker_force` | 0 .. 200 N | 200 N pulse if `a > 0` |
 | `chip` | `chipper_force` | `chipper_force` | 0 .. 200 N | 200 N pulse if `a > 0` |
-| `dribble` | `dribbler_vel` | `dribbler_vel` | -1500 .. 1500 rad/s | `314 * (a + 1) / 2` |
+| `dribble` | `dribbler_vel` | `dribbler_vel` | -1500 .. 1500 rad/s | `314 * max(a, 0)` |
 
 Everything is in `[-1, 1]` and scaled by the actuator's own `ctrlrange`, so the bounds come
 from the model rather than from a constant in the Python. The drive scale is
@@ -95,9 +95,13 @@ ball, so the lockout is what makes the mechanism usable at all. The two locks ar
 independent — a kick must not be able to block a chip. At the default control rate the
 lockout is 16 control steps.
 
-**Dribbler.** `[-1, 1]` maps to `[0, DRIBBLER_OMEGA]` = `[0, 314] rad/s`. It is never driven
-backwards: a reversed bar throws the ball out of the mouth. Note that 314 rad/s is the
-bar's design operating point, not the actuator's `ctrlrange`, which is deliberately about
+**Dribbler.** `a <= 0` is off and `(0, 1]` maps to `(0, DRIBBLER_OMEGA]` = `(0, 314] rad/s`,
+so a zero action does not dribble and `action_space.sample()` dribbles half the time, at a
+mean of 157 rad/s when on, instead of always. It stays a
+speed rather than a switch because the robot's firmware takes a speed. It is never driven
+backwards: a reversed bar throws the ball out of the mouth. 314 rad/s is an assumption
+(about 3000 rpm), not a team firmware setpoint. It stands in for the bar's
+design operating point, not the actuator's `ctrlrange`, which is deliberately about
 5x larger to leave room for the speed feedforward a real controller adds on top. Scaling
 the action by `ctrlrange` here would command a bar speed the mechanism was never
 characterised at.
@@ -185,7 +189,7 @@ rate — the same criterion the retention sweeps use before calling a ball lost.
 window, not the raw contact.
 
 That distinction is worth a number, because the two differ a lot and by tier. A ball seated
-in the mouth for 120 idle steps, measured on `Dribbling-v0` over 8 seeds:
+in the mouth for 120 idle steps (no drive, `dribble = 0.5`, i.e. 157 rad/s), measured on `Dribbling-v0` over 8 seeds:
 
 | | raw ball/dribbler contact | `holds()` |
 |---|---|---|
@@ -197,7 +201,7 @@ grace window is the whole reason a carry task is solvable at all. Read a raw con
 as "has the ball" and tier 1 looks like a robot that keeps dropping it.
 
 **The tiers do not retain a carried ball alike.** Measured over 8 seeds, counting `holds()`
-steps out of 120 idle ones — the robot seated on the ball, no drive command given:
+steps out of 120 idle ones — the robot seated on the ball, no drive command given, bar at `dribble = 0.5`:
 
 | env | tier 0 | tier 1 (default) |
 |---|---|---|
