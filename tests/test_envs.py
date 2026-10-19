@@ -57,7 +57,8 @@ def test_ball_pairs_replicated(tier):
 
     Attaching the robot N times does not carry the scene's <pair> elements with it, and a
     model missing them still compiles, still steps, and silently swaps the tuned ball/bar
-    contact for the elementwise max of the two geoms' own friction.
+    contact for the elementwise max of the two geoms' own friction. The field's own ball
+    pairs -- the carpet and the 12 wall hulls (tickets 17, 21) -- appear once, not per robot.
     """
     n_blue, n_yellow = 2, 1
     model, robots, _ = S.build(n_blue, n_yellow, tier)
@@ -71,7 +72,16 @@ def test_ball_pairs_replicated(tier):
         if m["g2"] != "floor"
     }
     assert want, "the source scene defines no robot ball pairs to compare against"
-    assert model.npair == len(robots) * len(want) + 1, "wrong number of contact pairs"
+    partners = [  # the geom each pair puts the ball against
+        ({mj_geom_name(model, model.pair_geom1[p]), mj_geom_name(model, model.pair_geom2[p])}
+         - {"ball"}).pop()
+        for p in range(model.npair)
+    ]
+    field = sorted(g for g in partners if not any(g.startswith(r.prefix) for r in robots))
+    walls = [f"col_f_walls_1_c{i:02d}" for i in range(12)]
+    assert field == sorted(["floor", *walls]), field
+    n_robot_pairs = model.npair - len(field)
+    assert n_robot_pairs == len(robots) * len(want), "wrong number of robot ball pairs"
 
     seen = set()
     for p in range(model.npair):
@@ -101,6 +111,52 @@ def test_ball_inertia_is_measured(tier):
     beta = model.body_inertia[b] / (model.body_mass[b] * 0.0215**2)
     np.testing.assert_allclose(model.body_mass[b], 0.046, rtol=1e-9)
     np.testing.assert_allclose(beta, [0.5, 0.5, 0.5], rtol=1e-6)
+
+
+@pytest.mark.parametrize("tier", TIERS)
+@pytest.mark.parametrize("surface", ("floor", "wall"))
+def test_ball_bounces_at_its_measured_cor(tier, surface):
+    """The ball comes off the carpet and the wall at COR 0.47-0.56, target 0.50 (ticket 05,
+    ER-Force/TIGERs). MuJoCo has no literal restitution: the bounce comes out of each
+    surface's <pair> solref, found by measurement (ticket 17) and applied by ticket 21.
+
+    Normal impacts at 1 and 6.5 m/s (the top kick speed; MuJoCo's COR rises with speed).
+    COR = v_out / v_in, v_in on the last step before contact and v_out on the first step
+    with no ball contact left, averaged over four contact-onset gaps: the step phase at
+    onset moves it by ~2 %. The wall throw goes at col_f_walls_1_c05 with gravity
+    cancelled, so only the wall touches the ball.
+    """
+    import mujoco
+
+    model, robots, ball = S.build(1, 0, tier)
+    r = ball.radius
+    # 4.7865: the inner face of col_f_walls_1_c05 at x = 0.865, by contact onset (ticket 17).
+    axis, sign, face = (2, -1, S.FLOOR_Z) if surface == "floor" else (1, 1, 4.7865)
+    for v in (1.0, 6.5):
+        cors = []
+        for gap in (0.0010, 0.0013, 0.0016, 0.0019):
+            data = mujoco.MjData(model)
+            robots[0].place(data, -3.0, 0.0, 0.0)
+            ball.place(data, 0.865, 0.0)
+            q, d = ball.qpos_adr, ball.qvel_adr
+            if surface == "floor":
+                data.qpos[q + 2] = face + r + gap
+            else:
+                data.qpos[q + 1 : q + 3] = (face - r - gap, S.FLOOR_Z + r + 0.05)
+                data.xfrc_applied[ball.body, 2] = -model.body_mass[ball.body] * model.opt.gravity[2]
+            data.qvel[d + axis] = sign * v
+            hit, v_in = False, v
+            for _ in range(round(0.2 / model.opt.timestep)):
+                v_prev = sign * data.qvel[d + axis]
+                mujoco.mj_step(model, data)
+                touching = any(ball.geom in (c.geom1, c.geom2) for c in data.contact[: data.ncon])
+                if touching and not hit:
+                    hit, v_in = True, v_prev
+                elif hit and not touching:
+                    break
+            assert hit, f"{surface}: the ball never reached it"
+            cors.append(0.0 if touching else -sign * data.qvel[d + axis] / v_in)  # never left: 0
+        assert 0.47 <= np.mean(cors) <= 0.56, f"{surface} at {v} m/s: COR {np.mean(cors):.3f}"
 
 
 def test_roller_floor_friction_is_measured():
@@ -181,7 +237,7 @@ def test_deterministic(env_id):
 
 
 @pytest.mark.parametrize(
-    "env_id,index,min_held", [("ContestedPossession-v0", 1, 106), ("Dribbling-v0", 0, 109)]
+    "env_id,index,min_held", [("ContestedPossession-v0", 1, 112), ("Dribbling-v0", 0, 111)]
 )
 @pytest.mark.parametrize("tier", TIERS)
 def test_seated_ball_is_possessed(env_id, index, min_held, tier):
@@ -192,10 +248,11 @@ def test_seated_ball_is_possessed(env_id, index, min_held, tier):
     reads the wrong sign on this model, so `has_ball` was False with the ball parked
     square in the mouth. Either way the episode looks fine and the task is unsolvable.
 
-    Both tiers. Measured over 8 seeds on the 1/960 s step, holds() steps out of 120 idle
-    ones: ContestedPossession 114-118 on tier 0 and 112-118 on tier 1, Dribbling 119 and
-    115-117. Each bar sits 5 % under the worse tier's worst seed -- a ball that is actually
-    dropped scores near zero, so the margin is for seed noise only. On the old 2 ms step
+    Both tiers. Measured over 8 seeds on the 1/960 s step with the calibrated ball bounce
+    (ticket 21), holds() steps out of 120 idle ones: ContestedPossession 120 on tier 0 and 118
+    on tier 1, Dribbling 117 and 119, every seed alike. Each bar sits 5 % under the worse
+    tier's worst seed -- a ball that is actually dropped scores near zero, so the margin is
+    for seed noise only. On the old 2 ms step
     ContestedPossession tier 0 scattered 69-95 and looked chaotic; ticket 13 found it was
     the step under-resolving the ball/dribbler contact (120 at 0.5 ms, 87 at 2 ms, 0 at 4).
     """

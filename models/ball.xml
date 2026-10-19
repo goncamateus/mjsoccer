@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <mujoco model="ball">
   <compiler angle="radian" meshdir="assets" autolimits="true" />
+  <default>
+    <default class="ball_wall">
+      <!-- A pair inherits neither friction nor condim: these repeat today's geom mix. -->
+      <pair condim="4" friction="0.6 0.6 0.005 0.0002 0.0002" solref="0.012 0.25" />
+    </default>
+  </default>
   <worldbody>
     <body name="ball" pos="0.35 0 0.0415">
       <freejoint name="ball_free" />
@@ -9,4 +15,23 @@
       <geom name="ball" type="sphere" size="0.0215" rgba="1.0 0.45 0.05 1" contype="7" conaffinity="7" condim="4" friction="0.35 0.004 0.0002" solref="0.006 1" />
     </body>
   </worldbody>
+  <!-- COR 0.50 off the carpet and the wall (ticket 05); MuJoCo has no restitution coefficient, so
+       the solref was found by measurement (ticket 17). The wall goes by a pair per hull, not by
+       the ball geom's solref, which every unpaired ball contact averages in (hull, kicker:
+       ticket 09). Both tiers include this file. -->
+  <contact>
+    <pair geom1="ball" geom2="floor" condim="6" friction="0.35 0.35 0.005 0.0009 0.0009" solref="0.012 0.225" />
+    <pair class="ball_wall" geom1="ball" geom2="col_f_walls_1_c00" />
+    <pair class="ball_wall" geom1="ball" geom2="col_f_walls_1_c01" />
+    <pair class="ball_wall" geom1="ball" geom2="col_f_walls_1_c02" />
+    <pair class="ball_wall" geom1="ball" geom2="col_f_walls_1_c03" />
+    <pair class="ball_wall" geom1="ball" geom2="col_f_walls_1_c04" />
+    <pair class="ball_wall" geom1="ball" geom2="col_f_walls_1_c05" />
+    <pair class="ball_wall" geom1="ball" geom2="col_f_walls_1_c06" />
+    <pair class="ball_wall" geom1="ball" geom2="col_f_walls_1_c07" />
+    <pair class="ball_wall" geom1="ball" geom2="col_f_walls_1_c08" />
+    <pair class="ball_wall" geom1="ball" geom2="col_f_walls_1_c09" />
+    <pair class="ball_wall" geom1="ball" geom2="col_f_walls_1_c10" />
+    <pair class="ball_wall" geom1="ball" geom2="col_f_walls_1_c11" />
+  </contact>
 </mujoco>

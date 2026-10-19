@@ -52,7 +52,7 @@ this table and a section disagree about mjsoccer's *current* state, this table w
 | `B5` | chassis does not collide with the floor | collided (floor `contype/conaffinity` 5), touches from 9.5° of tilt | 06 |
 | `B1`, `C7` | 209 collision geoms per robot | 193 (16 buried hulls pruned); no hull contact gives a trip impulse in normal play | 07 |
 | `C1`, §5 wheel↔ground | roller μ 1.0, floor 0.8 | 0.25 on both (measured, Williams et al. 2002) | 05 |
-| `C2`, §5 ball↔ground/wall | no bounce | still no bounce; target COR 0.50, open | 17 |
+| `C2`, §5 ball↔ground/wall | no bounce | bounces at COR 0.48-0.55 (floor) / 0.49-0.53 (wall), normal impacts to 6.5 m/s: `<pair>` `solref` `0.012 0.225` / `0.012 0.25`; oblique impacts uncalibrated | 17, 21 |
 | §3 ball | MuJoCo default inertia, β = 0.4 | explicit `diaginertia`, β = 0.5 (measured) | 05 |
 | `L5`, §7 dribbler | `314 * (a + 1) / 2`: a zero action dribbles at 157 rad/s | `314 * max(a, 0)`: `a ≤ 0` off; 314 rad/s is an assumption | 08 |
 | `L4`, `L7`, `L8`, `B4`, §7 kick | 200 N for one control step, exit speed emergent (6-7 m/s) | the action asks for `6.5 * a` m/s, half range; a per-tier force table, `ctrlrange` 0..500 N; the firing step runs at `dt / 4`; 250 ms lockout = 15 steps | 09, 13 |

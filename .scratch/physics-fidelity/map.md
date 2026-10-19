@@ -50,7 +50,7 @@ tickets `research`. CodeGraph (`codegraph_*`) antes de ler código-fonte à mão
 As exceções são os tickets `task`, que rodam medições — esses podem mexer em `models/` só como
 diagnóstico revertido, e precisam reverter.
 **Exceção registrada (2026-10-17):** a pedido explícito, as edições do `04` e do `05` já entraram em
-`models/` antes do mapa fechar — ver os Comments do `05`. O `06`, o `07`, o `08`, o `09`, o `10`, o `11`, o `12`, o `13` e o `14` entraram do mesmo jeito, também a pedido explícito.
+`models/` antes do mapa fechar — ver os Comments do `05`. O `06`, o `07`, o `08`, o `09`, o `10`, o `11`, o `12`, o `13`, o `14` e o `20` entraram do mesmo jeito, também a pedido explícito.
 
 ## Decisions so far
 
@@ -196,6 +196,14 @@ diagnóstico revertido, e precisam reverter.
   a bola continua batendo nos roletes. O giro cheio chega a **36.2 rad/s, acima do `MAX_W` 35.9**: rola sem
   escorregar em torno do CoM, 3 mm atrás do centro. Três testes de yaw ficaram `xfail(strict)` até o
   [`12`](issues/12-tier0-envelope.md) decidir `ω_max` (37.1) e `a_max` (1.30). Números em [`candidate-20/`](candidate-20/).
+- [Aplicar a restituição da bola](issues/21-ball-restitution-apply.md): o `17` aplicado em `models/`.
+  Piso `solref="0.012 0.225"` e 12 `<pair>` bola↔parede `0.012 0.25`, todos em `ball.xml` (o par do
+  piso saiu dos dois `scene*.xml`), e o `scene.build` replica só os pares do robô. O modelo real lê COR 0.48–0.55 no piso e 0.49–0.53 na parede (0.5–6.5
+  m/s); o par explícito substitui o contato dinâmico. A queda de 0.3 m vai de 0.10 a 0.50, chute e
+  chip mudam ≤ 1.2 %, e a retenção do `ContestedPossession` sobe para 118–120. O quique oblíquo era um
+  artefato do atrito (0.05 → 0.35 com 6 m/s horizontais) e agora fica 0.51–0.55, mas o chip com
+  backspin pousa a 0.59–0.60. O `dribble_turn` perde a bola mais cedo. Números em
+  [`candidate-21/`](candidate-21/).
 
 ## Not yet specified
 
@@ -217,7 +225,10 @@ diagnóstico revertido, e precisam reverter.
   aceleração de arrancada esteja certa.
 - **Restituição oblíqua e bola-saindo-do-robô.** O `02` encontrou só valores de configuração sem
   respaldo, e os dois valores publicados de redirecionamento diferem em 3× (TIGERs 0.2, ER-Force
-  ~0.60). Nada a decidir até alguém medir ou aparecer uma fonte.
+  ~0.60). Nada a decidir até alguém medir ou aparecer uma fonte. O que o simulador faz foi medido no `21`, não a
+  bola real: com o piso calibrado, o COR vertical de um quique oblíquo fica em 0.51–0.55 até 6 m/s
+  horizontais (sem spin ou rolando), e o chip com backspin pousa a 0.59–0.60, pelo atrito do contato
+  macio.
 - **Conformidade da cobertura da bola pelo dribbler.** A §3.2.4 do livro de regras limita a cobertura a
   20 %, que o `02` converte em ≤10.9 mm de penetração no casco. Se este modelo está em conformidade não
   foi medido, e isso restringe a geometria do dribbler em vez de algum parâmetro — então ainda não é

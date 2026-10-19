@@ -323,25 +323,26 @@ On the default tier the bar is genuinely off the ball on a third of the steps, a
 grace window is the whole reason a carry task is solvable at all. Read a raw contact count
 as "has the ball" and tier 1 looks like a robot that keeps dropping it.
 
-**The tiers do not retain a carried ball alike.** Measured over 8 seeds, counting `holds()`
+**The tiers retain a carried ball by different mechanisms.** Measured over 8 seeds, counting `holds()`
 steps out of 120 idle ones — the robot seated on the ball, no drive command given, bar at `dribble = 0.5`:
 
 | env | tier 0 | tier 1 (default) |
 |---|---|---|
-| `ContestedPossession-v0` | 114-118 / 120 | 112-118 / 120 |
-| `Dribbling-v0` | 119 / 120 | 115-117 / 120 |
+| `ContestedPossession-v0` | 120 / 120 | 118 / 120 |
+| `Dribbling-v0` | 117 / 120 | 119 / 120 |
 
-Tier 0 holds a ball it is not even trying to hold; on `Dribbling-v0` it drops it for a single
-step. Tier 1 loses about 3% there, because real wheel slip lets the chassis recoil off the
-ball it is carrying — a rigid kinematic chassis has nothing to recoil with. The grace window
-absorbs most of the difference, so `holds` stays usable on both, but any retention number,
-ball-lost rate or possession-gated reward is tier-dependent and comparing one across tiers
-is comparing two different mechanisms.
+Every seed reads the same. The figures are close, the mechanisms are not: tier 1's chassis
+can recoil off the ball it is carrying through real wheel slip, and tier 0's rigid kinematic
+chassis has nothing to recoil with. The grace window absorbs most of the difference, so
+`holds` stays usable on both, but any retention number, ball-lost rate or possession-gated
+reward is tier-dependent and comparing one across tiers is comparing two different
+mechanisms.
 
 These numbers are from after ticket 05's contact changes (roller μ 0.25, ball β 0.5, the
-motor-envelope wheel actuators of ticket 04), ticket 12's tier-0 envelope and ticket 13's
-1/960 s step. On the old 2 ms step tier-0 `ContestedPossession-v0` scattered 69-95 and
-looked chaotic; it was the step under-resolving the ball/dribbler contact (120 at 0.5 ms,
+motor-envelope wheel actuators of ticket 04), ticket 12's tier-0 envelope, ticket 13's
+1/960 s step, ticket 20's free rollers and ticket 21's ball bounce; before ticket 21 tier 1's
+`ContestedPossession-v0` scattered 102-118. On the old 2 ms step tier-0
+`ContestedPossession-v0` scattered 69-95 and looked chaotic; it was the step under-resolving the ball/dribbler contact (120 at 0.5 ms,
 87 at 2 ms, 0 at 4 ms). Before ticket 05 `Dribbling-v0` held 120 / 111-112
 and `ContestedPossession-v0` 96-103 / 87-95; the 5% retention budget ticket 05 was allowed
 is enforced by `test_seated_ball_is_possessed`.
@@ -397,13 +398,13 @@ classes rank RULEBOOK > MEASURED > VENDOR > DELIBERATE APPROXIMATION (developmen
 | ball inertia | `diaginertia` for β = 0.5 (`I = β m r²`), not MuJoCo's solid-sphere 0.4 | MEASURED | `models/ball.xml` |
 | ball ↔ floor sliding μ | 0.35 | MEASURED | ER-Force's empirical μ_k |
 | ball rolling μ | 0.0009 → 0.293 m/s² rolling deceleration | MEASURED | measured range 0.26-0.31 m/s² |
-| ball ↔ floor, ball ↔ wall restitution | **none yet** (`solref` damping ratio 1); target COR 0.50 | MEASURED target | measured 0.47-0.56 on carpet; the `solref` that reaches it is open as ticket 17. **This is the model's largest open contact gap**: a landing chip or a missed shot dies instead of bouncing |
+| ball ↔ floor, ball ↔ wall restitution | COR 0.48-0.55 floor, 0.49-0.53 wall (normal impacts, 0.5-6.5 m/s): `<pair>` `solref="0.012 0.225"` on the carpet, `"0.012 0.25"` on the 12 wall hulls, both in `models/ball.xml` | MEASURED | target 0.50, measured 0.47-0.56 on carpet. MuJoCo has no restitution coefficient, so the `solref` was found by measurement (tickets 17, 21); 0.012 s is the shortest time constant whose COR holds within 5 % between 1/960 s and 0.5 ms from 1 m/s up (the floor at 0.5 m/s is 6 % off). MuJoCo's COR rises with speed where the real ball's falls, but stays in the band up to the 6.5 m/s kick. Oblique impacts are not calibrated: a backspinning chip's first landing reads 0.59-0.60. The goalposts stay critically damped |
 | roller ↔ floor μ | 0.25, set on both the roller and the floor (MuJoCo takes the elementwise max) | MEASURED | Williams et al., IEEE T-RA 18(3), 2002, tilt table — the only published omni-roller-on-carpet value |
 | chassis ↔ floor | collided (floor `contype/conaffinity` 5), no proxy | — | ticket 06 |
 | collision hulls | 193 per robot (16 buried hulls pruned) | — | ticket 07; the wheel hub, not a roller, is what deflects a ball rolling under the robot |
 | ball ↔ kicker/chipper plates | μ 0.4 (geom-mixed with the ball's 0.35) | DELIBERATE APPROXIMATION | no source |
 | ball ↔ dribbler | μ 2.5, `solref="0.004 0.5"` | DELIBERATE APPROXIMATION | above 1 so the bar can hold the ball; no physical retention model |
-| walls, bumpers | `solref="0.004 1"` | DELIBERATE APPROXIMATION | neither this nor MuJoCo's `0.02 1` has a source |
+| walls, bumpers | `solref="0.004 1"` (the ball has its own pairs with the walls) | DELIBERATE APPROXIMATION | neither this nor MuJoCo's `0.02 1` has a source |
 | robot ↔ robot, robot ↔ wall μ | 0.5, 0.6 | DELIBERATE APPROXIMATION | no source |
 | `impratio` | 1 | DELIBERATE APPROXIMATION | no ODE/rSim counterpart; revisit if slip turns abrupt |
 | dribbler bar speed | 314 rad/s at `a = 1` | DELIBERATE APPROXIMATION | assumed, not a firmware setpoint (see Dribbler) |
@@ -415,12 +416,12 @@ classes rank RULEBOOK > MEASURED > VENDOR > DELIBERATE APPROXIMATION (developmen
 namespaces every body, joint, actuator, sensor and geom (`b0_robot`, `b0_vel_x`,
 `b0_r_col_barDribbler`, ...). The parent is `scene.xml` itself with its one robot
 **deleted**, so the `<option>` block, the `<visual>` block, the lights, the cameras, the
-ball and the ball/floor contact pair are exactly what the model ships with — there is no
+ball and its floor and wall contact pairs are exactly what the model ships with — there is no
 second copy of those numbers to drift out of sync. `MjSpec.delete` on the robot body
 cascades to its actuators, its sensors and its two dribbler contact pairs.
 
-Those dribbler pairs are then re-emitted once per robot, copied off the originals **before**
-the delete rather than retyped. Skipping the step compiles fine and silently discards the
+Those dribbler pairs — the ones the delete removes; the floor and wall pairs stay — are then
+re-emitted once per robot, copied off the originals **before** the delete rather than retyped. Skipping the step compiles fine and silently discards the
 ball/bar contact tuning: MuJoCo would fall back to the elementwise max of the two geoms' own
 friction, which is not what the model was tuned against.
 

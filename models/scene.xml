@@ -20,6 +20,5 @@
   <contact>
     <pair geom1="ball" geom2="r_col_axisDribbler" condim="4" friction="2.5 2.5 0.02 0.0001 0.0001" solref="0.004 0.5" solimp="0.95 0.99 0.001" />
     <pair geom1="ball" geom2="r_col_barDribbler" condim="4" friction="2.5 2.5 0.02 0.0001 0.0001" solref="0.004 0.5" solimp="0.95 0.99 0.001" />
-    <pair geom1="ball" geom2="floor" condim="6" friction="0.35 0.35 0.005 0.0009 0.0009" solref="0.006 1" />
   </contact>
 </mujoco>

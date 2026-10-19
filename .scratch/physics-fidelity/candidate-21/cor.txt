@@ -1,0 +1,10 @@
+                              0.5     1     2     3   4.5   6.5   <- v_in m/s
+floor 1/960 s               0.476 0.498 0.501 0.520 0.535 0.547
+                            pen 12.9 mm, contact 8.3 ms, field side True @6.5; all in 0.47-0.56: True
+wall 1/960 s                0.512 0.504 0.485 0.503 0.519 0.529
+                            pen 14.0 mm, contact 9.4 ms, field side True @6.5; all in 0.47-0.56: True
+floor 0.5 ms                0.508 0.515 0.517 0.529 0.522 0.530
+                            pen 12.7 mm, contact 8.5 ms, field side True @6.5; all in 0.47-0.56: True
+wall 0.5 ms                 0.508 0.505 0.503 0.499 0.499 0.506
+                            pen 13.6 mm, contact 9.5 ms, field side True @6.5; all in 0.47-0.56: True
+wall contacts at the deepest step: [('col_f_walls_1_c05', (np.float64(0.012), np.float64(0.25)), '-6.4 mm')]

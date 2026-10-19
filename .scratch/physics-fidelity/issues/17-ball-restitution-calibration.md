@@ -97,3 +97,6 @@ velocidades que este simulador produz, cujo teto é o chute de 6.5 m/s.
   `solref` atual o COR de queda de 0.3 m lia 0.136 / 0.107 / 0.144 / 0.151 a 0.5 / 1 / 2 / 4 ms
   (`../candidate-13/sweep_t*.txt`). Conferir o resultado a 0.5 ms antes de fechar; se divergir mais
   de 5 %, a constante de tempo é curta demais para o passo.
+- 2026-10-18, do [`21`](21-ball-restitution-apply.md): aplicado em `models/` como especificado aqui. O
+  modelo real lê as mesmas linhas de COR desta tabela. O `scene.build` precisou deixar de replicar os
+  pares que não são do robô.

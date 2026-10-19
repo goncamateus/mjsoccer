@@ -6,8 +6,8 @@ which namespaces every body, joint, actuator, sensor and geom with a per-robot p
 (`b0_robot`, `b0_vel_x`, `b0_r_col_barDribbler`, ...).
 
 The parent is `scene.xml` itself with its one robot **deleted**, so the `<option>` block,
-the `<visual>` block, the lights, the cameras, the ball and the ball/floor contact pair
-are exactly what the model ships with -- there is no second copy of those numbers here to
+the `<visual>` block, the lights, the cameras, the ball and its floor and wall contact
+pairs are exactly what the model ships with -- there is no second copy of those numbers here to
 drift out of sync. `MjSpec.delete` on the robot body cascades to its actuators, its
 sensors and its two dribbler contact pairs.
 
@@ -224,7 +224,9 @@ def build(
         raise ValueError("need at least one blue robot")
 
     spec = mujoco.MjSpec.from_file(str(MODELS_DIR / SCENES[tier]))
-    # Copy the robot's ball contact pairs before deleting the body takes them with it.
+    # Copy the robot's ball contact pairs before deleting the body takes them with it. Only the
+    # robot's: the ball's pairs with the carpet and the walls stay, once.
+    robot_geoms = {g.name for g in spec.body("robot").find_all(mujoco.mjtObj.mjOBJ_GEOM)}
     ball_pairs = [
         (
             p.geomname2,
@@ -234,7 +236,7 @@ def build(
             np.array(p.solimp),
         )
         for p in spec.pairs
-        if p.geomname1 == "ball" and p.geomname2 != "floor"
+        if p.geomname1 == "ball" and p.geomname2 in robot_geoms
     ]
     assert ball_pairs, f"{SCENES[tier]} defines no ball contact pairs to replicate"
     spec.delete(spec.body("robot"))
