@@ -46,7 +46,9 @@ def render(zip_path: Path, algo) -> str:
             ret += float(rew)
             if step % every == 0:
                 r.update_scene(base.data, camera="overview")
-                frames.append(Image.fromarray(r.render()).quantize(128))
+                # Octree, not the default median cut: median cut splits by pixel count, and the
+                # ball is ~3 px in `overview`, so it lost its own palette entry and came out grey.
+                frames.append(Image.fromarray(r.render()).quantize(128, method=Image.Quantize.FASTOCTREE))
             if terminated or truncated:
                 break
     env.close()

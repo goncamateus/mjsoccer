@@ -158,9 +158,10 @@ def _grab_frames(
 
 def _write_gif(raw: list[np.ndarray], path: Path, fps: int) -> None:
     # 128 colours is plenty for a green field plus two robot colours, and roughly halves
-    # the file next to the default 256.
+    # the file next to the default 256. Octree, not median cut: median cut splits by pixel
+    # count, so the few-pixel ball of the wide shot lost its palette entry and came out grey.
     frames = [
-        Image.fromarray(f).quantize(colors=128, method=Image.Quantize.MEDIANCUT)
+        Image.fromarray(f).quantize(colors=128, method=Image.Quantize.FASTOCTREE)
         for f in raw
     ]
     frames[0].save(
