@@ -242,7 +242,13 @@ class DribblingEnv(_BallTask):
             reward += self.gate_bonus
             self._target = np.array(self.sample_pose([], clearance=0.0))
             self._prev = self._to_target()
-        done = self._reached >= self.n_waypoints or self._lost > round(2.0 / self.dt)
+        success = self._reached >= self.n_waypoints
+        if success:
+            # Finishing must never be worth less than parking with the ball: pay the holding
+            # the remaining steps would have earned. Without it, standing still out-earned the
+            # scripted carry (490 vs 201 at 15 Hz).
+            reward += self.max_steps - self.steps
+        done = success or self._lost > round(2.0 / self.dt)
         return (
             reward,
             done,

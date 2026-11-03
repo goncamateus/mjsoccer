@@ -58,6 +58,37 @@ frente do robô e o vetor robô→bola, **puro** (não é diferença de potencia
 - Drib: ficar parado com a bola rende mais que carregá-la. Aceito de propósito pelo usuário.
 - O dribble scripted perde a bola (giro de até 4 rad/s, acima do limite de ~2 rad/s do ticket 22).
 
+## Drib: o sucesso paga o holding restante (opção A)
+
+No sucesso, `+1.0 × (max_steps − steps)`: completar nunca vale menos que ficar parado com a bola.
+
+## Drib: retenção andando e girando (tier 0, seeds 0-2, rampa suave)
+
+Andar reto até 0.6 m/s segura 5 s; **qualquer giro andando perde a bola em ~1 s**, já a 0.3 m/s e
+0.5 rad/s. No frame do robô a bola rola de lado ao longo do rolete (y: 0 → −24 mm) até escapar.
+
+Mecanismo (Coulomb, sem trapaça): o rolete a 314 rad/s escorrega na bola a ~2.8 m/s; o atrito
+cinético aponta na direção do escorregamento total, então a componente lateral é ~μN·v_lat/v_slip,
+~1 % de μN. Quanto mais devagar o rolete, mais aderência lateral:
+
+| rolete | 0.3 m/s + 0.5 rad/s (passos segurados de 75, 5 s a 15 Hz) | giro no lugar 1 rad/s |
+|---|---|---|
+| 314 rad/s | 15 | 9 |
+| 150 | 49 | 15 |
+| 80 | **73** | 9 |
+| 40 | 73 | 9 |
+
+Scripted dribble (15 Hz, giro máx. 1.5 rad/s, seeds 0-4) com a opção A:
+
+| rolete | retorno | waypoints | sucesso |
+|---|---|---|---|
+| 314 rad/s | 356.5 | 1 1 2 1 2 | 0 |
+| **78.5 rad/s** | **526.1** (> 490 parado) | 1 2 2 4 3 | 0.2 |
+
+A velocidade do rolete já está na ação, então o agente pode aprender a usá-la. Giro no lugar a
+1 rad/s ainda perde a bola nesta medição (rampa curta de 8 passos), o que contradiz o ~2 rad/s do
+ticket `physics-fidelity/22`: aberto.
+
 ## Plano
 
 1. `tasks.py` por env; `horizon_s` por task; tombo e control no `BaseEnv`/`_BallTask`.

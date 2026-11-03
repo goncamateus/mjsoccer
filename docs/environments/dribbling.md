@@ -113,10 +113,12 @@ Per step:
 | carry shaping | `(prev_wp_dist - wp_dist) * holds(0)`, the decrease in ball-to-current-waypoint distance, only while held |
 | energy | `-0.01 * ||a||^2` |
 | gate bonus | `+10.0` each time the held ball comes within `waypoint_tol = 0.3 m` of the current waypoint |
+| success | `+1.0 * (max_steps - steps)` on the fourth gate |
 
 Holding dominates on purpose: the task is to carry the ball always, through the gates. Standing
 still with the ball pays up to `450` over the horizon at 15 Hz, against `40` for the four gates;
-whether that is too much is an open question in `.scratch/rl-learning/issues/02-reward-redesign.md`.
+so success also pays the holding the remaining steps would have earned, `+1.0 * (max_steps -
+steps)`: finishing is never worth less than parking with the ball.
 The carry term is gated on `holds(0)` so a policy cannot kick the ball at the waypoint and walk
 away. Approach and facing are what bring the robot back to a ball it dropped.
 
