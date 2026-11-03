@@ -110,25 +110,20 @@ Per step:
 | term | value |
 |---|---|
 | approach shaping | `prev_dist - dist`, the decrease in blue-robot-to-ball distance |
-| holding bonus | `+0.05 * holds(0)` |
-| energy | `-0.001 * ||a||^2` |
-| steal bonus | `+10.0` on the terminating step |
+| facing | `0.1 * cos(angle between the robot's front and robot->ball)`, every step |
+| holding | `+1.0 * holds(0)`, every step |
+| energy | `-0.01 * ||a||^2` |
+| steal bonus | `+100.0` on the terminating step |
+| crash | `-100.0` on the terminating step |
 
-The approach term is potential-based — the *decrease* in the distance from the blue robot to
-the ball over one step — so total shaping is bounded by the starting distance (at least 1 m,
-by the reset clearance) and no cycle pays. Because the ball moves during the contest, this
-term also credits chasing a ball that has been knocked loose, and debits letting the
-opponent carry it away.
+Contact is how the ball is won, so touching the opponent is legal; *crashing* is not. It follows
+SSL rules 8.4.2: at the first step of a contact, the difference of the two robots' velocities is
+projected onto the line between them, and over `1.5 m/s` the faster robot fouled. Only the agent
+being the faster one ends the episode. The velocities are the ones going into that step, since by
+its end the impact has already stopped the robots. (The rule's other clause, both robots fouling
+under `0.3 m/s`, is left out: it would punish every slow push for the ball.)
 
-The `+0.05` holding bonus is the only dense signal that distinguishes touching the ball from
-taking it. It is not potential-based, but it is bounded per step and cannot exceed
-`0.05 * 1200 = 60` over the horizon — and in practice it cannot be farmed for long,
-because holding the ball for 30 consecutive steps ends the episode with the `+10` bonus
-anyway.
-
-`ENERGY = 0.001` multiplies the squared norm of the whole flat action, summing over all 7
-dimensions on the default tier 1 (6 on tier 0), so a saturated action costs `-0.007` per
-step on tier 1, `-0.006` on tier 0.
+`ENERGY = 0.01` multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-0.07` / `-0.06` per step.
 
 ## Starting State
 
@@ -158,9 +153,11 @@ about the yellow robot is driven: it has no drive command, so it coasts if pushe
 
 ### Termination
 
-- **Success.** `holds(0)` has been true for `hold_seconds = 0.5` s of continuous simulated
-  time — 30 control steps at the default rate. The counter resets to zero the moment
-  `holds(0)` goes false, so the half-second has to be unbroken. `holds` itself already
+- **Success.** `holds(0)` has been true for `hold_seconds = 2.0` s of continuous simulated
+  time — 120 control steps at the default rate. The counter resets to zero the moment
+  `holds(0)` goes false, so the two seconds have to be unbroken.
+- **Crash.** A crashing foul by the agent (see Rewards); the step pays `-100.0` and
+  `info["crash"]` is set. `holds` itself already
   tolerates a 50 ms gap in ball/dribbler contact, which is what makes an unbroken half
   second achievable with a bar that sticks and re-grips.
 - **Ball out of the field.** `scene.in_field` fails for the ball centre (`|x| > 6.0 m` or
@@ -181,7 +178,7 @@ long enough.
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**20 s**, and at the default `control_hz=60` `dt` is exactly 1/60 s, so **1200 steps**.
+**20 s**, and at the default `control_hz=60` `dt` is exactly 1/60 s, so **1200 steps** (300 at 15 Hz).
 
 ## Arguments
 
@@ -199,14 +196,14 @@ import mjsoccer
 env = gym.make("ContestedPossession-v0", tier=0, control_hz=60, horizon_s=20.0, render_mode="rgb_array")
 ```
 
-`hold_seconds` (0.5) and `n_yellow` (1) are class attributes on `ContestedPossessionEnv`,
+`hold_seconds` (2.0) and `n_yellow` (1) are class attributes on `ContestedPossessionEnv`,
 not `gym.make` keywords.
 
 ## Info dictionary
 
 | key | type | description |
 |---|---|---|
-| `is_success` | `bool` | the agent held the ball for a continuous 0.5 s |
+| `is_success` | `bool` | the agent held the ball for a continuous 2 s |
 | `ball_out` | `bool` | present only on the step the ball leaves the field |
 | `tipped` | `bool` | present only on the step a controlled robot turned over |
 | `tilt_deg` | `float` | with `tipped`: the worst controlled robot's tilt off vertical, degrees |

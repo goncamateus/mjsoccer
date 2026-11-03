@@ -1,9 +1,9 @@
 """The task environments.
 
-Each one supplies a reset layout, whatever the scripted robots do, and a reward. The
-rewards are potential-based: every shaping term is the *decrease* in some distance over
-one step, so the total shaping a policy can collect on an episode is bounded by the
-starting distance and no cycle pays.
+Each one supplies a reset layout, whatever the scripted robots do, and a reward. Distance
+shaping is potential-based -- the *decrease* in some distance over one step, so no cycle
+pays -- and every task adds a per-step 0.1 * cos(front, robot->ball) facing term, kept
+small against the 100 completion bonus (.scratch/rl-learning/issues/02-reward-redesign.md).
 
 Every env exposes the same per-robot action -- drive, kick, chip, dribble -- whether or
 not its reward cares, so one action head transfers across all six.
@@ -27,7 +27,13 @@ from .base import BaseEnv
 # The ball sits about 94 mm out from the chassis centre when the dribbler holds it, so
 # "at the ball" is a little past the 90 mm robot radius.
 REACH = 0.13
-ENERGY = 0.001  # per-step penalty on ||action||^2, enough to discourage buzzing
+ENERGY = 0.01  # per-step penalty on ||action||^2: -0.06 a step saturated on tier 0
+FACING = 0.1  # per-step weight on cos(robot front, robot->ball), the raw cosine
+BONUS = 100.0  # task completed; large enough that facing the ball and parking never pays
+OUT_PENALTY = 100.0  # ball out of the field, a collision foul
+# SSL rules 8.4.2 "Crashing": the difference of the two robots' velocities, projected onto
+# the line between them at the moment of collision; over 1.5 m/s the faster robot fouled.
+CRASH_SPEED = 1.5
 
 
 def _unit(v: np.ndarray) -> np.ndarray:
@@ -53,8 +59,68 @@ class _BallTask(BaseEnv):
         d = _unit(self.ball.pos(self.data)[:2] - self.data.xpos[r.body][:2])
         return float(d @ r.forward(self.data)[:2])
 
+    def _at_ball(self) -> bool:
+        return self._to_ball() < REACH and self._facing() > 0.9
+
     def _energy(self, action: np.ndarray) -> float:
         return -ENERGY * float(np.square(action).sum())
+
+    def _touching(self, j: int) -> bool:
+        """Is any part of the agent in contact with any part of robot `j`?"""
+        m, d = self.model, self.data
+        pair = {self._agent().body, self.robots[j].body}
+        for k in range(d.ncon):
+            c = d.contact[k]
+            roots = {
+                int(m.body_rootid[m.geom_bodyid[c.geom1]]),
+                int(m.body_rootid[m.geom_bodyid[c.geom2]]),
+            }
+            if roots == pair:
+                return True
+        return False
+
+
+class _KickTask(_BallTask):
+    """Reach the ball, then one kick sends it at a target.
+
+    Until the agent kicks, closing on the ball pays; after, the ball closing on the target
+    does. One kick per episode: a kick is the kicker or chipper firing while the robot is
+    at the ball (within REACH, facing it), judged on the state the action was taken in.
+    A plunger fired at nothing does not count, or random exploration would spend the kick
+    on the first step.
+    """
+
+    ball_out_penalty = OUT_PENALTY
+
+    def _target_dist(self) -> float:
+        raise NotImplementedError
+
+    def _done(self) -> bool:
+        raise NotImplementedError
+
+    def _reset_task(self) -> None:
+        self.has_kicked = False
+        self._was_at_ball = self._at_ball()
+        self._prev, self._prev_target = self._to_ball(), self._target_dist()
+
+    def _reward_done(self, action):
+        if self.fired[0] and self._was_at_ball:
+            self.has_kicked = True
+        d, g = self._to_ball(), self._target_dist()
+        if self.has_kicked:
+            reward = self._prev_target - g
+        else:
+            reward = self._prev - d
+        reward += FACING * self._facing() + self._extra_reward() + self._energy(action)
+        self._prev, self._prev_target = d, g
+        self._was_at_ball = self._at_ball()
+        done = self._done()
+        if done:
+            reward += BONUS
+        return reward, done, {"is_success": done, "has_kicked": self.has_kicked}
+
+    def _extra_reward(self) -> float:
+        return 0.0
 
 
 class GoToBallEnv(_BallTask):
@@ -71,23 +137,21 @@ class GoToBallEnv(_BallTask):
         self.ball.place(self.data, bx, by)
 
     def _reset_task(self) -> None:
-        self._prev, self._prev_facing = self._to_ball(), self._facing()
+        self._prev = self._to_ball()
 
     def _reward_done(self, action):
-        d, f = self._to_ball(), self._facing()
-        # Both terms are the change in a potential, so sitting still pays nothing. A per-step
-        # 0.05 * facing paid ~+60 a horizon for turning to the ball and parking, twice what
-        # finishing earned, and SAC learned exactly that. 0.5 makes a full about-turn
-        # (cos -1 -> 1) worth what closing 1 m is.
-        reward = (self._prev - d) + 0.5 * (f - self._prev_facing) + self._energy(action)
-        self._prev, self._prev_facing = d, f
-        arrived = d < REACH and f > 0.9
+        d = self._to_ball()
+        # Facing is the raw cosine, paid every step. Parking facing the ball earns at most
+        # 0.1 * 150 steps = 15 over the 10 s horizon at 15 Hz, against the 100 for arriving.
+        reward = (self._prev - d) + FACING * self._facing() + self._energy(action)
+        self._prev = d
+        arrived = self._at_ball()
         if arrived:
-            reward += 10.0
+            reward += BONUS
         return reward, arrived, {"is_success": arrived, "dist": d}
 
 
-class GoToBallShootEnv(_BallTask):
+class GoToBallShootEnv(_KickTask):
     """Reach the ball and put it in the +x goal. Kicker and dribbler are the agent's."""
 
     def _place(self) -> None:
@@ -100,7 +164,7 @@ class GoToBallShootEnv(_BallTask):
         bx, by = self.sample_pose(taken, clearance=0.5)
         self.ball.place(self.data, bx, by)
 
-    def _goal_dist(self) -> float:
+    def _target_dist(self) -> float:
         p = self.ball.pos(self.data)[:2]
         return float(
             np.linalg.norm(
@@ -108,28 +172,21 @@ class GoToBallShootEnv(_BallTask):
             )
         )
 
-    def _reset_task(self) -> None:
-        self._prev, self._prev_goal = self._to_ball(), self._goal_dist()
+    def _done(self) -> bool:
+        return bool(S.in_goal(self.ball.pos(self.data)))
 
     def _reward_done(self, action):
-        d, g = self._to_ball(), self._goal_dist()
-        # Approach weighs what the ball term does. At 0.2 closing on the ball was worth ~+1 an
-        # episode against -3.6 of energy for random actions, so SAC learned to stand still and
-        # never met the goal (.scratch/rl-learning/issues/01-why-nothing-learns.md).
-        reward = (self._prev - d) + (self._prev_goal - g) + self._energy(action)
-        self._prev, self._prev_goal = d, g
-        scored = S.in_goal(self.ball.pos(self.data))
-        if scored:
-            reward += 20.0
-        return reward, scored, {"is_success": scored, "goal": scored}
+        reward, done, info = super()._reward_done(action)
+        info["goal"] = done
+        return reward, done, info
 
 
 class DribblingEnv(_BallTask):
     """Carry the ball through a sequence of waypoints without losing it.
 
     The agent can kick or chip its own carried ball away -- the controls are always in the
-    action space. It is not worth doing: the shaping below is gated on `holds(0)`, so the
-    step the ball leaves the mouth is the step progress stops paying.
+    action space. It is not worth doing: holding pays every step and waypoint progress is
+    gated on `holds(0)`, so the step the ball leaves the mouth is the step both stop paying.
     """
 
     extra_obs = 2  # the current waypoint, in the robot's own frame
@@ -139,6 +196,7 @@ class DribblingEnv(_BallTask):
     extra_obs_bound = (_reach / S.FIELD_HALF_X, _reach / S.FIELD_HALF_Y)
     n_waypoints = 4
     waypoint_tol = 0.3
+    gate_bonus = 10.0
 
     def _place(self) -> None:
         taken: list[tuple[float, float]] = []
@@ -153,6 +211,7 @@ class DribblingEnv(_BallTask):
         self._reached = 0
         self._lost = 0
         self._prev = self._to_target()
+        self._prev_ball = self._to_ball()
 
     def _to_target(self) -> float:
         return float(np.linalg.norm(self.ball.pos(self.data)[:2] - self._target))
@@ -164,18 +223,23 @@ class DribblingEnv(_BallTask):
         return local / (S.FIELD_HALF_X, S.FIELD_HALF_Y)
 
     def _reward_done(self, action):
-        held = self.holds(0)
-        d = self._to_target()
-        # Progress only counts while the ball is actually held; otherwise a policy can
-        # farm the shaping term by kicking the ball at the waypoint and walking away.
+        held = float(self.holds(0))
+        d, b = self._to_target(), self._to_ball()
+        # Holding dominates on purpose: carry the ball always, through the gates. Waypoint
+        # progress only counts while held, or a policy could kick the ball at the waypoint.
+        # Approach and facing are what bring the robot back to a ball it dropped.
         reward = (
-            (self._prev - d) * float(held) + 0.01 * float(held) + self._energy(action)
+            (self._prev_ball - b)
+            + FACING * self._facing()
+            + held
+            + (self._prev - d) * held
+            + self._energy(action)
         )
-        self._prev = d
+        self._prev, self._prev_ball = d, b
         self._lost = 0 if held else self._lost + 1
         if d < self.waypoint_tol and held:
             self._reached += 1
-            reward += 5.0
+            reward += self.gate_bonus
             self._target = np.array(self.sample_pose([], clearance=0.0))
             self._prev = self._to_target()
         done = self._reached >= self.n_waypoints or self._lost > round(2.0 / self.dt)
@@ -190,7 +254,11 @@ class DribblingEnv(_BallTask):
 
 
 class StaticDefendersEnv(GoToBallShootEnv):
-    """Score past six stationary yellow robots parked in front of the goal."""
+    """Score past six stationary yellow robots parked in front of the goal.
+
+    Touching a defender at all ends the episode at -100: they are parked, so any contact is
+    the agent driving into them.
+    """
 
     n_yellow = 6
 
@@ -207,12 +275,26 @@ class StaticDefendersEnv(GoToBallShootEnv):
                 np.pi,
             )
 
+    def _reward_done(self, action):
+        reward, done, info = super()._reward_done(action)
+        if not done and any(
+            self._touching(j) for j in range(self.n_blue, len(self.robots))
+        ):
+            reward -= OUT_PENALTY
+            done = True
+            info["collision"] = True
+        return reward, done, info
+
 
 class ContestedPossessionEnv(_BallTask):
-    """Take the ball off a yellow robot that is sitting on it with its dribbler running."""
+    """Take the ball off a yellow robot that is sitting on it with its dribbler running.
+
+    Contact is how the ball is won, so touching the opponent is allowed; crashing into it
+    (SSL rules 8.4.2, the agent the faster robot) ends the episode at -100.
+    """
 
     n_yellow = 1
-    hold_seconds = 0.5
+    hold_seconds = 2.0
 
     def _place(self) -> None:
         taken: list[tuple[float, float]] = []
@@ -228,23 +310,60 @@ class ContestedPossessionEnv(_BallTask):
         self.seat_ball(self.robots[self.n_blue])
         self._prev = self._to_ball()
         self._held = 0
+        self._was_touching = False
+        self._prev_v = self._velocities()
 
     def _script(self) -> None:
         self.data.ctrl[self.robots[self.n_blue].dribble] = S.DRIBBLER_OMEGA
 
+    def _velocities(self) -> tuple[np.ndarray, np.ndarray]:
+        return tuple(
+            np.array(self.robots[i].velocity(self.data)[:2]) for i in (0, self.n_blue)
+        )
+
+    def _crashed(self) -> bool:
+        """A crashing foul by the agent, judged at the first step of a contact.
+
+        The velocities are the ones going into the step the contact appeared in: by the end
+        of a 1/15 s step the impact has already stopped the robots.
+        """
+        touching = self._touching(self.n_blue)
+        first = touching and not self._was_touching
+        self._was_touching = touching
+        v_a, v_o = self._prev_v
+        self._prev_v = self._velocities()
+        if not first:
+            return False
+        line = _unit(
+            self.data.xpos[self.robots[self.n_blue].body][:2]
+            - self.data.xpos[self._agent().body][:2]
+        )
+        closing = abs(float((v_a - v_o) @ line))
+        return closing > CRASH_SPEED and np.linalg.norm(v_a) > np.linalg.norm(v_o)
+
     def _reward_done(self, action):
         d = self._to_ball()
         held = self.holds(0)
-        reward = (self._prev - d) + 0.05 * float(held) + self._energy(action)
+        reward = (
+            (self._prev - d)
+            + FACING * self._facing()
+            + float(held)
+            + self._energy(action)
+        )
         self._prev = d
         self._held = self._held + 1 if held else 0
+        info = {}
+        if self._crashed():
+            reward -= OUT_PENALTY
+            info["crash"] = True
+            return reward, True, info | {"is_success": False}
         won = self._held >= round(self.hold_seconds / self.dt)
         if won:
-            reward += 10.0
-        return reward, won, {"is_success": won}
+            reward += BONUS
+        return reward, won, info | {"is_success": won}
 
 
-class PassEnduranceEnv(_BallTask):
+class PassEnduranceEnv(_KickTask):
     """Collect the ball and pass it to a stationary team-mate."""
 
     n_blue = 2
@@ -259,27 +378,27 @@ class PassEnduranceEnv(_BallTask):
         bx, by = self.sample_pose(taken, clearance=0.5)
         self.ball.place(self.data, bx, by)
 
-    def _reset_task(self) -> None:
-        self._prev, self._prev_mate = self._to_ball(), self._to_mate()
-
-    def _to_mate(self) -> float:
+    def _target_dist(self) -> float:
         return float(
             np.linalg.norm(
                 self.ball.pos(self.data)[:2] - self.data.xpos[self.robots[1].body][:2]
             )
         )
 
+    def _extra_reward(self) -> float:
+        # Face the receiver: cos between the passer's front and passer -> receiver. Not
+        # the two fronts against each other, which is -1 when they face each other.
+        r = self._agent()
+        to_mate = _unit(
+            self.data.xpos[self.robots[1].body][:2] - self.data.xpos[r.body][:2]
+        )
+        return FACING * float(to_mate @ r.forward(self.data)[:2])
+
     def _script(self) -> None:
         self.data.ctrl[self.robots[1].dribble] = S.DRIBBLER_OMEGA
 
-    def _reward_done(self, action):
-        d, m = self._to_ball(), self._to_mate()
-        reward = 0.2 * (self._prev - d) + (self._prev_mate - m) + self._energy(action)
-        self._prev, self._prev_mate = d, m
-        received = self.holds(1)
-        if received:
-            reward += 10.0
-        return reward, received, {"is_success": received}
+    def _done(self) -> bool:
+        return self.holds(1)
 
 
 # ------------------------------------------------------------------ scripted policy

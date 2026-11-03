@@ -92,30 +92,17 @@ Per step:
 
 | term | value |
 |---|---|
-| approach shaping | `prev_dist - dist`, the decrease in robot-to-ball distance over the step |
-| facing shaping | `0.5 * (facing - prev_facing)`, the increase over the step in `facing = cos(angle between the robot's front and the ball)` |
-| energy | `-0.001 * ||a||^2` |
-| arrival bonus | `+10.0` on the terminating step |
+| approach shaping | `prev_dist - dist`, the decrease in robot-to-ball distance |
+| facing | `0.1 * cos(angle between the robot's front and robot->ball)`, every step |
+| energy | `-0.01 * ||a||^2` |
+| arrival bonus | `+100.0` on the terminating step |
 
-All shaping is potential-based: each term is the change in a potential over one step, so
-the total shaping a policy can collect over an episode is bounded — the approach term by the
-starting distance (at most about 15 m across the diagonal of the field), the facing term by
-`0.5 * 2 = 1.0` — and no cycle pays: driving away and back, or turning away and back, nets
-zero.
+Facing is the raw cosine, paid every step, not a change in a potential: it is a standing reason to keep the mouth on the ball, and the 100 bonus is what keeps parking facing the ball from paying more than finishing. Parking facing the ball earns at most `0.1 * 150 = 15` over the 10 s horizon at 15 Hz.
+`test_goto_ball_does_not_pay_camping` pins that, discounted: turning in place must earn under
+half of what reaching the ball does. (A per-step facing term against a `+10` arrival once paid
+about twice what finishing did, and SAC learned to park.)
 
-The facing term is there because arrival requires `cos > 0.9` and pure distance shaping
-gives no gradient towards orientation. Its weight makes a full about-turn worth what closing
-1 m is. It used to be a per-step `+0.05 * cos`, which paid up to `+60` over the 1200-step
-horizon for turning to the ball and parking — about twice what finishing earned. SAC
-learned exactly that: the sweep's tier-0 policy timed out at ~870 steps with ~90 % of its
-return from that term. `test_goto_ball_does_not_pay_camping` pins the fix: turning in place
-must earn under `1.0`.
-
-`ENERGY = 0.001` multiplies the squared norm of the whole flat action, so it now sums over
-all 7 dimensions on the default tier 1 (6 on tier 0) rather than just the drive channels: a
-saturated action costs `-0.007` per step on tier 1, `-0.006` on tier 0. It is enough to
-discourage buzzing, including
-pointless kicking and chipping, without meaningfully competing with the task reward.
+`ENERGY = 0.01` multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-0.07` / `-0.06` per step.
 
 ## Starting State
 
@@ -125,7 +112,7 @@ inside the field), resampled until it is at least 0.5 m from everything already 
 to 200 attempts. The robot's yaw is uniform over `[-pi, pi)`. The ball starts at rest on the
 floor; the robot starts at rest at the chassis height the model defines.
 
-`_reset_task` records the initial robot-to-ball distance and facing as the shaping baselines.
+`_reset_task` records the initial robot-to-ball distance as the shaping baseline.
 
 ## Episode End
 
@@ -149,7 +136,7 @@ floor; the robot starts at rest at the chassis height the model defines.
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**20 s**, and at the default `control_hz=60` `dt` is exactly 1/60 s, so **1200 steps**.
+**10 s**, and at the default `control_hz=60` `dt` is exactly 1/60 s, so **600 steps** (150 at the 15 Hz the agents train at).
 
 ## Arguments
 

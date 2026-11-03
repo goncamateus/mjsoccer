@@ -18,12 +18,12 @@ __all__ = ["BaseEnv", "build", "ENV_IDS"]
 
 # horizon, in seconds: how long the task gets before truncation.
 ENV_IDS = {
-    "GoToBall-v0": ("GoToBallEnv", 20.0),
-    "GoToBallShoot-v0": ("GoToBallShootEnv", 30.0),
-    "Dribbling-v0": ("DribblingEnv", 40.0),
-    "StaticDefenders-v0": ("StaticDefendersEnv", 30.0),
+    "GoToBall-v0": ("GoToBallEnv", 10.0),
+    "GoToBallShoot-v0": ("GoToBallShootEnv", 12.0),
+    "Dribbling-v0": ("DribblingEnv", 30.0),
+    "StaticDefenders-v0": ("StaticDefendersEnv", 20.0),
     "ContestedPossession-v0": ("ContestedPossessionEnv", 20.0),
-    "PassEndurance-v0": ("PassEnduranceEnv", 20.0),
+    "PassEndurance-v0": ("PassEnduranceEnv", 12.0),
 }
 
 for _id, (_cls, _horizon) in ENV_IDS.items():

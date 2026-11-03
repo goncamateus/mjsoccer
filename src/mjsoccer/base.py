@@ -52,6 +52,7 @@ class BaseEnv(gym.Env):
     n_controlled = 1
     extra_obs = 0  # task-specific observations appended by _task_obs
     extra_obs_bound = np.inf  # |bound| of each, scalar or one per extra
+    ball_out_penalty = 0.0  # paid on the step the ball leaves the field
 
     def __init__(
         self,
@@ -110,6 +111,7 @@ class BaseEnv(gym.Env):
         self._plunger_lock = np.zeros((len(self.robots), 2), dtype=int)
         self._kick_cooldown = max(1, round(0.25 / self.dt))
         self._grace = np.zeros(len(self.robots), dtype=int)
+        self.fired = np.zeros(len(self.robots), dtype=bool)  # a plunger fired this step
         self._grace_steps = max(1, round(POSSESSION_GRACE / self.dt))
         self.steps = 0
 
@@ -129,6 +131,7 @@ class BaseEnv(gym.Env):
     def step(self, action):
         action = np.clip(np.asarray(action, dtype=np.float64), -1.0, 1.0)
         self.data.ctrl[:] = 0.0
+        self.fired[:] = False
         self._apply(action.reshape(self.n_controlled, self.act_dim))
         self._script()
         n, dt = self.decimation, self.model.opt.timestep
@@ -157,6 +160,7 @@ class BaseEnv(gym.Env):
             raise RuntimeError(f"simulation diverged at step {self.steps}")
         if not scene.in_field(*self.ball.pos(self.data)[:2]) and not info.get("goal"):
             terminated = True
+            reward -= self.ball_out_penalty
             info["ball_out"] = True
         if self.tipped():
             reward -= TIPOVER_PENALTY
@@ -204,6 +208,7 @@ class BaseEnv(gym.Env):
                     scene.KICK_TABLE_N[: len(speeds)],
                 )
                 self._plunger_lock[index, j] = self._kick_cooldown
+                self.fired[index] = True
         # Half range (ticket 08): a <= 0 is off, (0, 1] is (0, design speed], so a neutral or
         # sampled action does not dribble. Still a speed, not a switch, because that is what
         # the firmware takes. Never negative: a bar driven backwards throws the ball out of

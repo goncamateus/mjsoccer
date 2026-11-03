@@ -48,12 +48,12 @@ reference outputs are in `.scratch/physics-fidelity/candidate-14/`.
 
 | id | robots | obs dim | action dim (tier 1, default / tier 0) | horizon (s) | terminates on |
 |---|---|---|---|---|---|
-| [`GoToBall-v0`](environments/go_to_ball.md) | 1 blue | 14 | 7 / 6 | 20 | within 0.13 m of the ball and facing it (cos > 0.9) |
-| [`GoToBallShoot-v0`](environments/go_to_ball_shoot.md) | 1 blue | 14 | 7 / 6 | 30 | ball in the +x goal |
-| [`Dribbling-v0`](environments/dribbling.md) | 1 blue | 16 | 7 / 6 | 40 | 4 waypoints carried, or ball lost for 2 s |
-| [`StaticDefenders-v0`](environments/static_defenders.md) | 1 blue + 6 yellow | 62 | 7 / 6 | 30 | ball in the +x goal |
-| [`ContestedPossession-v0`](environments/contested_possession.md) | 1 blue + 1 yellow | 22 | 7 / 6 | 20 | blue holds the ball for 0.5 s |
-| [`PassEndurance-v0`](environments/pass_endurance.md) | 2 blue (1 controlled) | 22 | 7 / 6 | 20 | team-mate receives the pass |
+| [`GoToBall-v0`](environments/go_to_ball.md) | 1 blue | 14 | 7 / 6 | 10 | within 0.13 m of the ball and facing it (cos > 0.9) |
+| [`GoToBallShoot-v0`](environments/go_to_ball_shoot.md) | 1 blue | 14 | 7 / 6 | 12 | ball in the +x goal |
+| [`Dribbling-v0`](environments/dribbling.md) | 1 blue | 16 | 7 / 6 | 30 | 4 waypoints carried, or ball lost for 2 s |
+| [`StaticDefenders-v0`](environments/static_defenders.md) | 1 blue + 6 yellow | 62 | 7 / 6 | 20 | ball in the +x goal |
+| [`ContestedPossession-v0`](environments/contested_possession.md) | 1 blue + 1 yellow | 22 | 7 / 6 | 20 | blue holds the ball for 2 s |
+| [`PassEndurance-v0`](environments/pass_endurance.md) | 2 blue (1 controlled) | 22 | 7 / 6 | 12 | team-mate receives the pass |
 
 Every environment also terminates when the ball leaves the field or when a controlled robot
 tips over (more than 60° off vertical, `-100.0`, see [Turnover](#turnover)), and truncates at

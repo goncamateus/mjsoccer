@@ -103,27 +103,21 @@ Per step:
 
 | term | value |
 |---|---|
-| approach shaping | `0.2 * (prev_dist - dist)`, the decrease in passer-to-ball distance |
-| pass shaping | `prev_mate_dist - mate_dist`, the decrease in ball-to-team-mate distance |
-| energy | `-0.001 * ||a||^2` |
-| reception bonus | `+10.0` on the terminating step |
+| approach shaping | `prev_dist - dist` while `not has_kicked`, the decrease in passer-to-ball distance |
+| pass shaping | `prev_mate_dist - mate_dist` once `has_kicked`, the decrease in ball-to-receiver distance |
+| facing | `0.1 * cos(angle between the robot's front and robot->ball)`, every step |
+| face the receiver | `0.1 * cos(angle between the passer's front and passer->receiver)`, every step |
+| energy | `-0.01 * ||a||^2` |
+| reception bonus | `+100.0` on the terminating step |
+| ball out | `-100.0` on the terminating step |
 
-Both shaping terms are potential-based — each is the *decrease* in a distance over one step
-— so the total shaping over an episode is bounded by the starting distances and no cycle
-pays. Fetching the ball and carrying it back nets exactly the geometry, not the effort.
+`has_kicked` latches the first time the kicker or chipper fires while the robot is at the ball (within `REACH = 0.13 m` and facing it with `cos > 0.9`, judged on the state the action was taken in). A plunger fired at nothing does not count, or random exploration would spend it on the first step. One kick per episode: after a miss, nothing pays the robot to go back.
 
-The pass term is weighted five times the approach term for the same reason as in
-`GoToBallShoot-v0`: moving the ball towards the receiver is the task, closing on the ball is
-only how you get to do it. Note that the pass term is not gated on possession, so a ball
-rolling towards the receiver after a kick keeps paying while it travels — which is the
-intended behaviour for a task whose success condition is about the ball arriving, and is
-bounded by the same telescoping sum as everything else.
+The receiver term uses the passer->receiver direction, not the receiver's own front: two robots
+facing each other have opposite fronts, so the cosine between them would be `-1` exactly when the
+pass is lined up. The receiver already faces the passer from reset and never moves.
 
-`ENERGY = 0.001` multiplies the squared norm of the whole flat action, summing over all 7
-dimensions on the default tier 1 (6 on tier 0), so a saturated action costs `-0.007` per
-step on tier 1, `-0.006` on tier 0. A kick costs `0.001` on the step it fires, which is
-negligible against a `+10`
-reception.
+`ENERGY = 0.01` multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-0.07` / `-0.06` per step.
 
 ## Starting State
 
@@ -155,8 +149,8 @@ drive command, so it coasts if the ball or the passer hits it hard enough.
   the usual 50 ms possession grace. Any arrival counts: a kicked pass, a chipped one, a ball
   dribbled up and handed over, or one shoved into the receiver with the chassis.
 - **Ball out of the field.** `scene.in_field` fails for the ball centre (`|x| > 6.0 m` or
-  `|y| > 4.5 m`); `info["ball_out"]` is set. This env never sets `info["goal"]`, so a
-  mis-aimed kick that leaves the field ends the episode as a failure — which is the main
+  `|y| > 4.5 m`); `info["ball_out"]` is set and the step pays `-100.0`. This env never sets `info["goal"]`,
+  so a mis-aimed kick that leaves the field ends the episode as a failure — which is the main
   risk of a full-power pass, since kick strength cannot be modulated.
 - **Controlled robot turned over.** The robot's own +z tilts more than 60 deg off world
   +z (`cos < 0.5`). The step pays `-100.0` on top of whatever the task scored and
@@ -170,7 +164,7 @@ drive command, so it coasts if the ball or the passer hits it hard enough.
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**20 s**, and at the default `control_hz=60` `dt` is exactly 1/60 s, so **1200 steps**.
+**12 s**, and at the default `control_hz=60` `dt` is exactly 1/60 s, so **720 steps** (180 at 15 Hz).
 
 ## Arguments
 

@@ -96,27 +96,19 @@ Per step:
 
 | term | value |
 |---|---|
-| approach shaping | `prev_dist - dist`, the decrease in robot-to-ball distance |
-| goal shaping | `prev_goal_dist - goal_dist`, the decrease in ball-to-goal distance |
-| energy | `-0.001 * ||a||^2` |
-| goal bonus | `+20.0` on the terminating step |
+| approach shaping | `prev_dist - dist` while `not has_kicked`, the decrease in robot-to-ball distance |
+| goal shaping | `prev_goal_dist - goal_dist` once `has_kicked`, the decrease in ball-to-goal distance |
+| facing | `0.1 * cos(angle between the robot's front and robot->ball)`, every step |
+| energy | `-0.01 * ||a||^2` |
+| goal bonus | `+100.0` on the terminating step |
+| ball out | `-100.0` on the terminating step |
 
 `goal_dist` is the 2-D distance from the ball to the nearest point of the goal mouth,
-`(6.0, clip(ball_y, -0.9, 0.9))`, so a ball driven straight down a wing is credited for the
-part of its travel that actually shortens the shot.
+`(6.0, clip(ball_y, -0.9, 0.9))`. `has_kicked` latches the first time the kicker or chipper fires while the robot is at the ball (within `REACH = 0.13 m` and facing it with `cos > 0.9`, judged on the state the action was taken in). A plunger fired at nothing does not count, or random exploration would spend it on the first step. One kick per episode: after a miss, nothing pays the robot to go back.
 
-The two terms weigh the same. The approach term used to be `0.2 *`, to make the ball term
-dominate, but then closing on the ball was worth about `+1` an episode against `-3.6` of
-energy for random actions, and SAC learned to stand still and never met the goal. Both are
-potential-based — each is the *decrease* in a distance over one step — so total shaping over
-an episode is bounded by the starting distances and no cycle pays. A policy that pushes the
-ball away and re-collects it nets zero for the round trip.
+Facing is the raw cosine, paid every step, not a change in a potential: it is a standing reason to keep the mouth on the ball, and the 100 bonus is what keeps parking facing the ball from paying more than finishing.
 
-`ENERGY = 0.001` multiplies the squared norm of the whole flat action, summing over all 7
-dimensions on the default tier 1 (6 on tier 0) rather than just the drive channels, so a
-saturated action costs `-0.007` per step on tier 1, `-0.006` on tier 0. It discourages
-buzzing, including firing the
-kicker at nothing, but it is small enough that a genuine shot is always worth taking.
+`ENERGY = 0.01` multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-0.07` / `-0.06` per step.
 
 ## Starting State
 
@@ -137,8 +129,8 @@ ball-to-goal distance.
   (`|y| < 0.9`) and under the crossbar (`z - FLOOR_Z < 0.155`, centre height above the carpet). `info["goal"]` is `True`.
 - **Ball out of the field.** `scene.in_field` fails for the ball centre (`|x| > 6.0 m` or
   `|y| > 4.5 m`) *and* `info["goal"]` is false, so a scored ball is never also reported as
-  out. `info["ball_out"]` is set. A shot that crosses the goal line wide, or over the
-  crossbar, ends the episode as a miss.
+  out. `info["ball_out"]` is set and the step pays `-100.0`. A shot that crosses the goal line
+  wide, or over the crossbar, ends the episode as a miss.
 - **Controlled robot turned over.** The robot's own +z tilts more than 60 deg off world
   +z (`cos < 0.5`). The step pays `-100.0` on top of whatever the task scored and
   `info["tipped"]` is set. Only the robots the policy controls count — a scripted robot on
@@ -151,7 +143,7 @@ ball-to-goal distance.
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**30 s**, and at the default `control_hz=60` `dt` is exactly 1/60 s, so **1800 steps**.
+**12 s**, and at the default `control_hz=60` `dt` is exactly 1/60 s, so **720 steps** (180 at 15 Hz).
 
 ## Arguments
 

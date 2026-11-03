@@ -107,28 +107,20 @@ Per step:
 
 | term | value |
 |---|---|
-| carry shaping | `(prev_dist - dist) * holds(0)`, the decrease in ball-to-waypoint distance, only while the ball is held |
-| holding bonus | `+0.01 * holds(0)` |
-| energy | `-0.001 * ||a||^2` |
-| waypoint bonus | `+5.0` each time a waypoint is scored, up to 4 times |
+| approach shaping | `prev_dist - dist`, the decrease in robot-to-ball distance |
+| facing | `0.1 * cos(angle between the robot's front and robot->ball)`, every step |
+| holding | `+1.0 * holds(0)`, every step |
+| carry shaping | `(prev_wp_dist - wp_dist) * holds(0)`, the decrease in ball-to-current-waypoint distance, only while held |
+| energy | `-0.01 * ||a||^2` |
+| gate bonus | `+10.0` each time the held ball comes within `waypoint_tol = 0.3 m` of the current waypoint |
 
-The shaping is potential-based — the *decrease* in the ball-to-waypoint distance over one
-step — so the total a policy can collect between two waypoints is bounded by the distance
-between them and no cycle pays.
+Holding dominates on purpose: the task is to carry the ball always, through the gates. Standing
+still with the ball pays up to `450` over the horizon at 15 Hz, against `40` for the four gates;
+whether that is too much is an open question in `.scratch/rl-learning/issues/02-reward-redesign.md`.
+The carry term is gated on `holds(0)` so a policy cannot kick the ball at the waypoint and walk
+away. Approach and facing are what bring the robot back to a ball it dropped.
 
-The `holds(0)` gate on the progress term is what stops the obvious exploit: without it a
-policy can farm the shaping by kicking the ball at the waypoint and walking away, since the
-ball keeps closing on the target for free. Gated, the shaping stops the moment the ball
-leaves the mouth, and the distance the ball covers loose is credited to nobody — when the
-ball is recaptured, `prev_dist` has already moved with it. The `+0.01` holding bonus is a
-small, constant reason to keep the bar on the ball even when the waypoint is not getting
-closer; over the full 2400-step horizon it is worth at most `+24`.
-
-`ENERGY = 0.001` multiplies the squared norm of the whole flat action, summing over all 7
-dimensions on the default tier 1 (6 on tier 0) rather than just the drive channels, so a
-saturated action costs `-0.007` per step on tier 1, `-0.006` on tier 0. It is what makes a
-stray kick or chip cost
-something on top of the gated shaping it forfeits.
+`ENERGY = 0.01` multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-0.07` / `-0.06` per step.
 
 ## Starting State
 
@@ -180,7 +172,7 @@ first is a success.
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**40 s**, and at the default `control_hz=60` `dt` is exactly 1/60 s, so **2400 steps** —
+**30 s**, and at the default `control_hz=60` `dt` is exactly 1/60 s, so **1800 steps** (450 at 15 Hz) —
 the longest horizon in the suite, because four waypoints across a 12 x 9 m field is a lot of
 ground to cover at a speed that keeps the ball.
 

@@ -337,32 +337,76 @@ def test_goto_ball_is_solvable():
 def test_goto_ball_does_not_pay_camping():
     """Turning to face the ball and never driving must not out-earn reaching it.
 
-    The facing term used to pay +0.05 per step, so a robot that only turned to the ball and
-    sat there collected ~+59.5 over the 1200-step horizon against ~+30 for one that drove up
-    and finished. SAC found it: the sweep's GoToBall policy timed out at ~870 steps with
-    ~90 % of its return from that term. Shaping that is the change in a potential
-    caps what standing still can earn at the one turn.
+    A per-step +0.05 * facing against a +10 arrival once paid ~+59.5 for turning to the
+    ball and parking over a 1200-step horizon, against ~+30 for finishing, and SAC learned
+    exactly that. Facing is per-step again (0.1 * cos), so what keeps camping unprofitable is
+    the 100 arrival bonus: discounted, at the 15 Hz the agents train at, as well as summed.
     """
     env = gym.make("GoToBall-v0", tier=0)
+    gamma = 0.99 ** (15 / 60)  # gamma 0.99 per 15 Hz step, expressed per 60 Hz step
 
     def episode(seed: int, drive: bool) -> float:
         obs, _ = env.reset(seed=seed)
-        total = 0.0
+        total, k = 0.0, 0
         while True:
             action = np.zeros(env.action_space.shape, dtype=np.float32)
             action[:3] = goto_ball_policy(obs)
             if not drive:
                 action[:2] = 0.0  # turn in place only
             obs, reward, terminated, truncated, _ = env.step(action)
-            total += reward
+            total += gamma**k * reward
+            k += 1
             if terminated or truncated:
                 return total
 
     camp = np.mean([episode(s, drive=False) for s in range(3)])
     go = np.mean([episode(s, drive=True) for s in range(3)])
     env.close()
-    assert camp < 1.0, f"turning in place earned {camp:.2f}"
-    assert camp < go, f"camping {camp:.2f} out-earns reaching the ball {go:.2f}"
+    assert camp < 0.5 * go, f"camping {camp:.2f} out-earns reaching the ball {go:.2f}"
+
+
+def _ram(env, j: int, speed: float, steps: int = 600) -> dict:
+    """Drive robot 0 straight at robot `j`'s centre at `speed` m/s (tier 0) until done."""
+    u = env.unwrapped
+    info: dict = {}
+    for _ in range(steps):
+        r = u.robots[0]
+        R = u.data.xmat[r.body].reshape(3, 3)[:2, :2]
+        local = R.T @ (u.data.xpos[u.robots[j].body][:2] - u.data.xpos[r.body][:2])
+        a = np.zeros(env.action_space.shape, dtype=np.float32)
+        a[:2] = local / np.linalg.norm(local) * speed / 4.0  # vx/vy ctrlrange is 4 m/s
+        _, _, terminated, truncated, info = env.step(a)
+        if terminated or truncated:
+            break
+    return info
+
+
+def test_contact_fouls():
+    """StaticDefenders ends on any contact with a defender; ContestedPossession only on a
+    crash (SSL rules 8.4.2: closing speed over 1.5 m/s), so a slow push to win the ball
+    stays legal."""
+    env = gym.make("StaticDefenders-v0", tier=0)
+    env.reset(seed=0)
+    assert _ram(env, 1, 2.0, steps=900).get("collision")
+    env.close()
+    env = gym.make("ContestedPossession-v0", tier=0)
+    env.reset(seed=0)
+    assert _ram(env, 1, 3.0).get("crash")
+    env.reset(seed=0)
+    assert not _ram(env, 1, 0.5, steps=300).get("crash")
+    env.close()
+
+
+def test_shoot_counts_one_kick_at_the_ball():
+    """has_kicked is a plunger fired at the ball, not into the air: random exploration fires
+    on half its steps, and a kick spent on step one would switch off the approach term."""
+    env = gym.make("GoToBallShoot-v0", tier=0)
+    env.reset(seed=0)
+    a = np.zeros(env.action_space.shape, dtype=np.float32)
+    a[3] = 1.0
+    _, _, _, _, info = env.step(a)
+    assert env.unwrapped.fired[0] and not info["has_kicked"]
+    env.close()
 
 
 def test_wheel_command_full_spin_is_every_wheel_at_its_limit():
@@ -718,8 +762,8 @@ def test_tier0_has_the_tier1_envelope():
 # changing every episode length and every reward's rate per second.
 @pytest.mark.parametrize(
     "env_id,steps",
-    [("GoToBall-v0", 1200), ("GoToBallShoot-v0", 1800), ("Dribbling-v0", 2400),
-     ("StaticDefenders-v0", 1800), ("ContestedPossession-v0", 1200), ("PassEndurance-v0", 1200)],
+    [("GoToBall-v0", 600), ("GoToBallShoot-v0", 720), ("Dribbling-v0", 1800),
+     ("StaticDefenders-v0", 1200), ("ContestedPossession-v0", 1200), ("PassEndurance-v0", 720)],
 )
 def test_horizon_is_seconds_at_exactly_60_hz(env_id, steps):
     env = gym.make(env_id).unwrapped
