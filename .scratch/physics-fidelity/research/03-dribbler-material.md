@@ -1,8 +1,8 @@
 # 03 — Material do dribbler: o que segura a bola num giro, o que as equipes medem e o que o MuJoCo consegue representar
 
 Pesquisa de 2026-11-02, motivada pela perda da bola com o robô girando no lugar a ≥ ~1 rad/s
-(26–85 de 120 passos retidos a 1 rad/s, 12–14 a 2 rad/s, `.scratch/physics-fidelity/prototype-dribbler-bar/probe_tier0.json`,
-`rpm_sweep_t0.txt`). Fontes consultadas em 2026-11-02: os arquivos de TDP/ETDP da liga em
+(26–85 de 120 passos retidos a 1 rad/s, 12–14 a 2 rad/s, ticket `22` (sondas descartadas; números no §Diagnóstico),
+ticket `22` §Diagnóstico 5). Fontes consultadas em 2026-11-02: os arquivos de TDP/ETDP da liga em
 https://ssl.robocup.org/team-description-papers/ (ZIPs 2013–2025, lidos por inteiro via `pdftotext`) mais
 os ETDPs de 2026 baixados um a um de https://ssl.robocup.org/robocup-2026-teams/; dois artigos revisados
 por pares sobre dribbler da SSL (ZJUNlict, IEEE RCAR 2019; RobôCIn, SBR/LARS 2021); o livro de regras
@@ -420,13 +420,13 @@ COR 0.63 do silicone A10 da Luhbots pediria ζ ≈ 0.15. No MuJoCo, porém, o CO
 2. **O contato está ausente boa parte do tempo.** Mesmo parado, o contato bruto bola↔rolete existe em só
    74 % (tier 0) e 65 % (tier 1) dos passos — o rolete "sticks, slips and re-grips", e `holds()` só
    funciona por causa da janela de 0.05 s (`docs/index.md:308-322`). No traço a 1 rad/s a normal oscila
-   entre 0.48 e 6.45 N de uma amostra para a outra (`trace_w1_a0.5_t0.txt`). Fora do contato, a bola fica
+   entre 0.48 e 6.45 N de uma amostra para a outra (ticket `22` §Diagnóstico 2). Fora do contato, a bola fica
    só sobre o carpete, cujo contato também desliza no sentido do giro da bola e oferece pouco
    lateralmente. Isso explicaria por que μ×4, `impratio` e `noslip` não mudam nada (não agem quando não há
    contato) — e é exatamente o problema de "bouncing" contra o qual ZJUNlict (3 pontos), KIKS (amortecedor,
    gel) e TIGERs (2 GDL) projetaram.
 3. **O rolete não satura em média.** O torque do atuador sob carga, kv·(alvo − medido), dá ≈ 0.012 N·m
-   tanto em kv×1 (2178 rpm) quanto em kv×10 (2921 rpm) (`rpm_sweep_t0.txt`, `models/robot_kinematic.xml:370`),
+   tanto em kv×1 (2178 rpm) quanto em kv×10 (2921 rpm) (ticket `22` §Diagnóstico 5, `models/robot_kinematic.xml:370`),
    ~1.3 N tangenciais a 9 mm. O orçamento μ·f_N = 2.5 × (0.5–6.5 N) só fica abaixo disso nas fases de
    normal baixa — de novo o ciclo de quique.
 4. **O vetor de spin da bola tem de girar junto com o robô.** Com o rolete rolando sobre a bola a ~2 m/s,
@@ -434,7 +434,7 @@ COR 0.63 do silicone A10 da Luhbots pediria ζ ≈ 0.15. No MuJoCo, porém, o CO
    torque ω_z·I·ω_bola ≈ 1×10⁻³ N·m por rad/s em torno do eixo frontal do robô, ~0.05 N por rad/s de força
    lateral nos contatos (alavanca r_bola). Isso é da mesma ordem do limite μmg = 0.16 N do CMDragons, e
    **cresce com a velocidade do rolete** — coerente com a varredura de rpm, em que a retenção cai com a
-   rotação em todo ω (kv×1, ω = 0.5: 118/104/69/20 a 1.5/3/6/9 krpm; `rpm_sweep_t0.txt`). Essa física
+   rotação em todo ω (kv×1, ω = 0.5: 118/104/69/20 a 1.5/3/6/9 krpm; ticket `22` §Diagnóstico 5). Essa física
    vale também no robô real; nenhuma das fontes a modela. CMDragons a deixa explicitamente para depois
    (§3.3).
 5. **A simulação pode não estar "errada" para uma barra lisa única.** A KIKS mediu a mesma falha perto de
@@ -575,7 +575,7 @@ Dureza→módulo (secundária; originais não consultados):
 
 Este repositório: `uv.lock:386,413`; `models/scene.xml:4,21-22`; `models/robot_kinematic.xml:329,336-337,370`;
 `models/robot_rollers.xml:249-250,807`; `models/assets/visual/Dribblerschnecke.stl`; `docs/index.md:308-322,388-412,501-502`;
-`.scratch/physics-fidelity/prototype-dribbler-bar/{probe_tier0.json,rpm_sweep_t0.txt,trace_w1_a0.5_t0.txt}`.
+ticket `22` (sondas descartadas; números no §Diagnóstico).
 
 [RC20]: https://ssl.robocup.org/wp-content/uploads/2020/03/2020_TDP_RoboCIn.pdf
 [RC22]: https://ssl.robocup.org/wp-content/uploads/2022/04/2022_TDP_RoboCIn.pdf
