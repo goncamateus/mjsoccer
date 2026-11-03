@@ -67,7 +67,22 @@ efetivo mais longo acampar vale mais que chegar (a γ 0.999 por passo de 60 Hz: 
 
 Nenhum dos dois platôs parece convergido: as curvas de Shoot e Dribbling ainda sobem em 250k.
 
+## Treinos de 1M passos de política (15 Hz, tier 0, seed 0; avaliação determinística, 20 ep., seeds de reset 0-4 × 4)
+
+| task | 250k | 1M | como terminam os episódios (1M) |
+|---|---|---|---|
+| GoToBallShoot | sucesso 0.00, ret 3.6 | **sucesso 0.05**, ret 6.7, 282 passos | 14 bola fora, 5 timeout, 1 gol |
+| Dribbling | sucesso 0.00, ret 1.0, 50 passos, waypoints 0-1 | sucesso 0.00, **ret 7.3, 97 passos**, waypoints 0:9 1:7 2:3 3:1 (de 4) | 20/20 perdem a bola (> 2 s sem posse) |
+
+**Shoot.** A política empurra a bola para +x (o gol), quase sempre devagar (0.5-3 m/s, conduzindo e não
+chutando), mas sem mirar: 7 saem pela linha de fundo fora do gol, 7 pela lateral. Bola fora não tem
+penalidade, e o shaping `prev_goal − goal` já pagou o avanço antes da saída. O gradiente está certo
+(levar a bola ao gol); o que falta é precisão.
+
+**Dribbling.** Dobrou o tempo de posse e chega a até 3 de 4 waypoints, mas sempre termina perdendo a
+bola. Coerente com o limite de giro com bola de ~2 rad/s (ticket `physics-fidelity/22`).
+
 ## Pendente
 
-- Shoot e Dribbling: treinos mais longos (1M passos de política) antes de mexer em reward.
+- Shoot: decidir se bola fora deve custar algo (hoje é saída grátis depois de colher o shaping).
 - Dribbling: limite de giro de 3 rad/s com bola continua aberto (ticket `physics-fidelity/22`).
