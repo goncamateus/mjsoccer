@@ -316,20 +316,21 @@ in the mouth for 120 idle steps (no drive, `dribble = 0.5`, i.e. 157 rad/s), mea
 
 | | raw ball/dribbler contact | `holds()` |
 |---|---|---|
-| tier 0 | 74% of steps | 99% |
-| tier 1 (default) | **65%** of steps | 95% |
+| tier 0 | 97% of steps | 98% |
+| tier 1 (default) | 98% of steps | 100% |
 
-On the default tier the bar is genuinely off the ball on a third of the steps, and the
-grace window is the whole reason a carry task is solvable at all. Read a raw contact count
-as "has the ball" and tier 1 looks like a robot that keeps dropping it.
+Before ticket 22 these read 74 % / 99 % and **65 %** / 95 %: the old ball↔bar contact was
+underdamped and ~10× stiffer than the bar's PU sleeve, so the bar hammered the ball (normal
+force p10/p90 0.44 / 11 N) and was genuinely off it on a third of the steps. With the
+PU 65A contact it stays on, and the grace window only covers the odd re-grip.
 
 **The tiers retain a carried ball by different mechanisms.** Measured over 8 seeds, counting `holds()`
 steps out of 120 idle ones — the robot seated on the ball, no drive command given, bar at `dribble = 0.5`:
 
 | env | tier 0 | tier 1 (default) |
 |---|---|---|
-| `ContestedPossession-v0` | 120 / 120 | 118 / 120 |
-| `Dribbling-v0` | 117 / 120 | 119 / 120 |
+| `ContestedPossession-v0` | 120 / 120 | 120 / 120 |
+| `Dribbling-v0` | 118 / 120 | 120 / 120 |
 
 Every seed reads the same. The figures are close, the mechanisms are not: tier 1's chassis
 can recoil off the ball it is carrying through real wheel slip, and tier 0's rigid kinematic
@@ -340,7 +341,8 @@ mechanisms.
 
 These numbers are from after ticket 05's contact changes (roller μ 0.25, ball β 0.5, the
 motor-envelope wheel actuators of ticket 04), ticket 12's tier-0 envelope, ticket 13's
-1/960 s step, ticket 20's free rollers and ticket 21's ball bounce; before ticket 21 tier 1's
+1/960 s step, ticket 20's free rollers, ticket 21's ball bounce and ticket 22's PU 65A
+ball↔bar contact (before it: 120 / 118 and 117 / 119); before ticket 21 tier 1's
 `ContestedPossession-v0` scattered 102-118. On the old 2 ms step tier-0
 `ContestedPossession-v0` scattered 69-95 and looked chaotic; it was the step under-resolving the ball/dribbler contact (120 at 0.5 ms,
 87 at 2 ms, 0 at 4 ms). Before ticket 05 `Dribbling-v0` held 120 / 111-112
@@ -357,10 +359,20 @@ tenths of a millimetre of overlap to exist at all, and on a 46 g ball that overl
 compressed spring worth several newtons. Below ~0.1 mm MuJoCo stops generating the contact
 at all, so there is no overlap that works.
 
-**Turning with the ball loses it.** With the bar at 157 rad/s (`dribble = 0.5`) a robot
-spinning in place at 10 rad/s or more drops a seated ball within 5 control steps; standing
-still it holds 117 of 120 (the validation sweep's `dribble_turn` scenario). A task that
-needs a turn in possession has to do it slowly, or with more bar speed.
+**Turning with the ball loses it past ~2 rad/s.** Bar at full speed (`dribble = 1`), robot
+spinning in place, `holds()` steps out of 120, worst of seeds 0-2 (ticket 22):
+
+| yaw | 0.5 rad/s | 1 rad/s | 2 rad/s | 3 rad/s |
+|---|---|---|---|---|
+| tier 0 | 107 | 100 | 81 | 11 |
+| tier 1 (default) | 103 | 96 | 73 | 11 |
+
+Before ticket 22 the hammering bar dropped it from ~1 rad/s (13-14 of 120 at 2 rad/s);
+`test_seated_ball_survives_a_2_rad_s_turn` pins the new numbers. More bar speed does not
+help: the faster the bar, the more of the friction cone goes along the spin. 3 rad/s is an
+open fidelity gap, not a target — published SSL dribblers hold 3-7 rad/s, by contact area
+(soft or split bars) rather than friction (`.scratch/physics-fidelity/research/03-dribbler-material.md`).
+A task that needs a turn in possession has to keep it under ~2 rad/s.
 
 ## Turnover
 
@@ -403,7 +415,7 @@ classes rank RULEBOOK > MEASURED > VENDOR > DELIBERATE APPROXIMATION (developmen
 | chassis ↔ floor | collided (floor `contype/conaffinity` 5), no proxy | — | ticket 06 |
 | collision hulls | 193 per robot (16 buried hulls pruned) | — | ticket 07; the wheel hub, not a roller, is what deflects a ball rolling under the robot |
 | ball ↔ kicker/chipper plates | μ 0.4 (geom-mixed with the ball's 0.35) | DELIBERATE APPROXIMATION | no source |
-| ball ↔ dribbler | μ 2.5, `solref="0.004 0.5"` | DELIBERATE APPROXIMATION | above 1 so the bar can hold the ball; no physical retention model |
+| ball ↔ dribbler | μ 2.5, `solref="0.008 1"` | μ: DELIBERATE APPROXIMATION; solref: VENDOR (derived) | μ above 1 so the bar can hold the ball, no source measures it against a golf ball. solref from the bar's PU 65A sleeve (RobôCIn ETDP 2026): Shore→modulus and Hertz give ~0.2 mm of sink at 3 N, i.e. timeconst 7-9 ms critically damped (ticket 22, research 03 §5.5) |
 | walls, bumpers | `solref="0.004 1"` (the ball has its own pairs with the walls) | DELIBERATE APPROXIMATION | neither this nor MuJoCo's `0.02 1` has a source |
 | robot ↔ robot, robot ↔ wall μ | 0.5, 0.6 | DELIBERATE APPROXIMATION | no source |
 | `impratio` | 1 | DELIBERATE APPROXIMATION | no ODE/rSim counterpart; revisit if slip turns abrupt |

@@ -276,6 +276,31 @@ def test_seated_ball_is_possessed(env_id, index, min_held, tier):
     env.close()
 
 
+@pytest.mark.parametrize("tier,min_held", [(0, 77), (1, 69)])
+def test_seated_ball_survives_a_2_rad_s_turn(tier, min_held):
+    """Spinning in place at 2 rad/s with the bar at full speed must not drop the ball.
+
+    Ticket 22: with the old ball<->bar solref "0.004 0.5" -- ~10x stiffer than the PU 65A
+    sleeve and underdamped -- the bar hammered the ball (normal force p10/p90 0.44/11 N, in
+    contact on 83 % of substeps) and a 2 rad/s turn kept it 13-14 of 120 steps. The PU 65A
+    solref "0.008 1" keeps it 81 (tier 0) and 73 (tier 1), worst of seeds 0-2; each bar sits
+    5 % under that. 3 rad/s still drops it on both tiers -- an open fidelity gap, not a target.
+    """
+    from mjsoccer.base import MAX_W
+    from mjsoccer.tasks import wheel_command
+
+    env = gym.make("Dribbling-v0", tier=tier).unwrapped
+    for seed in range(3):
+        env.reset(seed=seed)
+        held = 0
+        for _ in range(120):
+            drive = [0.0, 0.0, 2.0 / MAX_W] if tier == 0 else wheel_command(env, 0, 0.0, 0.0, 2.0)
+            env.step(np.concatenate([drive, [0.0, 0.0, 1.0]]).astype(np.float32))
+            held += env.holds(0)
+        assert held >= min_held, f"seed {seed}: held {held}/120 steps of a 2 rad/s turn"
+    env.close()
+
+
 def test_goto_ball_is_solvable():
     """A P-controller must actually finish GoToBall-v0.
 
@@ -342,6 +367,7 @@ def test_goto_ball_does_not_pay_camping():
 
 def test_wheel_command_full_spin_is_every_wheel_at_its_limit():
     """95 rad/s at every wheel is the 35.9 rad/s kinematic yaw ceiling (ticket 01)."""
+    from mjsoccer.base import MAX_W
     from mjsoccer.tasks import wheel_command
 
     env = gym.make("GoToBall-v0", tier=1).unwrapped
@@ -359,6 +385,7 @@ def test_wheel_command_drives_the_body_frame(cmd):
     lateral and 88 % of 10 rad/s, which is the wheels losing the floor (ticket 18), not
     the map. Speed is only held to "more than half".
     """
+    from mjsoccer.base import MAX_W
     from mjsoccer.tasks import wheel_command
 
     env = gym.make("GoToBall-v0", tier=1).unwrapped

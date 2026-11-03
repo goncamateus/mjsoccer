@@ -18,7 +18,7 @@
     <camera name="closeup" pos="0.6 -0.7 0.5" xyaxes="0.75 0.66 0 -0.36 0.41 0.84" />
   </worldbody>
   <contact>
-    <pair geom1="ball" geom2="r_col_axisDribbler" condim="4" friction="2.5 2.5 0.02 0.0001 0.0001" solref="0.004 0.5" solimp="0.95 0.99 0.001" />
-    <pair geom1="ball" geom2="r_col_barDribbler" condim="4" friction="2.5 2.5 0.02 0.0001 0.0001" solref="0.004 0.5" solimp="0.95 0.99 0.001" />
+    <pair geom1="ball" geom2="r_col_axisDribbler" condim="4" friction="2.5 2.5 0.02 0.0001 0.0001" solref="0.008 1" solimp="0.95 0.99 0.001" />
+    <pair geom1="ball" geom2="r_col_barDribbler" condim="4" friction="2.5 2.5 0.02 0.0001 0.0001" solref="0.008 1" solimp="0.95 0.99 0.001" />
   </contact>
 </mujoco>
