@@ -44,7 +44,11 @@ colapsa para 1e-5–1e-4 em todos os runs.
 | Shoot | γ 0.999 (300k) | 0 | 0 |
 | GoToBall | reward antigo, base (sweep) | — | 0.40-0.44 |
 | GoToBall | reward novo, base | 0.15 | 0.28 |
-| GoToBall | **reward novo, frame-skip 4** | **0.95** | **0.98**, episódio ~294 passos (scripted 285-307) |
+| GoToBall | **reward novo, frame-skip 4**, seeds 0-4 | **0.95 / 1.00 / 0.90 / 0.90 / 0.95** | **0.91-0.98**, episódio 250-346 passos (scripted 285-307) |
+| GoToBall | reward antigo, frame-skip 4 | 0.00 | 0.05, episódio 1160-1200 (acampa) |
+
+Os dois fixes são necessários: o horizonte maior sozinho **piora** o reward antigo, porque com γ
+efetivo mais longo acampar vale mais que chegar (a γ 0.999 por passo de 60 Hz: 34.7 vs 26.1).
 
 ## Fixes
 
@@ -55,8 +59,6 @@ colapsa para 1e-5–1e-4 em todos os runs.
 
 ## Pendente
 
-- Seeds 1-4 de GoToBall reward novo + frame-skip 4, e reward antigo + frame-skip 4 (seed 0),
-  para separar o efeito do fix do reward do efeito do frame-skip. Rodando.
 - Levar o frame-skip ao `examples/sac_agent.py` (`--control-hz`).
 - Shoot: frame-skip 4 + peso da aproximação 0.2 → 1.0.
 - Dribbling: retrainar depois do ticket 22.
