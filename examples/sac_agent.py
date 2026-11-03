@@ -30,7 +30,19 @@ def main(argv=None) -> int:
         default=1,
         help="0 = kinematic chassis, 1 = roller wheels",
     )
-    ap.add_argument("--timesteps", type=int, default=1_000_000)
+    ap.add_argument(
+        "--control-hz",
+        type=int,
+        default=15,
+        help="policy rate, Hz; 15 holds each action for four 60 Hz steps",
+    )
+    ap.add_argument(
+        "--gradient-steps",
+        type=int,
+        default=4,
+        help="updates per vector step; 4 at 15 Hz keeps the update count of 1 at 60 Hz",
+    )
+    ap.add_argument("--timesteps", type=int, default=250_000, help="policy steps, at --control-hz")
     ap.add_argument("--n-envs", type=int, default=16, help="parallel rollout workers")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument(
@@ -46,7 +58,7 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     if args.play:
-        env = gym.make(args.env, tier=args.tier, render_mode="human")
+        env = gym.make(args.env, tier=args.tier, control_hz=args.control_hz, render_mode="human")
         model = SAC.load(args.play)
         obs, _ = env.reset(seed=args.seed)
         while True:
@@ -56,7 +68,16 @@ def main(argv=None) -> int:
                 print(info)
                 obs, _ = env.reset()
 
-    envs = make_vec_env(args.env, n_envs=args.n_envs, seed=args.seed, env_kwargs={"tier": args.tier})
+    # 15 Hz, not 60: gamma 0.99 sees 1/(1-gamma) = 100 policy steps ahead, 1.7 s at 60 Hz
+    # against tasks that take 5-8 s; at 15 Hz it is 6.7 s. GoToBall-v0 tier 0, 1M physics-rate
+    # steps: 0.15 eval success at 60 Hz, 0.90-1.00 over seeds 0-4 at 15 Hz
+    # (.scratch/rl-learning/issues/01-why-nothing-learns.md).
+    envs = make_vec_env(
+        args.env,
+        n_envs=args.n_envs,
+        seed=args.seed,
+        env_kwargs={"tier": args.tier, "control_hz": args.control_hz},
+    )
     model = SAC(
         "MlpPolicy",
         envs,
@@ -67,6 +88,7 @@ def main(argv=None) -> int:
         tau=0.005,
         gamma=0.99,
         target_update_interval=1,
+        gradient_steps=args.gradient_steps,
         ent_coef="auto_0.2",
         seed=args.seed,
         device=args.device,

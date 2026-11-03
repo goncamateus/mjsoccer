@@ -148,7 +148,7 @@ Inherited verbatim from `GoToBallShootEnv` — there is no `_reward_done` overri
 
 | term | value |
 |---|---|
-| approach shaping | `0.2 * (prev_dist - dist)`, the decrease in robot-to-ball distance |
+| approach shaping | `prev_dist - dist`, the decrease in robot-to-ball distance |
 | goal shaping | `prev_goal_dist - goal_dist`, the decrease in ball-to-goal distance |
 | energy | `-0.001 * ||a||^2` |
 | goal bonus | `+20.0` on the terminating step |

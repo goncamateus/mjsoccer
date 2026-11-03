@@ -113,9 +113,10 @@ class GoToBallShootEnv(_BallTask):
 
     def _reward_done(self, action):
         d, g = self._to_ball(), self._goal_dist()
-        # The ball term dominates: moving the ball goalward is the task, closing on the
-        # ball is only how you get to do it.
-        reward = 0.2 * (self._prev - d) + (self._prev_goal - g) + self._energy(action)
+        # Approach weighs what the ball term does. At 0.2 closing on the ball was worth ~+1 an
+        # episode against -3.6 of energy for random actions, so SAC learned to stand still and
+        # never met the goal (.scratch/rl-learning/issues/01-why-nothing-learns.md).
+        reward = (self._prev - d) + (self._prev_goal - g) + self._energy(action)
         self._prev, self._prev_goal = d, g
         scored = S.in_goal(self.ball.pos(self.data))
         if scored:

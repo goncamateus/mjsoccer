@@ -96,7 +96,7 @@ Per step:
 
 | term | value |
 |---|---|
-| approach shaping | `0.2 * (prev_dist - dist)`, the decrease in robot-to-ball distance |
+| approach shaping | `prev_dist - dist`, the decrease in robot-to-ball distance |
 | goal shaping | `prev_goal_dist - goal_dist`, the decrease in ball-to-goal distance |
 | energy | `-0.001 * ||a||^2` |
 | goal bonus | `+20.0` on the terminating step |
@@ -105,8 +105,9 @@ Per step:
 `(6.0, clip(ball_y, -0.9, 0.9))`, so a ball driven straight down a wing is credited for the
 part of its travel that actually shortens the shot.
 
-The ball term is weighted five times the approach term deliberately: moving the ball
-goalward is the task, closing on the ball is only how you get to do it. Both are
+The two terms weigh the same. The approach term used to be `0.2 *`, to make the ball term
+dominate, but then closing on the ball was worth about `+1` an episode against `-3.6` of
+energy for random actions, and SAC learned to stand still and never met the goal. Both are
 potential-based — each is the *decrease* in a distance over one step — so total shaping over
 an episode is bounded by the starting distances and no cycle pays. A policy that pushes the
 ball away and re-collects it nets zero for the round trip.
