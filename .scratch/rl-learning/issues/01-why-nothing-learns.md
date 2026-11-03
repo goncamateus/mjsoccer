@@ -57,8 +57,17 @@ efetivo mais longo acampar vale mais que chegar (a γ 0.999 por passo de 60 Hz: 
 - `9f7d913` — ticket `physics-fidelity/22`: contato bola↔rolete de PU 65A; limite de giro com
   bola ~1 → ~2 rad/s.
 
+## Treinos com `examples/sac_agent.py` a 15 Hz (`c9a29db`, tier 0, seed 0, 250k passos de política)
+
+| task | sucesso no rollout (fim) | ep_rew | episódio | leitura |
+|---|---|---|---|---|
+| GoToBall | **0.93** | 14.5 | 68 passos (~4.5 s) | caminho nativo `control_hz=15` reproduz o wrapper |
+| GoToBallShoot | 0.00 → 0.06 (sobe nos últimos 50k) | 1.75 → 5.2 | ~380 de 450 | aprendeu ir até a bola (scripted "aproxima e para" = 5.5); chute ainda raro |
+| Dribbling | 0 | −0.05 → 0.5-0.75 (subindo) | 24 → 48 (~3 s) | segura a bola mais tempo, longe dos waypoints |
+
+Nenhum dos dois platôs parece convergido: as curvas de Shoot e Dribbling ainda sobem em 250k.
+
 ## Pendente
 
-- Levar o frame-skip ao `examples/sac_agent.py` (`--control-hz`).
-- Shoot: frame-skip 4 + peso da aproximação 0.2 → 1.0.
-- Dribbling: retrainar depois do ticket 22.
+- Shoot e Dribbling: treinos mais longos (1M passos de política) antes de mexer em reward.
+- Dribbling: limite de giro de 3 rad/s com bola continua aberto (ticket `physics-fidelity/22`).
