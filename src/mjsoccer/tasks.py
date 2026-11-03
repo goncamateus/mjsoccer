@@ -71,13 +71,17 @@ class GoToBallEnv(_BallTask):
         self.ball.place(self.data, bx, by)
 
     def _reset_task(self) -> None:
-        self._prev = self._to_ball()
+        self._prev, self._prev_facing = self._to_ball(), self._facing()
 
     def _reward_done(self, action):
-        d = self._to_ball()
-        reward = (self._prev - d) + 0.05 * self._facing() + self._energy(action)
-        self._prev = d
-        arrived = d < REACH and self._facing() > 0.9
+        d, f = self._to_ball(), self._facing()
+        # Both terms are the change in a potential, so sitting still pays nothing. A per-step
+        # 0.05 * facing paid ~+60 a horizon for turning to the ball and parking, twice what
+        # finishing earned, and SAC learned exactly that. 0.5 makes a full about-turn
+        # (cos -1 -> 1) worth what closing 1 m is.
+        reward = (self._prev - d) + 0.5 * (f - self._prev_facing) + self._energy(action)
+        self._prev, self._prev_facing = d, f
+        arrived = d < REACH and f > 0.9
         if arrived:
             reward += 10.0
         return reward, arrived, {"is_success": arrived, "dist": d}

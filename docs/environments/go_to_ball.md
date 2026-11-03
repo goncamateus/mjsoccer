@@ -93,19 +93,23 @@ Per step:
 | term | value |
 |---|---|
 | approach shaping | `prev_dist - dist`, the decrease in robot-to-ball distance over the step |
-| facing bonus | `+0.05 * cos(angle between the robot's front and the ball)` |
+| facing shaping | `0.5 * (facing - prev_facing)`, the increase over the step in `facing = cos(angle between the robot's front and the ball)` |
 | energy | `-0.001 * ||a||^2` |
 | arrival bonus | `+10.0` on the terminating step |
 
-All shaping is potential-based: the approach term is the *decrease* in a distance over one
-step, so the total shaping a policy can collect over an episode is bounded by the starting
-distance (at most about 15 m across the diagonal of the field) and no cycle pays — driving
-away and back nets zero.
+All shaping is potential-based: each term is the change in a potential over one step, so
+the total shaping a policy can collect over an episode is bounded — the approach term by the
+starting distance (at most about 15 m across the diagonal of the field), the facing term by
+`0.5 * 2 = 1.0` — and no cycle pays: driving away and back, or turning away and back, nets
+zero.
 
-The facing bonus is not potential-based; it is a bounded per-step term worth at most
-`+0.05`, which over the 1200-step horizon is worth up to `+60` if the robot orbits the
-ball while pointed at it. It is there because arrival requires `cos > 0.9` and pure distance
-shaping gives no gradient towards orientation.
+The facing term is there because arrival requires `cos > 0.9` and pure distance shaping
+gives no gradient towards orientation. Its weight makes a full about-turn worth what closing
+1 m is. It used to be a per-step `+0.05 * cos`, which paid up to `+60` over the 1200-step
+horizon for turning to the ball and parking — about twice what finishing earned. SAC
+learned exactly that: the sweep's tier-0 policy timed out at ~870 steps with ~90 % of its
+return from that term. `test_goto_ball_does_not_pay_camping` pins the fix: turning in place
+must earn under `1.0`.
 
 `ENERGY = 0.001` multiplies the squared norm of the whole flat action, so it now sums over
 all 7 dimensions on the default tier 1 (6 on tier 0) rather than just the drive channels: a
@@ -121,7 +125,7 @@ inside the field), resampled until it is at least 0.5 m from everything already 
 to 200 attempts. The robot's yaw is uniform over `[-pi, pi)`. The ball starts at rest on the
 floor; the robot starts at rest at the chassis height the model defines.
 
-`_reset_task` records the initial robot-to-ball distance as the shaping baseline.
+`_reset_task` records the initial robot-to-ball distance and facing as the shaping baselines.
 
 ## Episode End
 

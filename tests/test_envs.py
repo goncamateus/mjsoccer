@@ -309,6 +309,37 @@ def test_goto_ball_is_solvable():
     assert np.mean(returns) > 5.0, f"mean return {np.mean(returns):.2f}"
 
 
+def test_goto_ball_does_not_pay_camping():
+    """Turning to face the ball and never driving must not out-earn reaching it.
+
+    The facing term used to pay +0.05 per step, so a robot that only turned to the ball and
+    sat there collected ~+59.5 over the 1200-step horizon against ~+30 for one that drove up
+    and finished. SAC found it: the sweep's GoToBall policy timed out at ~870 steps with
+    ~90 % of its return from that term. Shaping that is the change in a potential
+    caps what standing still can earn at the one turn.
+    """
+    env = gym.make("GoToBall-v0", tier=0)
+
+    def episode(seed: int, drive: bool) -> float:
+        obs, _ = env.reset(seed=seed)
+        total = 0.0
+        while True:
+            action = np.zeros(env.action_space.shape, dtype=np.float32)
+            action[:3] = goto_ball_policy(obs)
+            if not drive:
+                action[:2] = 0.0  # turn in place only
+            obs, reward, terminated, truncated, _ = env.step(action)
+            total += reward
+            if terminated or truncated:
+                return total
+
+    camp = np.mean([episode(s, drive=False) for s in range(3)])
+    go = np.mean([episode(s, drive=True) for s in range(3)])
+    env.close()
+    assert camp < 1.0, f"turning in place earned {camp:.2f}"
+    assert camp < go, f"camping {camp:.2f} out-earns reaching the ball {go:.2f}"
+
+
 def test_wheel_command_full_spin_is_every_wheel_at_its_limit():
     """95 rad/s at every wheel is the 35.9 rad/s kinematic yaw ceiling (ticket 01)."""
     from mjsoccer.tasks import wheel_command
