@@ -19,7 +19,7 @@ frente do robô e o vetor robô→bola, **puro** (não é diferença de potencia
 
 | env | termos | bônus | terminal |
 |---|---|---|---|
-| GTB | 1.0·Δ(robô→bola), 0.1·cos θ | +100 ao chegar | chegou, ou 10 s |
+| GTB | 1.0·Δ(robô→bola), 0.5·Δcos θ (potencial; ver issue 01) | +10 ao chegar | chegou, ou 10 s |
 | GTBS | 1.0·Δ(robô→bola)·¬has_kicked, 1.0·Δ(bola→gol)·has_kicked, 0.1·cos θ | +100 gol | gol; bola fora (−100); 12 s |
 | Drib | 1.0·Δ(robô→bola), 0.1·cos θ, 1.0·held, 1.0·Δ(bola→waypoint atual)·held | +10 por gate (bola a < tolerância do waypoint, com posse) | todos os waypoints; > 2 s sem posse; 30 s |
 | SD | as do GTBS + colisão | +100 gol | as do GTBS; colidiu com defensor (−100, qualquer contato); 20 s |

@@ -335,34 +335,34 @@ def test_goto_ball_is_solvable():
 
 
 def test_goto_ball_does_not_pay_camping():
-    """Turning to face the ball and never driving must not out-earn reaching it.
+    """Turning to face the ball and never driving must earn about nothing.
 
-    A per-step +0.05 * facing against a +10 arrival once paid ~+59.5 for turning to the
-    ball and parking over a 1200-step horizon, against ~+30 for finishing, and SAC learned
-    exactly that. Facing is per-step again (0.1 * cos), so what keeps camping unprofitable is
-    the 100 arrival bonus: discounted, at the 15 Hz the agents train at, as well as summed.
+    Facing is the change in a potential, 0.5 * (cos - prev_cos), so standing still pays at
+    most the one turn. A raw per-step 0.1 * cos needed a 100 arrival bonus to keep camping
+    unprofitable, and against that bonus the shaping was too faint: SAC went from 0.93 to
+    0.10-0.20 success on tier 0 at 250k steps; potential facing with a 10 bonus gives
+    0.95-0.97 (.scratch/rl-learning/issues/01-why-nothing-learns.md).
     """
     env = gym.make("GoToBall-v0", tier=0)
-    gamma = 0.99 ** (15 / 60)  # gamma 0.99 per 15 Hz step, expressed per 60 Hz step
 
     def episode(seed: int, drive: bool) -> float:
         obs, _ = env.reset(seed=seed)
-        total, k = 0.0, 0
+        total = 0.0
         while True:
             action = np.zeros(env.action_space.shape, dtype=np.float32)
             action[:3] = goto_ball_policy(obs)
             if not drive:
                 action[:2] = 0.0  # turn in place only
             obs, reward, terminated, truncated, _ = env.step(action)
-            total += gamma**k * reward
-            k += 1
+            total += reward
             if terminated or truncated:
                 return total
 
     camp = np.mean([episode(s, drive=False) for s in range(3)])
     go = np.mean([episode(s, drive=True) for s in range(3)])
     env.close()
-    assert camp < 0.5 * go, f"camping {camp:.2f} out-earns reaching the ball {go:.2f}"
+    assert camp < 1.0, f"turning in place earned {camp:.2f}"
+    assert camp < go, f"camping {camp:.2f} out-earns reaching the ball {go:.2f}"
 
 
 def _ram(env, j: int, speed: float, steps: int = 600) -> dict:

@@ -29,6 +29,7 @@ from .base import BaseEnv
 REACH = 0.13
 ENERGY = 0.01  # per-step penalty on ||action||^2: -0.06 a step saturated on tier 0
 FACING = 0.1  # per-step weight on cos(robot front, robot->ball), the raw cosine
+GOTO_BONUS = 10.0  # GoToBall only: its potential facing cannot be farmed, so 10 is enough
 BONUS = 100.0  # task completed; large enough that facing the ball and parking never pays
 OUT_PENALTY = 100.0  # ball out of the field, a collision foul
 # SSL rules 8.4.2 "Crashing": the difference of the two robots' velocities, projected onto
@@ -137,17 +138,20 @@ class GoToBallEnv(_BallTask):
         self.ball.place(self.data, bx, by)
 
     def _reset_task(self) -> None:
-        self._prev = self._to_ball()
+        self._prev, self._prev_facing = self._to_ball(), self._facing()
 
     def _reward_done(self, action):
-        d = self._to_ball()
-        # Facing is the raw cosine, paid every step. Parking facing the ball earns at most
-        # 0.1 * 150 steps = 15 over the 10 s horizon at 15 Hz, against the 100 for arriving.
-        reward = (self._prev - d) + FACING * self._facing() + self._energy(action)
-        self._prev = d
+        d, f = self._to_ball(), self._facing()
+        # Facing is a potential here, not the raw per-step cosine the other tasks pay: parking
+        # earns at most the one turn, so the bonus can stay small next to the shaping. A raw
+        # 0.1 * cos needed the 100 bonus to keep parking unprofitable, and against 100 the
+        # shaping went faint: SAC dropped from 0.93 to 0.10-0.20 success, back to 0.95-0.97
+        # this way (.scratch/rl-learning/issues/01-why-nothing-learns.md).
+        reward = (self._prev - d) + 0.5 * (f - self._prev_facing) + self._energy(action)
+        self._prev, self._prev_facing = d, f
         arrived = self._at_ball()
         if arrived:
-            reward += BONUS
+            reward += GOTO_BONUS
         return reward, arrived, {"is_success": arrived, "dist": d}
 
 

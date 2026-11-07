@@ -93,14 +93,17 @@ Per step:
 | term | value |
 |---|---|
 | approach shaping | `prev_dist - dist`, the decrease in robot-to-ball distance |
-| facing | `0.1 * cos(angle between the robot's front and robot->ball)`, every step |
+| facing | `0.5 * (cos - prev_cos)`, the change in cos(angle between the robot's front and robot->ball) |
 | energy | `-0.01 * ||a||^2` |
-| arrival bonus | `+100.0` on the terminating step |
+| arrival bonus | `+10.0` on the terminating step |
 
-Facing is the raw cosine, paid every step, not a change in a potential: it is a standing reason to keep the mouth on the ball, and the 100 bonus is what keeps parking facing the ball from paying more than finishing. Parking facing the ball earns at most `0.1 * 150 = 15` over the 10 s horizon at 15 Hz.
-`test_goto_ball_does_not_pay_camping` pins that, discounted: turning in place must earn under
-half of what reaching the ball does. (A per-step facing term against a `+10` arrival once paid
-about twice what finishing did, and SAC learned to park.)
+Both shaping terms are changes in a potential, so standing still pays nothing and a full
+about-turn (cos -1 -> 1) is worth what closing 1 m is. The other five tasks pay a raw per-step
+`0.1 * cos` facing term and a `+100` bonus; here that combination kept parking unprofitable
+but drowned the shaping, and SAC fell from 0.93 to 0.10-0.20 tier-0 success at 250k steps.
+Potential facing lets the bonus stay at 10, where it recovers 0.95-0.97
+(`.scratch/rl-learning/issues/01-why-nothing-learns.md`). `test_goto_ball_does_not_pay_camping`
+pins it: turning in place must earn under 1.
 
 `ENERGY = 0.01` multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-0.07` / `-0.06` per step.
 
@@ -112,7 +115,7 @@ inside the field), resampled until it is at least 0.5 m from everything already 
 to 200 attempts. The robot's yaw is uniform over `[-pi, pi)`. The ball starts at rest on the
 floor; the robot starts at rest at the chassis height the model defines.
 
-`_reset_task` records the initial robot-to-ball distance as the shaping baseline.
+`_reset_task` records the initial robot-to-ball distance and facing cosine as the shaping baselines.
 
 ## Episode End
 

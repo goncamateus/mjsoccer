@@ -86,3 +86,35 @@ bola. Coerente com o limite de giro com bola de ~2 rad/s (ticket `physics-fideli
 
 - Shoot: decidir se bola fora deve custar algo (hoje é saída grátis depois de colher o shaping).
 - Dribbling: limite de giro de 3 rad/s com bola continua aberto (ticket `physics-fidelity/22`).
+
+## GoToBall depois do redesenho (`ee4aec1`): regressão de reward, não de hiperparâmetro
+
+Sintoma: o sweep de 1M passos com o reward do issue 02 não aprendia GoToBall (logs perdidos).
+Loop: `sac_agent.py --env GoToBall-v0 --tier 0 --timesteps 250000`, mesmos hiperparâmetros; sucesso
+no rollout ao fim. Uma mudança do `ee4aec1` revertida por vez sobre o HEAD:
+
+| variante | seeds | sucesso | ep_len |
+|---|---|---|---|
+| HEAD (`ee4aec1`) | 0-4 | 0.12 / 0.13 / 0.20 / 0.10 / 0.12 | ~140 de 150 |
+| `e0ff917` (reward antigo) | 0 | 0.93 | 68 |
+| horizonte 10 → 20 s | 0-1 | 0.31 / 0.31 | |
+| energia 0.01 → 0.001 | 0-1 | 0.13 / 0.23 | |
+| bônus 100 → 10 | 0-1 | 0.45 / 0.66 | |
+| facing 0.1 → 0 | 0-1 | 0.07 / 0.00 | |
+| reward inteiro × 0.1 | 0-1 | 0.12 / 0.20 | |
+| × 0.1 e horizonte 20 s | 0-1 | 0.31 / 0.25 | |
+| bônus 10 e horizonte 20 s | 0-1 | 0.78 / 0.75 | ~160 |
+| **bônus 10, facing potencial `0.5·Δcos`, 10 s** | 0-2 | **0.97 / 0.95 / 0.95** | 61-77 |
+| bônus 10, facing potencial, 20 s | 0-2 | 0.95 / 0.98 / 0.93 (0.9 já em ~140k) | 61-66 |
+
+- Escala absoluta descartada: × 0.1 no reward inteiro = HEAD. Não é `ent_coef`, `VecNormalize` nem a
+  biblioteca (o `ent_coef` do run antigo é menor ainda, 0.0013).
+- Causa: a proporção bônus/shaping. O facing cru por passo exigia bônus 100 para que estacionar não
+  pagasse; contra 100 o shaping denso some. Facing potencial não paga estacionado, então o bônus
+  volta a 10 e o shaping volta a guiar.
+- Fix (opção 2): só GoToBall, `GOTO_BONUS = 10` e facing potencial; horizonte segue 10 s. Verificação,
+  seeds 0-4: **0.97 / 0.95 / 0.95 / 0.92 / 0.96**, ep_len 58-77.
+- Seam: o loop de aprendizado (~35 min) não vira teste. O que dá para travar é a propriedade:
+  `test_goto_ball_does_not_pay_camping` volta a exigir que girar no lugar renda < 1 (no `ee4aec1`
+  rendia 58.7 a 60 Hz). O ranking com scripted passava no reward quebrado: ele não vê a proporção.
+- Aberto: GTBS, Drib, SD, CP e PE usam o mesmo facing cru + bônus 100; a mesma diluição é provável.
