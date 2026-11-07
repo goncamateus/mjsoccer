@@ -118,3 +118,19 @@ no rollout ao fim. Uma mudança do `ee4aec1` revertida por vez sobre o HEAD:
   `test_goto_ball_does_not_pay_camping` volta a exigir que girar no lugar renda < 1 (no `ee4aec1`
   rendia 58.7 a 60 Hz). O ranking com scripted passava no reward quebrado: ele não vê a proporção.
 - Aberto: GTBS, Drib, SD, CP e PE usam o mesmo facing cru + bônus 100; a mesma diluição é provável.
+
+## GoToBallShoot com o mesmo fix (tier 0, 500k passos, seeds 0-1)
+
+Sonda determinística, 20 episódios (`probe_gtbs.py`): menor distância à bola, fração que chega
+(< 0.13 m), chutou, bola fora, gol.
+
+| variante | sucesso treino | dist. mín. (mediana) | chega | chutou | fora | gol |
+|---|---|---|---|---|---|---|
+| HEAD (facing cru, bônus/fora 100) | 0 / 0 | 0.64 / 1.45 m | 0.05 / 0 | 0 / 0 | 0.05 / 0 | 0 |
+| facing potencial, bônus 10, fora −10 | 0.02 / 0.03 | 0.18 / 0.14 m | 0.40 / 0.50 | 0 / 0.20 | 0 / 0.10 | 0 |
+
+HEAD acampa (ep_rew ~10-12 ≈ facing cru acumulado) e nunca vai até a bola. O fix leva até a bola,
+mas a política passa só 0.2-2.4 passos por episódio em `_at_ball` (< REACH e cos > 0.9), e o chute
+só conta ali. Fix levado a `_KickTask` (GTBS, SD, PE; o cos β do PE entra no mesmo potencial);
+`test_kick_tasks_do_not_pay_camping`: girar no lugar rendia 70.1 / 117.8 / 44.1, agora < 1.
+Próximo gargalo: assentar na bola de frente.

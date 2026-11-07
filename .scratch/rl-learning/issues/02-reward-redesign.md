@@ -20,11 +20,11 @@ frente do robô e o vetor robô→bola, **puro** (não é diferença de potencia
 | env | termos | bônus | terminal |
 |---|---|---|---|
 | GTB | 1.0·Δ(robô→bola), 0.5·Δcos θ (potencial; ver issue 01) | +10 ao chegar | chegou, ou 10 s |
-| GTBS | 1.0·Δ(robô→bola)·¬has_kicked, 1.0·Δ(bola→gol)·has_kicked, 0.1·cos θ | +100 gol | gol; bola fora (−100); 12 s |
+| GTBS | 1.0·Δ(robô→bola)·¬has_kicked, 1.0·Δ(bola→gol)·has_kicked, 0.5·Δcos θ (potencial; issue 01) | +10 gol | gol; bola fora (−10); 12 s |
 | Drib | 1.0·Δ(robô→bola), 0.1·cos θ, 1.0·held, 1.0·Δ(bola→waypoint atual)·held | +10 por gate (bola a < tolerância do waypoint, com posse) | todos os waypoints; > 2 s sem posse; 30 s |
-| SD | as do GTBS + colisão | +100 gol | as do GTBS; colidiu com defensor (−100, qualquer contato); 20 s |
+| SD | as do GTBS + colisão | +10 gol | as do GTBS; colidiu com defensor (−10, qualquer contato); 20 s |
 | CP | 1.0·Δ(robô→bola), 0.1·cos θ, 1.0·held, colisão | +100 ao segurar 2 s seguidos | sucesso; colisão de *crashing* (−100); 20 s |
-| PE | 1.0·Δ(robô→bola)·¬has_kicked, 1.0·Δ(bola→receptor)·has_kicked, 0.1·cos θ, 0.1·cos β | +100 recepção | recepção; bola fora (−100); 12 s |
+| PE | 1.0·Δ(robô→bola)·¬has_kicked, 1.0·Δ(bola→receptor)·has_kicked, 0.5·Δ(cos θ + cos β) (potencial) | +10 recepção | recepção; bola fora (−10); 12 s |
 
 - `has_kicked`: o kicker ou o chipper disparou neste episódio.
 - Drib: holding domina de propósito (segurar sempre, passando pelos gates). Tolerância do gate =

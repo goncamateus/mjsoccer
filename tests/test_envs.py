@@ -365,6 +365,30 @@ def test_goto_ball_does_not_pay_camping():
     assert camp < go, f"camping {camp:.2f} out-earns reaching the ball {go:.2f}"
 
 
+@pytest.mark.parametrize("env_id", ["GoToBallShoot-v0", "StaticDefenders-v0", "PassEndurance-v0"])
+def test_kick_tasks_do_not_pay_camping(env_id):
+    """Turning in place on a kick task must earn about nothing, as on GoToBall.
+
+    A raw per-step 0.1 * cos facing paid ~10-12 an episode for parking, and SAC on
+    GoToBallShoot learned that instead of approaching (median closest 0.64-1.45 m at 500k
+    steps); potential facing reached the ball in 40-50 % of episodes
+    (.scratch/rl-learning/issues/01-why-nothing-learns.md).
+    """
+    env = gym.make(env_id, tier=0)
+    total = 0.0
+    for seed in range(3):
+        obs, _ = env.reset(seed=seed)
+        while True:
+            action = np.zeros(env.action_space.shape, dtype=np.float32)
+            action[2] = goto_ball_policy(obs)[2]  # turn in place only
+            obs, reward, terminated, truncated, _ = env.step(action)
+            total += reward
+            if terminated or truncated:
+                break
+    env.close()
+    assert total / 3 < 1.0, f"turning in place earned {total / 3:.2f}"
+
+
 def _ram(env, j: int, speed: float, steps: int = 600) -> dict:
     """Drive robot 0 straight at robot `j`'s centre at `speed` m/s (tier 0) until done."""
     u = env.unwrapped

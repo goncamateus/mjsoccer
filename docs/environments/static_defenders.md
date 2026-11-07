@@ -152,13 +152,15 @@ As `GoToBallShoot-v0`, plus the defenders:
 |---|---|
 | approach shaping | `prev_dist - dist` while `not has_kicked` |
 | goal shaping | `prev_goal_dist - goal_dist` once `has_kicked` |
-| facing | `0.1 * cos(angle between the robot's front and robot->ball)`, every step |
+| facing | `0.5 * (cos - prev_cos)`, the change in cos(angle between the robot's front and robot->ball) |
 | energy | `-0.01 * ||a||^2` |
-| goal bonus | `+100.0` on the terminating step |
-| ball out | `-100.0` on the terminating step |
-| collision | `-100.0` on the terminating step: any contact between the agent and a defender |
+| goal bonus | `+10.0` on the terminating step |
+| ball out | `-10.0` on the terminating step |
+| collision | `-10.0` on the terminating step: any contact between the agent and a defender |
 
 `has_kicked` latches the first time the kicker or chipper fires while the robot is at the ball (within `REACH = 0.13 m` and facing it with `cos > 0.9`, judged on the state the action was taken in). A plunger fired at nothing does not count, or random exploration would spend it on the first step. One kick per episode: after a miss, nothing pays the robot to go back. The defenders are parked, so any contact with one is the agent driving into it.
+
+Facing is the change in a potential, so parking pays nothing and the bonus and fouls can stay at 10 next to the shaping. A raw per-step `0.1 * cos` with a `+100` bonus paid ~10-12 an episode for parking and SAC never approached the ball (`.scratch/rl-learning/issues/01-why-nothing-learns.md`); `test_kick_tasks_do_not_pay_camping` pins it.
 
 `ENERGY = 0.01` multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-0.07` / `-0.06` per step.
 
@@ -199,9 +201,9 @@ Identical to [`GoToBallShoot-v0`](go_to_ball_shoot.md).
   (`|y| < 0.9`) and under the crossbar (`z - FLOOR_Z < 0.155`, centre height above the carpet). `info["goal"]` is `True`.
 - **Ball out of the field.** `scene.in_field` fails for the ball centre (`|x| > 6.0 m` or
   `|y| > 4.5 m`) *and* `info["goal"]` is false, so a scored ball is never also reported as
-  out. `info["ball_out"]` is set and the step pays `-100.0`. A shot deflected wide off a
+  out. `info["ball_out"]` is set and the step pays `-10.0`. A shot deflected wide off a
   defender ends the episode.
-- **Collision.** Any contact between the agent and a defender; the step pays `-100.0` and
+- **Collision.** Any contact between the agent and a defender; the step pays `-10.0` and
   `info["collision"]` is set.
 - **Controlled robot turned over.** The robot's own +z tilts more than 60 deg off world
   +z (`cos < 0.5`). The step pays `-100.0` on top of whatever the task scored and

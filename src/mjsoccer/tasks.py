@@ -2,8 +2,9 @@
 
 Each one supplies a reset layout, whatever the scripted robots do, and a reward. Distance
 shaping is potential-based -- the *decrease* in some distance over one step, so no cycle
-pays -- and every task adds a per-step 0.1 * cos(front, robot->ball) facing term, kept
-small against the 100 completion bonus (.scratch/rl-learning/issues/02-reward-redesign.md).
+pays. GoToBall and the kick tasks pay facing the same way, 0.5 * (cos - prev_cos), with a 10
+bonus; Dribbling and ContestedPossession still pay a per-step 0.1 * cos(front, robot->ball)
+against a 100 bonus (.scratch/rl-learning/issues/01-why-nothing-learns.md, 02-reward-redesign.md).
 
 Every env exposes the same per-robot action -- drive, kick, chip, dribble -- whether or
 not its reward cares, so one action head transfers across all six.
@@ -29,7 +30,12 @@ from .base import BaseEnv
 REACH = 0.13
 ENERGY = 0.01  # per-step penalty on ||action||^2: -0.06 a step saturated on tier 0
 FACING = 0.1  # per-step weight on cos(robot front, robot->ball), the raw cosine
-GOTO_BONUS = 10.0  # GoToBall only: its potential facing cannot be farmed, so 10 is enough
+# GoToBall and the kick tasks pay facing as a potential, which cannot be farmed, so their
+# bonus and fouls stay small next to the shaping; against 100 the shaping went faint and SAC
+# stopped learning (.scratch/rl-learning/issues/01-why-nothing-learns.md).
+GOTO_BONUS = 10.0
+KICK_BONUS = 10.0
+KICK_PENALTY = 10.0  # kick tasks: ball out, or StaticDefenders' collision
 BONUS = 100.0  # task completed; large enough that facing the ball and parking never pays
 OUT_PENALTY = 100.0  # ball out of the field, a collision foul
 # SSL rules 8.4.2 "Crashing": the difference of the two robots' velocities, projected onto
@@ -91,7 +97,7 @@ class _KickTask(_BallTask):
     on the first step.
     """
 
-    ball_out_penalty = OUT_PENALTY
+    ball_out_penalty = KICK_PENALTY
 
     def _target_dist(self) -> float:
         raise NotImplementedError
@@ -103,6 +109,10 @@ class _KickTask(_BallTask):
         self.has_kicked = False
         self._was_at_ball = self._at_ball()
         self._prev, self._prev_target = self._to_ball(), self._target_dist()
+        self._prev_facing = self._facing_potential()
+
+    def _facing_potential(self) -> float:
+        return self._facing() + self._extra_facing()
 
     def _reward_done(self, action):
         if self.fired[0] and self._was_at_ball:
@@ -112,15 +122,17 @@ class _KickTask(_BallTask):
             reward = self._prev_target - g
         else:
             reward = self._prev - d
-        reward += FACING * self._facing() + self._extra_reward() + self._energy(action)
-        self._prev, self._prev_target = d, g
+        f = self._facing_potential()
+        reward += 0.5 * (f - self._prev_facing) + self._energy(action)
+        self._prev, self._prev_target, self._prev_facing = d, g, f
         self._was_at_ball = self._at_ball()
         done = self._done()
         if done:
-            reward += BONUS
+            reward += KICK_BONUS
         return reward, done, {"is_success": done, "has_kicked": self.has_kicked}
 
-    def _extra_reward(self) -> float:
+    def _extra_facing(self) -> float:
+        """Any second cosine the task wants faced, paid as a potential with the first."""
         return 0.0
 
 
@@ -290,7 +302,7 @@ class StaticDefendersEnv(GoToBallShootEnv):
         if not done and any(
             self._touching(j) for j in range(self.n_blue, len(self.robots))
         ):
-            reward -= OUT_PENALTY
+            reward -= KICK_PENALTY
             done = True
             info["collision"] = True
         return reward, done, info
@@ -395,14 +407,14 @@ class PassEnduranceEnv(_KickTask):
             )
         )
 
-    def _extra_reward(self) -> float:
+    def _extra_facing(self) -> float:
         # Face the receiver: cos between the passer's front and passer -> receiver. Not
         # the two fronts against each other, which is -1 when they face each other.
         r = self._agent()
         to_mate = _unit(
             self.data.xpos[self.robots[1].body][:2] - self.data.xpos[r.body][:2]
         )
-        return FACING * float(to_mate @ r.forward(self.data)[:2])
+        return float(to_mate @ r.forward(self.data)[:2])
 
     def _script(self) -> None:
         self.data.ctrl[self.robots[1].dribble] = S.DRIBBLER_OMEGA

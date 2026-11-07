@@ -105,17 +105,19 @@ Per step:
 |---|---|
 | approach shaping | `prev_dist - dist` while `not has_kicked`, the decrease in passer-to-ball distance |
 | pass shaping | `prev_mate_dist - mate_dist` once `has_kicked`, the decrease in ball-to-receiver distance |
-| facing | `0.1 * cos(angle between the robot's front and robot->ball)`, every step |
-| face the receiver | `0.1 * cos(angle between the passer's front and passer->receiver)`, every step |
+| facing | `0.5 * (cos - prev_cos)`, the change in cos(angle between the robot's front and robot->ball) |
+| face the receiver | added to the facing potential: `0.5 * Δcos(angle between the passer's front and passer->receiver)` |
 | energy | `-0.01 * ||a||^2` |
-| reception bonus | `+100.0` on the terminating step |
-| ball out | `-100.0` on the terminating step |
+| reception bonus | `+10.0` on the terminating step |
+| ball out | `-10.0` on the terminating step |
 
 `has_kicked` latches the first time the kicker or chipper fires while the robot is at the ball (within `REACH = 0.13 m` and facing it with `cos > 0.9`, judged on the state the action was taken in). A plunger fired at nothing does not count, or random exploration would spend it on the first step. One kick per episode: after a miss, nothing pays the robot to go back.
 
 The receiver term uses the passer->receiver direction, not the receiver's own front: two robots
 facing each other have opposite fronts, so the cosine between them would be `-1` exactly when the
 pass is lined up. The receiver already faces the passer from reset and never moves.
+
+Facing is the change in a potential, so parking pays nothing and the bonus and fouls can stay at 10 next to the shaping. A raw per-step `0.1 * cos` with a `+100` bonus paid ~10-12 an episode for parking and SAC never approached the ball (`.scratch/rl-learning/issues/01-why-nothing-learns.md`); `test_kick_tasks_do_not_pay_camping` pins it.
 
 `ENERGY = 0.01` multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-0.07` / `-0.06` per step.
 
@@ -149,7 +151,7 @@ drive command, so it coasts if the ball or the passer hits it hard enough.
   the usual 50 ms possession grace. Any arrival counts: a kicked pass, a chipped one, a ball
   dribbled up and handed over, or one shoved into the receiver with the chassis.
 - **Ball out of the field.** `scene.in_field` fails for the ball centre (`|x| > 6.0 m` or
-  `|y| > 4.5 m`); `info["ball_out"]` is set and the step pays `-100.0`. This env never sets `info["goal"]`,
+  `|y| > 4.5 m`); `info["ball_out"]` is set and the step pays `-10.0`. This env never sets `info["goal"]`,
   so a mis-aimed kick that leaves the field ends the episode as a failure — which is the main
   risk of a full-power pass, since kick strength cannot be modulated.
 - **Controlled robot turned over.** The robot's own +z tilts more than 60 deg off world
