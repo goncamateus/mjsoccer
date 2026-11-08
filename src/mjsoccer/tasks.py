@@ -28,7 +28,10 @@ from .base import BaseEnv
 # The ball sits about 94 mm out from the chassis centre when the dribbler holds it, so
 # "at the ball" is a little past the 90 mm robot radius.
 REACH = 0.13
-ENERGY = 0.01  # per-step penalty on ||action||^2: -0.06 a step saturated on tier 0
+# Penalty on ||action||^2 per simulated *second*, paid as ENERGY * dt a step, so it costs the
+# same at any control rate. 0.15 is the old 0.01 a step at 15 Hz; paid per step at 40 Hz it
+# was 2.7x that, and a random 30 s GoToBall episode (-24) out-weighed the +10 arrival.
+ENERGY = 0.15
 FACING = 0.1  # per-step weight on cos(robot front, robot->ball), the raw cosine
 # GoToBall and the kick tasks pay facing as a potential, which cannot be farmed, so their
 # bonus and fouls stay small next to the shaping; against 100 the shaping went faint and SAC
@@ -71,7 +74,7 @@ class _BallTask(BaseEnv):
         return self._to_ball() < REACH and self._facing() > 0.9
 
     def _energy(self, action: np.ndarray) -> float:
-        return -ENERGY * float(np.square(action).sum())
+        return -ENERGY * self.dt * float(np.square(action).sum())
 
     def _touching(self, j: int) -> bool:
         """Is any part of the agent in contact with any part of robot `j`?"""

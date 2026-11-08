@@ -108,7 +108,7 @@ Per step:
 | setup | `setup - prev_setup` while `not has_kicked`, frozen at the kick; `setup = max(cos_ball, 0) * max(0, 1 - dist / 0.5) * max(cos(front, ball->receiver), 0)`: near the ball, facing it, aimed at the receiver |
 | facing | `0.5 * (cos - prev_cos)`, the change in cos(angle between the robot's front and robot->ball) |
 | face the receiver | added to the facing potential: `0.5 * Δcos(angle between the passer's front and passer->receiver)` |
-| energy | `-0.01 * ||a||^2` |
+| energy | `-0.15 * dt * ||a||^2`, a cost per simulated second |
 | reception bonus | `+10.0` on the terminating step |
 | ball out | `-10.0` on the terminating step |
 
@@ -120,7 +120,7 @@ pass is lined up. The receiver already faces the passer from reset and never mov
 
 Facing is the change in a potential, so parking pays nothing and the bonus and fouls can stay at 10 next to the shaping. A raw per-step `0.1 * cos` with a `+100` bonus paid ~10-12 an episode for parking and SAC never approached the ball (`.scratch/rl-learning/issues/01-why-nothing-learns.md`); `test_kick_tasks_do_not_pay_camping` pins it. The kick counts on facing the ball alone, so without the setup term shots went wherever the robot arrived from; with it GoToBallShoot goals rose from 0-0.05 to 0.08 over seeds 0-4 at 500k steps (`test_kick_tasks_pay_lining_up_behind_the_ball`).
 
-`ENERGY = 0.01` multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-0.07` / `-0.06` per step.
+`ENERGY = 0.15` per simulated second multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-1.05` / `-0.9` a second at any `control_hz` (`-0.026` / `-0.023` a step at 40 Hz). `test_energy_costs_the_same_per_simulated_second_at_any_rate` pins it.
 
 ## Starting State
 

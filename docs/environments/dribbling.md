@@ -111,7 +111,7 @@ Per step:
 | facing | `0.1 * cos(angle between the robot's front and robot->ball)`, every step |
 | holding | `+1.0 * holds(0)`, every step |
 | carry shaping | `(prev_wp_dist - wp_dist) * holds(0)`, the decrease in ball-to-current-waypoint distance, only while held |
-| energy | `-0.01 * ||a||^2` |
+| energy | `-0.15 * dt * ||a||^2`, a cost per simulated second |
 | gate bonus | `+10.0` each time the held ball comes within `waypoint_tol = 0.3 m` of the current waypoint |
 | success | `+1.0 * (max_steps - steps)` on the fourth gate |
 
@@ -122,7 +122,7 @@ steps)`: finishing is never worth less than parking with the ball.
 The carry term is gated on `holds(0)` so a policy cannot kick the ball at the waypoint and walk
 away. Approach and facing are what bring the robot back to a ball it dropped.
 
-`ENERGY = 0.01` multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-0.07` / `-0.06` per step.
+`ENERGY = 0.15` per simulated second multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-1.05` / `-0.9` a second at any `control_hz` (`-0.026` / `-0.023` a step at 40 Hz). `test_energy_costs_the_same_per_simulated_second_at_any_rate` pins it.
 
 ## Starting State
 

@@ -112,7 +112,7 @@ Per step:
 | approach shaping | `prev_dist - dist`, the decrease in blue-robot-to-ball distance |
 | facing | `0.1 * cos(angle between the robot's front and robot->ball)`, every step |
 | holding | `+1.0 * holds(0)`, every step |
-| energy | `-0.01 * ||a||^2` |
+| energy | `-0.15 * dt * ||a||^2`, a cost per simulated second |
 | steal bonus | `+100.0` on the terminating step |
 | crash | `-100.0` on the terminating step |
 
@@ -123,7 +123,7 @@ being the faster one ends the episode. The velocities are the ones going into th
 its end the impact has already stopped the robots. (The rule's other clause, both robots fouling
 under `0.3 m/s`, is left out: it would punish every slow push for the ball.)
 
-`ENERGY = 0.01` multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-0.07` / `-0.06` per step.
+`ENERGY = 0.15` per simulated second multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-1.05` / `-0.9` a second at any `control_hz` (`-0.026` / `-0.023` a step at 40 Hz). `test_energy_costs_the_same_per_simulated_second_at_any_rate` pins it.
 
 ## Starting State
 

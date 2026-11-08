@@ -94,7 +94,7 @@ Per step:
 |---|---|
 | approach shaping | `prev_dist - dist`, the decrease in robot-to-ball distance |
 | facing | `0.5 * (cos - prev_cos)`, the change in cos(angle between the robot's front and robot->ball) |
-| energy | `-0.01 * ||a||^2` |
+| energy | `-0.15 * dt * ||a||^2`, a cost per simulated second |
 | arrival bonus | `+10.0` on the terminating step |
 
 Both shaping terms are changes in a potential, so standing still pays nothing and a full
@@ -105,7 +105,7 @@ Potential facing lets the bonus stay at 10, where it recovers 0.95-0.97
 (`.scratch/rl-learning/issues/01-why-nothing-learns.md`). `test_goto_ball_does_not_pay_camping`
 pins it: turning in place must earn under 1.
 
-`ENERGY = 0.01` multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-0.07` / `-0.06` per step.
+`ENERGY = 0.15` per simulated second multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-1.05` / `-0.9` a second at any `control_hz` (`-0.026` / `-0.023` a step at 40 Hz). `test_energy_costs_the_same_per_simulated_second_at_any_rate` pins it.
 
 ## Starting State
 

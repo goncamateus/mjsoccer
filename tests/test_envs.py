@@ -437,6 +437,22 @@ def test_place_puts_every_robot_where_asked(env_id, tier):
     env.close()
 
 
+def test_energy_costs_the_same_per_simulated_second_at_any_rate():
+    """Energy is a rate: a saturated action held for one second costs the same at 15, 40
+    and 60 Hz. Paid per step, it cost 2.7x as much a second at 40 Hz as at 15, and a random
+    30 s GoToBall episode (-24) out-weighed the +10 arrival.
+    """
+    a = np.ones(6, dtype=np.float32)
+    per_second = []
+    for hz in (15, 40, 60):
+        env = gym.make("GoToBall-v0", tier=0, control_hz=hz)
+        env.reset(seed=0)
+        per_second.append(env.unwrapped._energy(a) * hz)
+        env.close()
+    np.testing.assert_allclose(per_second, per_second[0], rtol=1e-9)
+    assert per_second[0] == pytest.approx(-0.9)  # 0.15 / s x ||a||^2 = 6 on tier 0
+
+
 def _ram(env, j: int, speed: float, steps: int = 600) -> dict:
     """Drive robot 0 straight at robot `j`'s centre at `speed` m/s (tier 0) until done."""
     u = env.unwrapped
