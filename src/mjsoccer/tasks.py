@@ -1,18 +1,16 @@
-"""The task environments.
+"""The task environments: robocin/rSoccer's six SSL tasks, ported reward for reward.
 
-Each one supplies a reset layout, whatever the scripted robots do, and a reward. Distance
-shaping is potential-based -- the *decrease* in some distance over one step, so no cycle
-pays. GoToBall and the kick tasks pay facing the same way, 0.5 * (cos - prev_cos), with a 10
-bonus; Dribbling and ContestedPossession still pay a per-step 0.1 * cos(front, robot->ball)
-against a 100 bonus (.scratch/rl-learning/issues/01-why-nothing-learns.md, 02-reward-redesign.md).
-
-Every env exposes the same per-robot action -- drive, kick, chip, dribble -- whether or
-not its reward cares, so one action head transfers across all six.
+Each one supplies a reset layout, whatever the scripted robots do, and a reward. Rewards,
+episode endings and reset layouts are rSoccer's (ssl_go_to_ball, ssl_go_to_ball_shoot and
+ssl_hw_challenge/*), on our field: the formulas read the field's own dimensions, so they
+stretch to the Div A carpet the scene builds. What stays ours is the physics, the control
+rate and the action space -- every env exposes the same per-robot action, drive, kick,
+chip, dribble, whether or not its reward cares, so one action head transfers across all six.
 
     id                       robots           action (tier 1 default / tier 0)
-    GoToBall-v0              1 blue           7 / 6
+    GoToBall-v0              1 blue + 6 yel   7 / 6
     GoToBallShoot-v0         1 blue           7 / 6
-    Dribbling-v0             1 blue           7 / 6
+    Dribbling-v0             1 blue + 4 yel   7 / 6
     StaticDefenders-v0       1 blue + 6 yel   7 / 6
     ContestedPossession-v0   1 blue + 1 yel   7 / 6
     PassEndurance-v0         2 blue           7 / 6
@@ -25,31 +23,22 @@ import numpy as np
 from . import scene as S
 from .base import BaseEnv
 
-# The ball sits about 94 mm out from the chassis centre when the dribbler holds it, so
-# "at the ball" is a little past the 90 mm robot radius.
-REACH = 0.13
-# Penalty on ||action||^2 per simulated *second*, paid as ENERGY * dt a step, so it costs the
-# same at any control rate. 0.15 is the old 0.01 a step at 15 Hz; paid per step at 40 Hz it
-# was 2.7x that, and a random 30 s GoToBall episode (-24) out-weighed the +10 arrival.
-ENERGY = 0.15
-FACING = 0.1  # per-step weight on cos(robot front, robot->ball), the raw cosine
-# GoToBall and the kick tasks pay facing as a potential, which cannot be farmed, so their
-# bonus and fouls stay small next to the shaping; against 100 the shaping went faint and SAC
-# stopped learning (.scratch/rl-learning/issues/01-why-nothing-learns.md).
-GOTO_BONUS = 10.0
-KICK_BONUS = 10.0
-SETUP_RANGE = 0.5  # m: the lining-up potential fades to 0 this far from the ball
-KICK_PENALTY = 10.0  # kick tasks: ball out, or StaticDefenders' collision
-BONUS = 100.0  # task completed; large enough that facing the ball and parking never pays
-OUT_PENALTY = 100.0  # ball out of the field, a collision foul
-# SSL rules 8.4.2 "Crashing": the difference of the two robots' velocities, projected onto
-# the line between them at the moment of collision; over 1.5 m/s the faster robot fouled.
-CRASH_SPEED = 1.5
+HALF_X, HALF_Y = S.FIELD_HALF_X, S.FIELD_HALF_Y
+# rSoccer's shaping scales: the largest robot->ball step on the field is 1 after the first,
+# and the ball->goal one is a quarter of the half-field diagonal.
+BALL_DIST_SCALE = float(np.hypot(2 * HALF_Y, HALF_X))
+BALL_GRAD_SCALE = float(np.hypot(HALF_Y, HALF_X)) / 4
+GOAL_REWARD = 5.0
 
 
 def _unit(v: np.ndarray) -> np.ndarray:
     n = float(np.linalg.norm(v))
     return v / n if n > 1e-9 else np.zeros_like(v)
+
+
+def _in_gk_area(x: float, y: float) -> bool:
+    """Inside the +x (attacked) penalty area."""
+    return x > HALF_X - S.PENALTY_DEPTH and abs(y) < S.PENALTY_HALF_Y
 
 
 class _BallTask(BaseEnv):
@@ -58,384 +47,295 @@ class _BallTask(BaseEnv):
     def _agent(self) -> S.RobotIds:
         return self.robots[0]
 
+    def _xy(self, i: int) -> np.ndarray:
+        return np.array(self.data.xpos[self.robots[i].body][:2])
+
+    def _ball_xy(self) -> np.ndarray:
+        return np.array(self.ball.pos(self.data)[:2])
+
     def _to_ball(self) -> float:
-        r = self._agent()
-        return float(
-            np.linalg.norm(self.ball.pos(self.data)[:2] - self.data.xpos[r.body][:2])
-        )
+        return float(np.linalg.norm(self._ball_xy() - self._xy(0)))
 
     def _facing(self) -> float:
         """cos of the angle between the robot's front and the direction to the ball."""
-        r = self._agent()
-        d = _unit(self.ball.pos(self.data)[:2] - self.data.xpos[r.body][:2])
-        return float(d @ r.forward(self.data)[:2])
+        d = _unit(self._ball_xy() - self._xy(0))
+        return float(d @ self._agent().forward(self.data)[:2])
 
-    def _at_ball(self) -> bool:
-        return self._to_ball() < REACH and self._facing() > 0.9
+    def _yellow_moved(self, speed: float) -> bool:
+        """rSoccer's collision test: any yellow robot moving faster than `speed` on x or y."""
+        return any(
+            max(abs(v) for v in r.velocity(self.data)[:2]) > speed
+            for r in self.robots[self.n_blue :]
+        )
 
-    def _energy(self, action: np.ndarray) -> float:
-        return -ENERGY * self.dt * float(np.square(action).sum())
-
-    def _touching(self, j: int) -> bool:
-        """Is any part of the agent in contact with any part of robot `j`?"""
-        m, d = self.model, self.data
-        pair = {self._agent().body, self.robots[j].body}
-        for k in range(d.ncon):
-            c = d.contact[k]
-            roots = {
-                int(m.body_rootid[m.geom_bodyid[c.geom1]]),
-                int(m.body_rootid[m.geom_bodyid[c.geom2]]),
-            }
-            if roots == pair:
-                return True
-        return False
-
-
-class _KickTask(_BallTask):
-    """Reach the ball, then one kick sends it at a target.
-
-    Until the agent kicks, closing on the ball pays, and so does lining up behind it aimed at
-    the target (`_setup`); after, the ball closing on the target does. One kick per episode: a kick is the kicker or chipper firing while the robot is
-    at the ball (within REACH, facing it), judged on the state the action was taken in.
-    A plunger fired at nothing does not count, or random exploration would spend the kick
-    on the first step.
-    """
-
-    ball_out_penalty = KICK_PENALTY
-
-    def _target_point(self) -> np.ndarray:
-        raise NotImplementedError
-
-    def _target_dist(self) -> float:
-        return float(np.linalg.norm(self.ball.pos(self.data)[:2] - self._target_point()))
-
-    def _done(self) -> bool:
-        raise NotImplementedError
-
-    def _setup(self) -> float:
-        """How lined up the kick is: near the ball, facing it, front aimed at the target.
-
-        The kick counts on facing the ball alone, so without this the shot went wherever the
-        robot happened to arrive from. Paid as a potential until the kick, then frozen.
-        """
-        r = self._agent()
-        b = self.ball.pos(self.data)[:2]
-        aim = float(_unit(self._target_point() - b) @ r.forward(self.data)[:2])
-        near = max(0.0, 1.0 - self._to_ball() / SETUP_RANGE)
-        return max(self._facing(), 0.0) * near * max(aim, 0.0)
-
-    def _reset_task(self) -> None:
-        self.has_kicked = False
-        self._was_at_ball = self._at_ball()
-        self._prev, self._prev_target = self._to_ball(), self._target_dist()
-        self._prev_facing = self._facing_potential()
-        self._prev_setup = self._setup()
-
-    def _facing_potential(self) -> float:
-        return self._facing() + self._extra_facing()
-
-    def _reward_done(self, action):
-        if self.fired[0] and self._was_at_ball:
-            self.has_kicked = True
-        d, g = self._to_ball(), self._target_dist()
-        if self.has_kicked:
-            reward = self._prev_target - g  # setup frozen: the ball leaving costs nothing
-        else:
-            s = self._setup()
-            reward = self._prev - d + (s - self._prev_setup)
-            self._prev_setup = s
-        f = self._facing_potential()
-        reward += 0.5 * (f - self._prev_facing) + self._energy(action)
-        self._prev, self._prev_target, self._prev_facing = d, g, f
-        self._was_at_ball = self._at_ball()
-        done = self._done()
-        if done:
-            reward += KICK_BONUS
-        return reward, done, {"is_success": done, "has_kicked": self.has_kicked}
-
-    def _extra_facing(self) -> float:
-        """Any second cosine the task wants faced, paid as a potential with the first."""
-        return 0.0
+    def _scatter(self, n: int, taken: list, x_range, y_range, min_dist: float = 0.2):
+        """rSoccer's KDTree placement: uniform in a box, resampled while within min_dist."""
+        for r in self.robots[n:]:
+            while True:
+                x, y = (self.np_random.uniform(*x_range), self.np_random.uniform(*y_range))
+                if all(np.hypot(x - px, y - py) >= min_dist for px, py in taken):
+                    break
+            taken.append((x, y))
+            r.place(self.data, x, y, self.np_random.uniform(0, 2 * np.pi))
 
 
 class GoToBallEnv(_BallTask):
-    """Drive to the ball and end up pointing at it.
+    """Get within 0.2 m of the ball, through six parked yellow robots: +1 and done.
 
-    The kicker, chipper and dribbler are in the action space but the reward ignores them.
-    """
-
-    def _place(self) -> None:
-        taken: list[tuple[float, float]] = []
-        x, y = self.sample_pose(taken, clearance=0.5)
-        self.robots[0].place(self.data, x, y, self.np_random.uniform(-np.pi, np.pi))
-        bx, by = self.sample_pose(taken, clearance=0.5)
-        self.ball.place(self.data, bx, by)
-
-    def _reset_task(self) -> None:
-        self._prev, self._prev_facing = self._to_ball(), self._facing()
-
-    def _reward_done(self, action):
-        d, f = self._to_ball(), self._facing()
-        # Facing is a potential here, not the raw per-step cosine the other tasks pay: parking
-        # earns at most the one turn, so the bonus can stay small next to the shaping. A raw
-        # 0.1 * cos needed the 100 bonus to keep parking unprofitable, and against 100 the
-        # shaping went faint: SAC dropped from 0.93 to 0.10-0.20 success, back to 0.95-0.97
-        # this way (.scratch/rl-learning/issues/01-why-nothing-learns.md).
-        reward = (self._prev - d) + 0.5 * (f - self._prev_facing) + self._energy(action)
-        self._prev, self._prev_facing = d, f
-        arrived = self._at_ball()
-        if arrived:
-            reward += GOTO_BONUS
-        return reward, arrived, {"is_success": arrived, "dist": d}
-
-
-class GoToBallShootEnv(_KickTask):
-    """Reach the ball and put it in the +x goal. Kicker and dribbler are the agent's."""
-
-    def _place(self) -> None:
-        taken: list[tuple[float, float]] = []
-        # Start on the defending half so shooting means covering ground.
-        x = self.np_random.uniform(-S.FIELD_HALF_X + 0.3, 0.0)
-        y = self.np_random.uniform(-S.FIELD_HALF_Y + 0.3, S.FIELD_HALF_Y - 0.3)
-        taken.append((x, y))
-        self.robots[0].place(self.data, x, y, self.np_random.uniform(-np.pi, np.pi))
-        bx, by = self.sample_pose(taken, clearance=0.5)
-        self.ball.place(self.data, bx, by)
-
-    def _target_point(self) -> np.ndarray:
-        """The nearest point of the goal mouth to the ball."""
-        y = self.ball.pos(self.data)[1]
-        return np.array([S.FIELD_HALF_X, np.clip(y, -S.GOAL_HALF_Y, S.GOAL_HALF_Y)])
-
-    def _done(self) -> bool:
-        return bool(S.in_goal(self.ball.pos(self.data)))
-
-    def _reward_done(self, action):
-        reward, done, info = super()._reward_done(action)
-        info["goal"] = done
-        return reward, done, info
-
-
-class DribblingEnv(_BallTask):
-    """Carry the ball through a sequence of waypoints without losing it.
-
-    The agent can kick or chip its own carried ball away -- the controls are always in the
-    action space. It is not worth doing: holding pays every step and waypoint progress is
-    gated on `holds(0)`, so the step the ball leaves the mouth is the step both stop paying.
-    """
-
-    extra_obs = 2  # the current waypoint, in the robot's own frame
-    # No component is longer than the farthest an in-field waypoint can be from a robot
-    # inside the walls.
-    _reach = np.hypot(S.FIELD_HALF_X + S.WALL_HALF_X, S.FIELD_HALF_Y + S.WALL_HALF_Y)
-    extra_obs_bound = (_reach / S.FIELD_HALF_X, _reach / S.FIELD_HALF_Y)
-    n_waypoints = 4
-    waypoint_tol = 0.3
-    gate_bonus = 10.0
-
-    def _place(self) -> None:
-        taken: list[tuple[float, float]] = []
-        x, y = self.sample_pose(taken, clearance=0.5)
-        self.robots[0].place(self.data, x, y, self.np_random.uniform(-np.pi, np.pi))
-
-    def _reset_task(self) -> None:
-        # The episode starts with the ball already carried; getting it there is GoToBall's
-        # job, not this one's.
-        self.seat_ball(self.robots[0])
-        self._target = np.array(self.sample_pose([], clearance=0.0))
-        self._reached = 0
-        self._lost = 0
-        self._prev = self._to_target()
-        self._prev_ball = self._to_ball()
-
-    def _to_target(self) -> float:
-        return float(np.linalg.norm(self.ball.pos(self.data)[:2] - self._target))
-
-    def _task_obs(self):
-        r = self._agent()
-        R = self.data.xmat[r.body].reshape(3, 3)[:2, :2]
-        local = R.T @ (self._target - self.data.xpos[r.body][:2])
-        return local / (S.FIELD_HALF_X, S.FIELD_HALF_Y)
-
-    def _reward_done(self, action):
-        held = float(self.holds(0))
-        d, b = self._to_target(), self._to_ball()
-        # Holding dominates on purpose: carry the ball always, through the gates. Waypoint
-        # progress only counts while held, or a policy could kick the ball at the waypoint.
-        # Approach and facing are what bring the robot back to a ball it dropped.
-        reward = (
-            (self._prev_ball - b)
-            + FACING * self._facing()
-            + held
-            + (self._prev - d) * held
-            + self._energy(action)
-        )
-        self._prev, self._prev_ball = d, b
-        self._lost = 0 if held else self._lost + 1
-        if d < self.waypoint_tol and held:
-            self._reached += 1
-            reward += self.gate_bonus
-            self._target = np.array(self.sample_pose([], clearance=0.0))
-            self._prev = self._to_target()
-        success = self._reached >= self.n_waypoints
-        if success:
-            # Finishing must never be worth less than parking with the ball: pay the holding
-            # the remaining steps would have earned. Without it, standing still out-earned the
-            # scripted carry (490 vs 201 at 15 Hz).
-            reward += self.max_steps - self.steps
-        done = success or self._lost > round(2.0 / self.dt)
-        return (
-            reward,
-            done,
-            {
-                "is_success": self._reached >= self.n_waypoints,
-                "waypoints": self._reached,
-            },
-        )
-
-
-class StaticDefendersEnv(GoToBallShootEnv):
-    """Score past six stationary yellow robots parked in front of the goal.
-
-    Touching a defender at all ends the episode at -100: they are parked, so any contact is
-    the agent driving into them.
+    rSoccer's SSLGoToBall-v0 (field_type 2, n_robots_yellow 6). Sparse, no facing, no
+    shaping. The kicker, chipper and dribbler are in the action space but the reward ignores
+    them.
     """
 
     n_yellow = 6
 
     def _place(self) -> None:
-        super()._place()
-        # A staggered wall between the ball and the mouth: two ranks, so no straight shot
-        # from the centre is free but the flanks stay open.
-        for i, r in enumerate(self.robots[self.n_blue :]):
-            rank, slot = divmod(i, 3)
-            r.place(
-                self.data,
-                S.FIELD_HALF_X - 1.2 - 0.8 * rank,
-                (slot - 1) * 0.7 + 0.35 * rank,
-                np.pi,
-            )
-
-    def _reward_done(self, action):
-        reward, done, info = super()._reward_done(action)
-        if not done and any(
-            self._touching(j) for j in range(self.n_blue, len(self.robots))
-        ):
-            reward -= KICK_PENALTY
-            done = True
-            info["collision"] = True
-        return reward, done, info
-
-
-class ContestedPossessionEnv(_BallTask):
-    """Take the ball off a yellow robot that is sitting on it with its dribbler running.
-
-    Contact is how the ball is won, so touching the opponent is allowed; crashing into it
-    (SSL rules 8.4.2, the agent the faster robot) ends the episode at -100.
-    """
-
-    n_yellow = 1
-    hold_seconds = 2.0
-
-    def _place(self) -> None:
-        taken: list[tuple[float, float]] = []
-        ox, oy = self.sample_pose(taken, clearance=1.0)
-        opp = self.robots[self.n_blue]
-        opp.place(self.data, ox, oy, self.np_random.uniform(-np.pi, np.pi))
-        x, y = self.sample_pose(taken, clearance=1.0)
-        self.robots[0].place(self.data, x, y, self.np_random.uniform(-np.pi, np.pi))
-
-    def _reset_task(self) -> None:
-        # The premise of the task is that the opponent already has the ball, so seat it in
-        # their mouth the way the mechanism actually takes one -- by rolling it in.
-        self.seat_ball(self.robots[self.n_blue])
-        self._prev = self._to_ball()
-        self._held = 0
-        self._was_touching = False
-        self._prev_v = self._velocities()
-
-    def _script(self) -> None:
-        self.data.ctrl[self.robots[self.n_blue].dribble] = S.DRIBBLER_OMEGA
-
-    def _velocities(self) -> tuple[np.ndarray, np.ndarray]:
-        return tuple(
-            np.array(self.robots[i].velocity(self.data)[:2]) for i in (0, self.n_blue)
-        )
-
-    def _crashed(self) -> bool:
-        """A crashing foul by the agent, judged at the first step of a contact.
-
-        The velocities are the ones going into the step the contact appeared in: by the end
-        of a 1/15 s step the impact has already stopped the robots.
-        """
-        touching = self._touching(self.n_blue)
-        first = touching and not self._was_touching
-        self._was_touching = touching
-        v_a, v_o = self._prev_v
-        self._prev_v = self._velocities()
-        if not first:
-            return False
-        line = _unit(
-            self.data.xpos[self.robots[self.n_blue].body][:2]
-            - self.data.xpos[self._agent().body][:2]
-        )
-        closing = abs(float((v_a - v_o) @ line))
-        return closing > CRASH_SPEED and np.linalg.norm(v_a) > np.linalg.norm(v_o)
+        xs, ys = (-HALF_X + 0.1, HALF_X - 0.1), (-HALF_Y + 0.1, HALF_Y - 0.1)
+        bx, by = self.np_random.uniform(*xs), self.np_random.uniform(*ys)
+        self.ball.place(self.data, bx, by)
+        self._scatter(0, [(bx, by)], xs, ys)
 
     def _reward_done(self, action):
         d = self._to_ball()
-        held = self.holds(0)
-        reward = (
-            (self._prev - d)
-            + FACING * self._facing()
-            + float(held)
-            + self._energy(action)
-        )
-        self._prev = d
-        self._held = self._held + 1 if held else 0
-        info = {}
-        if self._crashed():
-            reward -= OUT_PENALTY
-            info["crash"] = True
-            return reward, True, info | {"is_success": False}
-        won = self._held >= round(self.hold_seconds / self.dt)
-        if won:
-            reward += BONUS
-        return reward, won, info | {"is_success": won}
+        arrived = d < 0.2
+        return float(arrived), arrived, {"is_success": arrived, "dist": d}
 
 
-class PassEnduranceEnv(_KickTask):
-    """Collect the ball and pass it to a stationary team-mate."""
+class _ShootTask(_BallTask):
+    """rSoccer's goal-scoring reward, shared by GoToBallShoot, StaticDefenders and
+    ContestedPossession.
 
-    n_blue = 2
+    Ends when the robot leaves the attacking half (x < -0.2) or the field's width, enters
+    the penalty area, the ball leaves the attacking half, or crosses the +x goal line --
+    +5 inside the mouth, 0 wide. Every other step pays
+        clip(robot->ball closing, +-1) / BALL_DIST_SCALE
+      + clip(ball->goal-centre closing, +-1) / BALL_GRAD_SCALE
+      - sum |wheel speed| / (4 * max wheel speed * energy_steps).
+    """
+
+    energy_steps = 1200  # rSoccer's `max_steps` in its energy scale, not the horizon
+    collision_speed: float | None = None  # end on any yellow robot moving this fast
+
+    def _goal_dist(self) -> float:
+        return float(np.linalg.norm(self._ball_xy() - (HALF_X, 0.0)))
+
+    def _reset_task(self) -> None:
+        self._prev, self._prev_goal = self._to_ball(), self._goal_dist()
+
+    def _energy(self, action: np.ndarray) -> float:
+        # ponytail: the commanded drive, as a fraction of its range, stands in for rSoccer's
+        # measured |wheel speed| / 160 rad/s; tier 0 commands (vx, vy, w), not wheels.
+        return float(np.abs(action[: self.drive_dim]).mean()) / self.energy_steps
+
+    def _reward_done(self, action):
+        (rx, ry), (bx, by) = self._xy(0), self._ball_xy()
+        d, g = self._to_ball(), self._goal_dist()
+        reward, done, info = 0.0, False, {}
+        if self.collision_speed is not None and self._yellow_moved(self.collision_speed):
+            done = info["collision"] = True
+        if rx < -0.2 or abs(ry) > HALF_Y:
+            done = info["robot_out"] = True
+        elif _in_gk_area(rx, ry):
+            done = info["gk_area"] = True
+        elif bx < 0 or abs(by) > HALF_Y:
+            done = info["ball_out"] = True
+        elif bx > HALF_X:
+            done = True
+            info["goal"] = S.in_goal(self.ball.pos(self.data))
+            reward = GOAL_REWARD if info["goal"] else 0.0
+        else:
+            reward = (
+                np.clip(self._prev - d, -1, 1) / BALL_DIST_SCALE
+                + np.clip(self._prev_goal - g, -1, 1) / BALL_GRAD_SCALE
+                - self._energy(action)
+            )
+        self._prev, self._prev_goal = d, g
+        info["is_success"] = bool(info.get("goal", False))
+        return float(reward), done, info
+
+
+class GoToBallShootEnv(_ShootTask):
+    """Reach the ball and put it in the +x goal. rSoccer's SSLGoToBallShoot-v0, random_init."""
 
     def _place(self) -> None:
-        taken: list[tuple[float, float]] = []
-        x, y = self.sample_pose(taken, clearance=1.5)
-        self.robots[0].place(self.data, x, y, self.np_random.uniform(-np.pi, np.pi))
-        rx, ry = self.sample_pose(taken, clearance=1.5)
-        # The receiver faces the passer, which is what makes a pass catchable at all.
-        self.robots[1].place(self.data, rx, ry, float(np.arctan2(y - ry, x - rx)))
-        bx, by = self.sample_pose(taken, clearance=0.5)
+        xs = (0.3, HALF_X - S.PENALTY_DEPTH - 0.3)
+        ys = (-HALF_Y + 0.1, HALF_Y - 0.1)
+        u = self.np_random.uniform
+        bx, by = u(*xs), u(*ys)
         self.ball.place(self.data, bx, by)
+        x, y = u(*xs), -u(*ys)
+        sep = (0.0215 + 0.09) * 1.1  # rSoccer's (ball + robot radius) * 1.1, per axis
+        while abs(x - bx) < sep and abs(y - by) < sep:
+            x, y = u(*xs), u(*ys)
+        self.robots[0].place(self.data, x, y, u(0, 2 * np.pi))
 
-    def _target_point(self) -> np.ndarray:
-        return np.array(self.data.xpos[self.robots[1].body][:2])
 
-    def _extra_facing(self) -> float:
-        # Face the receiver: cos between the passer's front and passer -> receiver. Not
-        # the two fronts against each other, which is -1 when they face each other.
-        r = self._agent()
-        to_mate = _unit(
-            self.data.xpos[self.robots[1].body][:2] - self.data.xpos[r.body][:2]
-        )
-        return float(to_mate @ r.forward(self.data)[:2])
+class StaticDefendersEnv(_ShootTask):
+    """Score past six stationary yellow robots scattered over the attacking half.
+
+    rSoccer's SSLStaticDefenders-v0: no collision rule, the defenders are only in the way.
+    """
+
+    n_yellow = 6
+    energy_steps = 1000
+
+    def _place(self) -> None:
+        xs, ys = (0.2, HALF_X - 0.1), (-HALF_Y + 0.1, HALF_Y - 0.1)
+        self.robots[0].place(self.data, 0.0, 0.0, 0.0)
+        while True:
+            bx, by = self.np_random.uniform(*xs), self.np_random.uniform(*ys)
+            if not _in_gk_area(bx, by):
+                break
+        self.ball.place(self.data, bx, by)
+        self._scatter(self.n_blue, [(bx, by), (0.0, 0.0)], xs, ys)
+
+
+class ContestedPossessionEnv(_ShootTask):
+    """Score off a yellow robot that sits on the ball in front of the goal, facing away.
+
+    rSoccer's SSLContestedPossession-v0: the episode ends the moment the yellow robot is
+    shoved faster than 0.1 m/s on x or y. It gets no commands, so its dribbler is off.
+    """
+
+    n_yellow = 1
+    collision_speed = 0.1
+
+    def _place(self) -> None:
+        u = self.np_random.uniform
+        self.robots[0].place(self.data, 0.0, 0.0, 0.0)
+        ox = u(S.PENALTY_DEPTH, HALF_X - S.PENALTY_DEPTH)
+        oy = u(-S.PENALTY_HALF_Y, S.PENALTY_HALF_Y)
+        self.robots[self.n_blue].place(self.data, ox, oy, np.pi)
+
+    def _reset_task(self) -> None:
+        # rSoccer puts the ball 0.1 m in front of the yellow robot's centre, in its mouth.
+        # Rolled in instead: a ball placed touching the bar is a compressed spring here.
+        self.seat_ball(self.robots[self.n_blue])
+        super()._reset_task()
+
+
+class DribblingEnv(_BallTask):
+    """Carry the ball through a zigzag between four yellow robots in a line on -x.
+
+    rSoccer's SSLDribbling-v0. The gaps are checkpoints: the ball crossing y = 0 between
+    two robots, in the right direction, pays +1; after the second, it shuttles around the
+    last robot until 7 are passed. Ends on 7, on crossing the last gap backwards, on the
+    robot leaving x in [-3, 1] or |y| <= 1, or on any yellow robot moving faster than 0.05 m/s.
+    """
+
+    n_yellow = 4
+    nodes = (-0.5, -1.0, -1.5, -2.0)
+    margin = 1.0
+    extra_obs = 1  # checkpoints passed, (count / 6) * 2 - 1 as rSoccer observes it
+    extra_obs_bound = 4.0 / 3.0
+
+    def _place(self) -> None:
+        self.robots[0].place(self.data, 0.0, 0.0, np.pi)
+        for r, x in zip(self.robots[self.n_blue :], self.nodes):
+            r.place(self.data, x, 0.0, np.pi)
+
+    def _reset_task(self) -> None:
+        self.seat_ball(self.robots[0])  # rSoccer: ball at (-0.1, 0), in the mouth
+        self._count = 0
+        self._last_ball = self._ball_xy()
+
+    def _task_obs(self):
+        return ((self._count / 6) * 2 - 1,)
+
+    def _reward_done(self, action):
+        n0, n1, n2, n3 = self.nodes
+        (rx, ry), (bx, by) = self._xy(0), self._ball_xy()
+        ly = self._last_ball[1]
+        down, up = ly >= 0 > by, ly < 0 <= by
+        reward = 0.0
+        done = self._yellow_moved(0.05)
+        if rx < n3 - self.margin or rx > self.margin or abs(ry) > self.margin:
+            done = True
+        elif self._count == 0:
+            if n1 < bx < n0 and down:
+                reward, self._count = 1.0, 1
+        elif self._count == 1:
+            if n2 < bx < n1 and up:
+                reward, self._count = 1.0, 2
+        elif self._count % 2 == 0:
+            if n3 < bx < n2:
+                if down:
+                    reward, self._count = 1.0, self._count + 1
+                    done = done or self._count == 7
+                elif up:
+                    done = True
+        elif n3 - self.margin < bx < n3 and up:
+            reward, self._count = 1.0, self._count + 1
+        self._last_ball = np.array((bx, by))
+        return reward, done, {"is_success": self._count >= 7, "checkpoints": self._count}
+
+
+class PassEnduranceEnv(_BallTask):
+    """Pass the ball from a robot that can only turn to a stationary team-mate.
+
+    rSoccer's SSLPassEndurance-v0. The passer starts with the ball in its mouth and takes
+    no translation: its drive is reduced to a spin. +1 and done when the receiver holds the
+    ball; otherwise clip(ball->receiver closing, +-1) / BALL_GRAD_SCALE a step. -1 and done
+    on a wrong ball: out of the box the two robots span (in whole centimetres, as rSoccer
+    compares), or its distance to the receiver changing by under 0.01 m for 21 steps.
+    """
+
+    n_blue = 2
+    stopped_limit = 20
+
+    def _place(self) -> None:
+        u = self.np_random.uniform
+        bx, by = u(-1.5, 1.5), u(-1.5, 1.5)
+        f = 1.0 if by > 0 else -1.0
+        sx, sy = bx, by + 0.115 * f
+        # 270 deg when the ball is below: rSoccer's thetas, so the passer faces the ball.
+        self.robots[0].place(self.data, sx, sy, -np.pi / 2 if f > 0 else np.pi / 2)
+        rx = u(-1.5, 1.5)
+        while abs(rx - bx) < 1:
+            rx = u(-1.5, 1.5)
+        ry = -by
+        self.robots[1].place(self.data, rx, ry, float(np.arctan2(ry - sy, rx - sx) + np.pi))
+
+    def _reset_task(self) -> None:
+        self.seat_ball(self.robots[0])
+        self._stopped = 0
+        self._prev = self._to_receiver()
+
+    def _to_receiver(self) -> float:
+        return float(np.linalg.norm(self._ball_xy() - self._xy(1)))
+
+    def _drive_robot(self, index: int, a: np.ndarray) -> None:
+        a = a.copy()
+        if self.tier == 0:
+            a[:2] = 0.0  # (vx, vy, w): keep the spin
+        else:
+            a[: self.drive_dim] = a[: self.drive_dim].mean()  # equal wheels is a pure spin
+        super()._drive_robot(index, a)
 
     def _script(self) -> None:
         self.data.ctrl[self.robots[1].dribble] = S.DRIBBLER_OMEGA
 
-    def _done(self) -> bool:
-        return self.holds(1)
+    def _wrong_ball(self, dist: float) -> bool:
+        ball, shoot, recv = (
+            np.array(p * 100, dtype=int) for p in (self._ball_xy(), self._xy(0), self._xy(1))
+        )
+        inside = all(
+            min(recv[k], shoot[k]) <= ball[k] <= max(recv[k], shoot[k]) for k in (0, 1)
+        )
+        self._stopped = self._stopped + 1 if abs(self._prev - dist) < 0.01 else 0
+        return self._stopped > self.stopped_limit or not inside
+
+    def _reward_done(self, action):
+        dist = self._to_receiver()
+        received = self.holds(1)
+        if received:
+            reward, done = 1.0, True
+        else:
+            reward, done = float(np.clip(self._prev - dist, -1, 1)) / BALL_GRAD_SCALE, False
+        if self._wrong_ball(dist):
+            reward, done = reward - 1.0, True
+        self._prev = dist
+        return reward, done, {"is_success": received}
 
 
 # ------------------------------------------------------------------ scripted policy

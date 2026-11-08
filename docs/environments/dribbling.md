@@ -5,33 +5,19 @@
 | | |
 |---|---|
 | Action Space | `Box(-1.0, 1.0, (7,), float32)` on the default tier 1, `Box(-1.0, 1.0, (6,), float32)` on tier 0 |
-| Observation Space | `Box((16,), float32)`, bounded per row below |
+| Observation Space | `Box((47,), float32)`, bounded per row below |
 | import | `gym.make("Dribbling-v0")` |
 
 ## Description
 
-The episode starts with the ball already seated in the robot's dribbler, and the robot has
-to carry it through four waypoints in a row without dropping it. Each waypoint is a random
-point on the field; reaching one within 0.3 m while still holding the ball scores it and
-immediately draws the next.
+rSoccer's `SSLDribbling-v0`: the robot starts at the origin facing -x with the ball in its
+dribbler, and four yellow robots stand on the line `y = 0` at `x = -0.5, -1.0, -1.5, -2.0`.
+The gaps between them are checkpoints. The ball has to zigzag through: down across `y = 0`
+between the first two, up between the second and third, then shuttle around the last robot —
+down through the last gap, up beyond the last robot — until 7 checkpoints are passed.
 
-The task isolates *retention*. Getting to the ball is `GoToBall-v0`'s job, so this
-environment skips it entirely and hands the robot a ball it must not lose. What makes that
-hard is that the dribbler is a real mechanism, not a magnet: a bar spinning at 314 rad/s
-holds the ball by friction against the mouth, and it lets go if the chassis accelerates
-sideways hard enough, turns faster than the ball can follow, or drives into anything.
-Carrying the ball fast and carrying it at all are in direct tension.
-
-How hard that is depends on the tier. Sitting still on a seated ball, tier 0 keeps contact
-on every one of 120 idle steps (bar at `dribble = 0.5`) while the default tier 1 keeps it on 111-112, because wheel
-slip lets the chassis recoil off the ball it is holding — see
-[Possession](../index.md#possession). Retention numbers from this environment are therefore
-only comparable within a tier.
-
-The agent can also kick or chip its own carried ball away — those controls are always in
-the action space, in every environment. It is not worth doing here: the shaping below is
-gated on `holds(0)`, so the step the ball leaves the mouth is the step progress stops
-paying, and the loss timer starts.
+The task is about *retention*: the dribbler is a real mechanism, not a magnet, and the
+weaving makes the robot turn with the ball.
 
 ## Action Space
 
@@ -72,111 +58,52 @@ rest.
 
 ## Observation Space
 
-`Box((16,), float32)`, bounded per row below: 6 ball elements, 8 for the single robot, and 2 task
-extras (`extra_obs = 2`).
-
-| Num | Observation | Min | Max | Name in XML / source | Unit |
-|---|---|---|---|---|---|
-| 0 | ball x position | -Inf | Inf | `ball` | m, / 6.0 (`FIELD_HALF_X`) |
-| 1 | ball y position | -Inf | Inf | `ball` | m, / 4.5 (`FIELD_HALF_Y`) |
-| 2 | ball height above the carpet | 0 | Inf | `ball` | m, / 0.155 (`GOAL_HEIGHT`) |
-| 3 | ball x velocity | -Inf | Inf | `ball` | m/s, / 8.0 (`MAX_BALL_V`) |
-| 4 | ball y velocity | -Inf | Inf | `ball` | m/s, / 8.0 (`MAX_BALL_V`) |
-| 5 | ball z velocity | -Inf | Inf | `ball` | m/s, / 8.0 (`MAX_BALL_V`) |
-| 6 | x position of the controlled blue robot | -1.05 | 1.05 | `b0_robot` | m, / 6.0 (`FIELD_HALF_X`) |
-| 7 | y position of the controlled blue robot | -1.067 | 1.067 | `b0_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
-| 8 | sin of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
-| 9 | cos of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
-| 10 | world-frame x velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
-| 11 | world-frame y velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
-| 12 | yaw rate of the controlled blue robot | -Inf | Inf | `b0_robot` | rad/s, / 37.1 (`MAX_W`) |
-| 13 | whether the controlled blue robot has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
-| 14 | waypoint x in the robot's own frame | -2.57 | 2.57 | `DribblingEnv._target` | m, / 6.0 (`FIELD_HALF_X`) |
-| 15 | waypoint y in the robot's own frame | -3.427 | 3.427 | `DribblingEnv._target` | m, / 4.5 (`FIELD_HALF_Y`) |
-
-Elements 14 and 15 are the *current* waypoint expressed in the robot's own frame — the
-world offset rotated by the transpose of the chassis orientation, then divided
-componentwise by `(FIELD_HALF_X, FIELD_HALF_Y)`. A body-frame target is what the drive
-command is also expressed in, so the policy does not have to learn the rotation twice.
-Only the current waypoint is visible; the next one is drawn at random the instant this one
-is scored, so there is nothing to look ahead to.
+`Box((47,), float32)`: 6 ball elements, 8 for each of the 5 robots (the controlled blue robot,
+then the four yellow ones, laid out as in [`StaticDefenders-v0`](static_defenders.md#observation-space)),
+and one task extra, element 46: the checkpoints passed as rSoccer observes them,
+`(count / 6) * 2 - 1`, in `[-1, 4/3]`.
 
 ## Rewards
 
-Per step:
+rSoccer's: `+1.0` on the step the ball crosses the current checkpoint in the right direction,
+`0` otherwise. With `count` the checkpoints passed and `last_y`, `y` the ball's `y` on the
+previous and current step:
 
-| term | value |
-|---|---|
-| approach shaping | `prev_dist - dist`, the decrease in robot-to-ball distance |
-| facing | `0.1 * cos(angle between the robot's front and robot->ball)`, every step |
-| holding | `+1.0 * holds(0)`, every step |
-| carry shaping | `(prev_wp_dist - wp_dist) * holds(0)`, the decrease in ball-to-current-waypoint distance, only while held |
-| energy | `-0.15 * dt * ||a||^2`, a cost per simulated second |
-| gate bonus | `+10.0` each time the held ball comes within `waypoint_tol = 0.3 m` of the current waypoint |
-| success | `+1.0 * (max_steps - steps)` on the fourth gate |
+| count | where the ball has to be | crossing |
+|---|---|---|
+| 0 | `-1.0 < x < -0.5` | `last_y >= 0 > y` |
+| 1 | `-1.5 < x < -1.0` | `last_y < 0 <= y` |
+| even, >= 2 | `-2.0 < x < -1.5` | `last_y >= 0 > y` (the other way ends the episode) |
+| odd, >= 3 | `-3.0 < x < -2.0` | `last_y < 0 <= y` |
 
-Holding dominates on purpose: the task is to carry the ball always, through the gates. Standing
-still with the ball pays up to `450` over the horizon at 15 Hz, against `40` for the four gates;
-so success also pays the holding the remaining steps would have earned, `+1.0 * (max_steps -
-steps)`: finishing is never worth less than parking with the ball.
-The carry term is gated on `holds(0)` so a policy cannot kick the ball at the waypoint and walk
-away. Approach and facing are what bring the robot back to a ball it dropped.
-
-`ENERGY = 0.15` per simulated second multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-1.05` / `-0.9` a second at any `control_hz` (`-0.026` / `-0.023` a step at 40 Hz). `test_energy_costs_the_same_per_simulated_second_at_any_rate` pins it.
+No shaping, no possession term, no energy.
 
 ## Starting State
 
-`_place` places only the robot: one `sample_pose` draw, uniform in `x` over `[-5.7, 5.7]`
-and `y` over `[-4.2, 4.2]`, with a 0.5 m clearance requirement that is trivially satisfied
-because nothing else is placed yet, and yaw uniform in `[-pi, pi)`.
-
-`_reset_task` then seats the ball by `BaseEnv.seat_ball`, which is not a teleport: it puts
-the ball 0.20 m in front of the robot moving at 2 m/s straight at the mouth, sets the
-dribbler to `DRIBBLER_OMEGA`, and runs 0.35 s of physics so the mechanism catches it. Doing
-it this way — the way the real robot takes a ball — is necessary because placing the ball at
-the sphere/bar tangency is a launcher, not a seat: the contact needs a few tenths of a
-millimetre of overlap to exist at all, and on a 46 g ball that overlap is a compressed
-spring worth several newtons; below about 0.1 mm MuJoCo stops generating the contact
-entirely. Rolling it in also leaves the ball in the pocket the dribbler actually holds it
-in, rather than one chosen with a ruler.
-
-The first waypoint is then drawn with `sample_pose([], clearance=0.0)` — uniform inside the
-0.3 m field margin, with no clearance constraint, so it can land on top of the robot. The
-waypoint counter and the ball-lost counter start at zero, and the initial ball-to-waypoint
-distance becomes the shaping baseline. Each subsequent waypoint is drawn the same way.
+rSoccer's layout. The robot is at `(0, 0)` facing -x; the four yellow robots at
+`x = -0.5, -1.0, -1.5, -2.0`, `y = 0`, facing -x. rSoccer puts the ball at `(-0.1, 0)`; here
+`seat_ball` rolls it into the robot's spinning dribbler, so it starts genuinely held.
 
 ## Episode End
 
 ### Termination
 
-Both of the task's own end conditions come back through the same `done` flag; only the
-first is a success.
-
-- **Success.** Four waypoints scored. A waypoint counts when the ball is within
-  `waypoint_tol = 0.3 m` of it *and* `holds(0)` is true — arriving with a loose ball scores
-  nothing.
-- **Ball lost.** `holds(0)` has been false for more than 2 s of continuous simulated time —
-  120 control steps at the default rate. `holds` itself already tolerates a 50 ms gap in
-  ball/dribbler contact, so a bar that sticks and re-grips does not restart this timer.
-  `info["is_success"]` is `False`.
-- **Ball out of the field.** `scene.in_field` fails for the ball centre (`|x| > 6.0 m` or
-  `|y| > 4.5 m`); `info["ball_out"]` is set. In practice this fires before the 2 s loss
-  timer if the ball is kicked off the field.
-- **Controlled robot turned over.** The robot's own +z tilts more than 60 deg off world
-  +z (`cos < 0.5`). The step pays `-100.0` on top of whatever the task scored and
-  `info["tipped"]` is set. Only the robots the policy controls count — a scripted robot on
-  its side is the agent's to exploit. Tier 0 never trips this: its chassis is a planar
-  joint and cannot leave the ground.
+- **Course completed.** The 7th checkpoint, `info["is_success"]`.
+- **Backwards.** The ball crosses the last gap upwards while `count` is even and >= 2.
+- **Robot out of the course.** `x < -3.0`, `x > 1.0` or `|y| > 1.0`.
+- **Collision.** Any yellow robot moving faster than 0.05 m/s on x or y.
+- **Controlled robot turned over** (tier 1 only). The robot's own +z tilts more than 60 deg
+  off world +z (`cos < 0.5`); the step pays `-100.0` and `info["tipped"]` is set. rSoccer's
+  robots cannot tip, so this is the one ending that is ours, kept so a robot on its back never
+  collects shaping.
 - **Diverged simulation.** If `qpos` or `qvel` stops being finite, `step` raises
-  `RuntimeError` rather than returning a NaN observation to train on. This is an error, not
-  a normal termination.
+  `RuntimeError` rather than returning a NaN observation to train on.
 
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**120 s** (rSoccer's), and at the default `control_hz=60` `dt` is exactly 1/60 s, so **7200 steps** (4800 at the 40 Hz the agents train at, rSoccer's 0.025 s step) —
-the longest horizon in the suite, because four waypoints across a 12 x 9 m field is a lot of
-ground to cover at a speed that keeps the ball.
+**120 s**, rSoccer's: **4800 steps** at the 40 Hz (0.025 s) the agents act at, rSoccer's step,
+and 7200 at the default `control_hz=60`.
 
 ## Arguments
 
@@ -194,16 +121,12 @@ import mjsoccer
 env = gym.make("Dribbling-v0", tier=0, control_hz=60, horizon_s=120.0, render_mode="rgb_array")
 ```
 
-`n_waypoints` (4) and `waypoint_tol` (0.3 m) are class attributes on `DribblingEnv`, not
-`gym.make` keywords.
-
 ## Info dictionary
 
 | key | type | description |
 |---|---|---|
-| `is_success` | `bool` | all four waypoints were scored |
-| `waypoints` | `int` | how many waypoints have been scored so far, 0-4 |
-| `ball_out` | `bool` | present only on the step the ball leaves the field |
+| `is_success` | `bool` | all 7 checkpoints were passed |
+| `checkpoints` | `int` | checkpoints passed so far, 0-7 |
 | `tipped` | `bool` | present only on the step a controlled robot turned over |
 | `tilt_deg` | `float` | with `tipped`: the worst controlled robot's tilt off vertical, degrees |
 | `tip_step` | `int` | with `tipped`: control steps since reset, so time-to-tip is `tip_step * dt` |

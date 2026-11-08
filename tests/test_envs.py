@@ -238,7 +238,7 @@ def test_deterministic(env_id):
 
 
 @pytest.mark.parametrize(
-    "env_id,index,min_held", [("ContestedPossession-v0", 1, 112), ("Dribbling-v0", 0, 111)]
+    "env_id,index,min_held", [("Dribbling-v0", 0, 111)]
 )
 @pytest.mark.parametrize("tier", TIERS)
 def test_seated_ball_is_possessed(env_id, index, min_held, tier):
@@ -248,6 +248,9 @@ def test_seated_ball_is_possessed(env_id, index, min_held, tier):
     from a stale orientation lands nowhere near the mouth, and the arm-deflection sensor
     reads the wrong sign on this model, so `has_ball` was False with the ball parked
     square in the mouth. Either way the episode looks fine and the task is unsolvable.
+
+    ContestedPossession is out since it took rSoccer's layout: its yellow robot gets no
+    commands, so the ball rests in its mouth, untouched by a bar that is not spinning.
 
     Both tiers. Measured over 8 seeds on the 1/960 s step with the calibrated ball bounce
     (ticket 21), holds() steps out of 120 idle ones: ContestedPossession 120 on tier 0 and 118
@@ -332,89 +335,87 @@ def test_goto_ball_is_solvable():
                 break
     env.close()
     assert wins >= 16, f"scripted policy reached the ball {wins}/20 times"
-    assert np.mean(returns) > 5.0, f"mean return {np.mean(returns):.2f}"
+    assert sum(returns) == wins, f"GoToBall is sparse, +1 on arrival only: {returns}"
 
 
-def test_goto_ball_does_not_pay_camping():
-    """Turning to face the ball and never driving must earn about nothing.
+def _put(env, i, x, y, theta=0.0):
+    u = env.unwrapped
+    u.robots[i].place(u.data, x, y, theta)
+    mujoco.mj_forward(u.model, u.data)
 
-    Facing is the change in a potential, 0.5 * (cos - prev_cos), so standing still pays at
-    most the one turn. A raw per-step 0.1 * cos needed a 100 arrival bonus to keep camping
-    unprofitable, and against that bonus the shaping was too faint: SAC went from 0.93 to
-    0.10-0.20 success on tier 0 at 250k steps; potential facing with a 10 bonus gives
-    0.95-0.97 (.scratch/rl-learning/issues/01-why-nothing-learns.md).
-    """
+
+def _ball(env, x, y):
+    u = env.unwrapped
+    u.ball.place(u.data, x, y)
+    mujoco.mj_forward(u.model, u.data)
+
+
+def test_goto_ball_pays_one_within_20_cm():
+    """rSoccer's GoToBall: +1 and done when the robot centre is under 0.2 m from the ball."""
     env = gym.make("GoToBall-v0", tier=0)
-
-    def episode(seed: int, drive: bool) -> float:
-        obs, _ = env.reset(seed=seed)
-        total = 0.0
-        while True:
-            action = np.zeros(env.action_space.shape, dtype=np.float32)
-            action[:3] = goto_ball_policy(obs)
-            if not drive:
-                action[:2] = 0.0  # turn in place only
-            obs, reward, terminated, truncated, _ = env.step(action)
-            total += reward
-            if terminated or truncated:
-                return total
-
-    camp = np.mean([episode(s, drive=False) for s in range(3)])
-    go = np.mean([episode(s, drive=True) for s in range(3)])
-    env.close()
-    assert camp < 1.0, f"turning in place earned {camp:.2f}"
-    assert camp < go, f"camping {camp:.2f} out-earns reaching the ball {go:.2f}"
-
-
-@pytest.mark.parametrize("env_id", ["GoToBallShoot-v0", "StaticDefenders-v0", "PassEndurance-v0"])
-def test_kick_tasks_do_not_pay_camping(env_id):
-    """Turning in place on a kick task must earn about nothing, as on GoToBall.
-
-    A raw per-step 0.1 * cos facing paid ~10-12 an episode for parking, and SAC on
-    GoToBallShoot learned that instead of approaching (median closest 0.64-1.45 m at 500k
-    steps); potential facing reached the ball in 40-50 % of episodes
-    (.scratch/rl-learning/issues/01-why-nothing-learns.md).
-    """
-    env = gym.make(env_id, tier=0)
-    total = 0.0
-    for seed in range(3):
-        obs, _ = env.reset(seed=seed)
-        while True:
-            action = np.zeros(env.action_space.shape, dtype=np.float32)
-            action[2] = goto_ball_policy(obs)[2]  # turn in place only
-            obs, reward, terminated, truncated, _ = env.step(action)
-            total += reward
-            if terminated or truncated:
-                break
-    env.close()
-    assert total / 3 < 1.0, f"turning in place earned {total / 3:.2f}"
-
-
-@pytest.mark.parametrize("env_id", ["GoToBallShoot-v0", "PassEndurance-v0"])
-def test_kick_tasks_pay_lining_up_behind_the_ball(env_id):
-    """Before the kick, sitting behind the ball aimed at the target is a potential.
-
-    The kick only counts facing the ball, so nothing told the robot to arrive on the far
-    side of it from the target: kicks went wherever it came from. Weighing the alignment
-    by cos(front, ball->target) lifted GoToBallShoot goals from 0-0.05 to 0.08 over seeds
-    0-4 (.scratch/rl-learning/issues/01-why-nothing-learns.md).
-    """
-    env = gym.make(env_id, tier=0)
     env.reset(seed=0)
     u = env.unwrapped
-    b = np.asarray(u.ball.pos(u.data)[:2])
-    to_target = (u._target_point() - b) / np.linalg.norm(u._target_point() - b)
-    p = b - 0.2 * to_target
-    yaw = float(np.arctan2(to_target[1], to_target[0]))
-    values = []
-    for flip in (0.0, np.pi):
-        u.robots[0].place(u.data, p[0], p[1], yaw + flip)
-        mujoco.mj_forward(u.model, u.data)
-        values.append(u._setup())
+    b = u.ball.pos(u.data)
+    _put(env, 0, b[0] - 0.15, b[1])
+    _, reward, terminated, _, info = env.step(np.zeros(env.action_space.shape, np.float32))
+    assert (reward, terminated, info["is_success"]) == (1.0, True, True)
     env.close()
-    aimed, backwards = values
-    assert aimed > 0.5, f"aimed behind the ball scored {aimed:.2f}"
-    assert backwards == 0.0, f"facing away scored {backwards:.2f}"
+
+
+@pytest.mark.parametrize("env_id", ["GoToBallShoot-v0", "StaticDefenders-v0"])
+def test_shoot_tasks_pay_five_for_a_goal_and_end_on_leaving_the_half(env_id):
+    """rSoccer's shooting reward: +5 past the line inside the mouth, done with 0 when the
+    ball leaves the attacking half; neither pays a penalty."""
+    from mjsoccer import scene as S
+
+    env = gym.make(env_id, tier=0)
+    zero = np.zeros(env.action_space.shape, np.float32)
+    env.reset(seed=0)
+    _ball(env, S.FIELD_HALF_X + 0.05, 0.0)
+    _, reward, terminated, _, info = env.step(zero)
+    assert (reward, terminated, info["is_success"]) == (5.0, True, True)
+    env.reset(seed=0)
+    _ball(env, -0.5, 0.0)
+    _, reward, terminated, _, info = env.step(zero)
+    assert (reward, terminated, info.get("ball_out")) == (0.0, True, True)
+    env.close()
+
+
+def test_contested_possession_ends_when_the_opponent_is_shoved():
+    """rSoccer's collision rule: the yellow robot moving over 0.1 m/s ends the episode."""
+    env = gym.make("ContestedPossession-v0", tier=0)
+    env.reset(seed=0)
+    u = env.unwrapped
+    opp = u.robots[1]
+    u.data.qvel[opp.qvel_adr] = 0.5
+    _, _, terminated, _, info = env.step(np.zeros(env.action_space.shape, np.float32))
+    assert terminated and info.get("collision")
+    env.close()
+
+
+def test_dribbling_pays_a_checkpoint_crossed_the_right_way():
+    """The first gap is between the first two robots, crossed from +y to -y."""
+    env = gym.make("Dribbling-v0", tier=0)
+    env.reset(seed=0)
+    u = env.unwrapped
+    _put(env, 0, -0.75, -0.3, np.pi)
+    u._last_ball = np.array((-0.75, 0.05))
+    _ball(env, -0.75, -0.05)
+    _, reward, _, _, info = env.step(np.zeros(env.action_space.shape, np.float32))
+    assert reward == 1.0 and info["checkpoints"] == 1
+    env.close()
+
+
+def test_pass_endurance_ends_a_ball_left_sitting():
+    """A ball whose distance to the receiver stays put for 21 steps is a wrong ball, -1."""
+    env = gym.make("PassEndurance-v0", tier=0)
+    env.reset(seed=0)
+    for n in range(1, 100):
+        _, reward, terminated, _, _ = env.step(np.zeros(env.action_space.shape, np.float32))
+        if terminated:
+            break
+    assert n == 21 and reward == pytest.approx(-1.0, abs=0.01), (n, reward)
+    env.close()
 
 
 @pytest.mark.parametrize("tier", [0, 1])
@@ -434,66 +435,6 @@ def test_place_puts_every_robot_where_asked(env_id, tier):
     mujoco.mj_forward(u.model, u.data)
     for i, r in enumerate(u.robots):
         np.testing.assert_allclose(r.pose(u.data), (1.0 + 0.3 * i, -0.5, 0.7), atol=1e-6)
-    env.close()
-
-
-def test_energy_costs_the_same_per_simulated_second_at_any_rate():
-    """Energy is a rate: a saturated action held for one second costs the same at 15, 40
-    and 60 Hz. Paid per step, it cost 2.7x as much a second at 40 Hz as at 15, and a random
-    30 s GoToBall episode (-24) out-weighed the +10 arrival.
-    """
-    a = np.ones(6, dtype=np.float32)
-    per_second = []
-    for hz in (15, 40, 60):
-        env = gym.make("GoToBall-v0", tier=0, control_hz=hz)
-        env.reset(seed=0)
-        per_second.append(env.unwrapped._energy(a) * hz)
-        env.close()
-    np.testing.assert_allclose(per_second, per_second[0], rtol=1e-9)
-    assert per_second[0] == pytest.approx(-0.9)  # 0.15 / s x ||a||^2 = 6 on tier 0
-
-
-def _ram(env, j: int, speed: float, steps: int = 600) -> dict:
-    """Drive robot 0 straight at robot `j`'s centre at `speed` m/s (tier 0) until done."""
-    u = env.unwrapped
-    info: dict = {}
-    for _ in range(steps):
-        r = u.robots[0]
-        R = u.data.xmat[r.body].reshape(3, 3)[:2, :2]
-        local = R.T @ (u.data.xpos[u.robots[j].body][:2] - u.data.xpos[r.body][:2])
-        a = np.zeros(env.action_space.shape, dtype=np.float32)
-        a[:2] = local / np.linalg.norm(local) * speed / 4.0  # vx/vy ctrlrange is 4 m/s
-        _, _, terminated, truncated, info = env.step(a)
-        if terminated or truncated:
-            break
-    return info
-
-
-def test_contact_fouls():
-    """StaticDefenders ends on any contact with a defender; ContestedPossession only on a
-    crash (SSL rules 8.4.2: closing speed over 1.5 m/s), so a slow push to win the ball
-    stays legal."""
-    env = gym.make("StaticDefenders-v0", tier=0)
-    env.reset(seed=0)
-    assert _ram(env, 1, 2.0, steps=900).get("collision")
-    env.close()
-    env = gym.make("ContestedPossession-v0", tier=0)
-    env.reset(seed=0)
-    assert _ram(env, 1, 3.0).get("crash")
-    env.reset(seed=0)
-    assert not _ram(env, 1, 0.5, steps=300).get("crash")
-    env.close()
-
-
-def test_shoot_counts_one_kick_at_the_ball():
-    """has_kicked is a plunger fired at the ball, not into the air: random exploration fires
-    on half its steps, and a kick spent on step one would switch off the approach term."""
-    env = gym.make("GoToBallShoot-v0", tier=0)
-    env.reset(seed=0)
-    a = np.zeros(env.action_space.shape, dtype=np.float32)
-    a[3] = 1.0
-    _, _, _, _, info = env.step(a)
-    assert env.unwrapped.fired[0] and not info["has_kicked"]
     env.close()
 
 
@@ -782,12 +723,11 @@ def test_observation_bounds_are_true(tier):
     rx, ry = 6.3 / 6.0, 4.8 / 4.5
     ball = ([-inf, -inf, 0.0, -inf, -inf, -inf], [inf] * 6)
     robot = ([-rx, -ry, -1, -1, -inf, -inf, -inf, 0], [rx, ry, 1, 1, inf, inf, inf, 1])
-    wp = np.hypot(6.0 + 6.3, 4.5 + 4.8)
-    for env_id, extra in (("StaticDefenders-v0", 0), ("Dribbling-v0", 2)):
+    for env_id, extra in (("StaticDefenders-v0", []), ("Dribbling-v0", [4 / 3])):
         env = gym.make(env_id, tier=tier)
         n = len(env.unwrapped.robots)
-        hi = ball[1] + robot[1] * n + [wp / 6.0, wp / 4.5][:extra]
-        lo = ball[0] + robot[0] * n + [-wp / 6.0, -wp / 4.5][:extra]
+        hi = ball[1] + robot[1] * n + extra
+        lo = ball[0] + robot[0] * n + [-e for e in extra]
         np.testing.assert_allclose(env.observation_space.low, lo, rtol=1e-6)
         np.testing.assert_allclose(env.observation_space.high, hi, rtol=1e-6)
         env.close()

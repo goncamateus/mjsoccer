@@ -10,22 +10,13 @@
 
 ## Description
 
-Two blue robots and a loose ball. The agent controls the first one; the second stands still
-with its dribbler running and faces the agent. The episode ends when the team-mate receives
-the ball.
+rSoccer's `SSLPassEndurance-v0`: the passer starts with the ball in its mouth and can only
+turn, kick and dribble — it never translates. A stationary team-mate, dribbler running, faces
+it from the other side of the line `y = 0`. The pass has to arrive: the episode pays +1 when
+the receiver holds the ball, and -1 for a wrong ball.
 
-The task is the two-robot half of the suite. It is the only environment where success is
-measured on a robot the policy does not control, which makes it the only one where the
-agent has to aim: getting the ball is worth relatively little, and the reward is dominated
-by how much closer the *ball* gets to the team-mate. A pass can be kicked flat, chipped
-over, dribbled all the way there and handed off, or simply shoved with the chassis — nothing
-in the reward privileges any of them, only the ball arriving.
-
-The receiver is placed facing the passer, because a dribbler only catches a ball that
-arrives at its mouth; a robot facing away is not a receiver at all. It never moves under its
-own power — the only thing `_script` writes is its dribbler speed — so the difficulty scales
-with the passing distance drawn at reset rather than with anything the receiver does.
-Despite the name, one episode is one pass; the endurance is across episodes.
+The action space is still the shared one; the env reduces the passer's drive to a spin
+(tier 0 zeroes `vx, vy`; tier 1 drives all four wheels at their mean, a pure spin).
 
 ## Action Space
 
@@ -99,75 +90,42 @@ itself: the step it goes to 1 is the last step of the episode.
 
 ## Rewards
 
-Per step:
+rSoccer's, per step:
 
 | term | value |
 |---|---|
-| approach shaping | `prev_dist - dist` while `not has_kicked`, the decrease in passer-to-ball distance |
-| pass shaping | `prev_mate_dist - mate_dist` once `has_kicked`, the decrease in ball-to-receiver distance |
-| setup | `setup - prev_setup` while `not has_kicked`, frozen at the kick; `setup = max(cos_ball, 0) * max(0, 1 - dist / 0.5) * max(cos(front, ball->receiver), 0)`: near the ball, facing it, aimed at the receiver |
-| facing | `0.5 * (cos - prev_cos)`, the change in cos(angle between the robot's front and robot->ball) |
-| face the receiver | added to the facing potential: `0.5 * Δcos(angle between the passer's front and passer->receiver)` |
-| energy | `-0.15 * dt * ||a||^2`, a cost per simulated second |
-| reception bonus | `+10.0` on the terminating step |
-| ball out | `-10.0` on the terminating step |
+| received | `+1.0` when the receiver holds the ball (`holds(1)`, rSoccer's infrared), and the episode ends |
+| ball gradient | otherwise `clip(prev - now, -1, 1) / 1.875`, the ball closing on the receiver |
+| wrong ball | `-1.0` added, and the episode ends, when the ball is outside the box the two robots span (positions truncated to whole centimetres, as rSoccer compares them), or its distance to the receiver has changed by under 0.01 m on more than 20 consecutive steps |
 
-`has_kicked` latches the first time the kicker or chipper fires while the robot is at the ball (within `REACH = 0.13 m` and facing it with `cos > 0.9`, judged on the state the action was taken in). A plunger fired at nothing does not count, or random exploration would spend it on the first step. One kick per episode: after a miss, nothing pays the robot to go back.
-
-The receiver term uses the passer->receiver direction, not the receiver's own front: two robots
-facing each other have opposite fronts, so the cosine between them would be `-1` exactly when the
-pass is lined up. The receiver already faces the passer from reset and never moves.
-
-Facing is the change in a potential, so parking pays nothing and the bonus and fouls can stay at 10 next to the shaping. A raw per-step `0.1 * cos` with a `+100` bonus paid ~10-12 an episode for parking and SAC never approached the ball (`.scratch/rl-learning/issues/01-why-nothing-learns.md`); `test_kick_tasks_do_not_pay_camping` pins it. The kick counts on facing the ball alone, so without the setup term shots went wherever the robot arrived from; with it GoToBallShoot goals rose from 0-0.05 to 0.08 over seeds 0-4 at 500k steps (`test_kick_tasks_pay_lining_up_behind_the_ball`).
-
-`ENERGY = 0.15` per simulated second multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-1.05` / `-0.9` a second at any `control_hz` (`-0.026` / `-0.023` a step at 40 Hz). `test_energy_costs_the_same_per_simulated_second_at_any_rate` pins it.
+The stopped rule means the passer has about half a second (21 steps at 40 Hz) to kick.
+rSoccer also ends on `holding_steps > 15`, but never increments it, so it is left out.
 
 ## Starting State
 
-`_place` draws three positions with `sample_pose`, each uniform in `x` over `[-5.7, 5.7]`
-and `y` over `[-4.2, 4.2]` and rejection-sampled against everything already placed (up to
-200 attempts each):
-
-1. the passer, at a **1.5 m** clearance, with yaw uniform in `[-pi, pi)`;
-2. the receiver, at a **1.5 m** clearance from the passer, with yaw set to
-   `arctan2(passer_y - receiver_y, passer_x - receiver_x)` so it faces the passer — which is
-   what makes a pass catchable at all;
-3. the ball, at a **0.5 m** clearance from both robots, at rest on the floor.
-
-So the pass is at least 1.5 m long, and the ball never starts already in the receiver's
-mouth.
-
-`_reset_task` records both baselines: the initial passer-to-ball distance and the initial
-ball-to-receiver distance.
-
-`_script` runs every step and writes `DRIBBLER_OMEGA` to the receiver's dribbler, so the
-mouth is live for the whole episode. Nothing else about the receiver is driven: it has no
-drive command, so it coasts if the ball or the passer hits it hard enough.
+rSoccer's layout. The ball is uniform over `[-1.5, 1.5]^2`. The passer stands 0.115 m from it
+on the side away from `y = 0`, facing it (yaw -90 deg for a ball at `y > 0`, +90 deg otherwise),
+and `seat_ball` rolls the ball into its mouth. The receiver is at `(x, -ball_y)`, `x` uniform
+over `[-1.5, 1.5]` redrawn until it is at least 1 m from the ball's `x`, facing the passer.
 
 ## Episode End
 
 ### Termination
 
-- **Success.** `holds(1)` — the receiver's dribbler is in contact with the ball, subject to
-  the usual 50 ms possession grace. Any arrival counts: a kicked pass, a chipped one, a ball
-  dribbled up and handed over, or one shoved into the receiver with the chassis.
-- **Ball out of the field.** `scene.in_field` fails for the ball centre (`|x| > 6.0 m` or
-  `|y| > 4.5 m`); `info["ball_out"]` is set and the step pays `-10.0`. This env never sets `info["goal"]`,
-  so a mis-aimed kick that leaves the field ends the episode as a failure — which is the main
-  risk of a full-power pass, since kick strength cannot be modulated.
-- **Controlled robot turned over.** The robot's own +z tilts more than 60 deg off world
-  +z (`cos < 0.5`). The step pays `-100.0` on top of whatever the task scored and
-  `info["tipped"]` is set. Only the robots the policy controls count — a scripted robot on
-  its side is the agent's to exploit. Tier 0 never trips this: its chassis is a planar
-  joint and cannot leave the ground.
+- **Received.** The receiver holds the ball: `+1.0`, `info["is_success"]`.
+- **Wrong ball.** Out of the passer-receiver box, or stopped for more than 20 steps: `-1.0`.
+- **Controlled robot turned over** (tier 1 only). The robot's own +z tilts more than 60 deg
+  off world +z (`cos < 0.5`); the step pays `-100.0` and `info["tipped"]` is set. rSoccer's
+  robots cannot tip, so this is the one ending that is ours, kept so a robot on its back never
+  collects shaping.
 - **Diverged simulation.** If `qpos` or `qvel` stops being finite, `step` raises
-  `RuntimeError` rather than returning a NaN observation to train on. This is an error, not
-  a normal termination.
+  `RuntimeError` rather than returning a NaN observation to train on.
 
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**30 s** (rSoccer's), and at the default `control_hz=60` `dt` is exactly 1/60 s, so **1800 steps** (1200 at the 40 Hz the agents train at, rSoccer's 0.025 s step).
+**30 s**, rSoccer's: **1200 steps** at the 40 Hz (0.025 s) the agents act at, rSoccer's step,
+and 1800 at the default `control_hz=60`.
 
 ## Arguments
 
@@ -195,7 +153,6 @@ action alone.
 | key | type | description |
 |---|---|---|
 | `is_success` | `bool` | the team-mate received the ball |
-| `ball_out` | `bool` | present only on the step the ball leaves the field |
 | `tipped` | `bool` | present only on the step a controlled robot turned over |
 | `tilt_deg` | `float` | with `tipped`: the worst controlled robot's tilt off vertical, degrees |
 | `tip_step` | `int` | with `tipped`: control steps since reset, so time-to-tip is `tip_step * dt` |

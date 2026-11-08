@@ -10,22 +10,14 @@
 
 ## Description
 
-A yellow robot starts with the ball seated in its dribbler and its bar spinning. The blue
-robot has to take the ball off it and hold it for half a second.
+rSoccer's `SSLContestedPossession-v0`: a yellow robot sits on the ball in front of the
+goal, facing away from it, and the blue robot has to score past it. The reward and endings are
+[`GoToBallShoot-v0`](go_to_ball_shoot.md)'s, plus rSoccer's collision rule: the episode ends the
+moment the yellow robot is moving faster than 0.1 m/s on x or y. So the ball has to be taken
+off it without shoving it.
 
-This is the only task in the suite where the ball starts in somebody else's mouth. The
-yellow robot does not drive — its only scripted behaviour is running its dribbler at
-`DRIBBLER_OMEGA` every step — but that is enough to make the ball genuinely hard to take:
-the bar holds the ball against the mouth by friction, so it cannot simply be driven into
-from the front. It has to be knocked loose by contact with the chassis, or the blue robot
-has to get its own bar onto the ball at an angle the yellow bar is not covering. The yellow
-robot is not anchored, so it can be pushed.
-
-The half-second hold requirement is what makes the task about *possession* rather than
-contact: brushing the ball is not enough, and neither is knocking it away, because the blue
-robot has to end up carrying it. Termination uses the same contact-with-grace definition of
-possession as everything else in the suite, which is what makes a fractional-second hold
-measurable at all — see [Possession](../index.md#possession).
+The yellow robot gets no commands: it does not drive and its dribbler is off, so the ball rests
+in its mouth without being held.
 
 ## Action Space
 
@@ -105,80 +97,59 @@ faces is the direction the ball cannot be taken from.
 
 ## Rewards
 
-Per step:
+Ported from rSoccer's `_calculate_reward_and_done` (`ssl_go_to_ball_shoot`, and the
+identical one in `ssl_hw_challenge`). Per step, unless the step ends the episode:
 
 | term | value |
 |---|---|
-| approach shaping | `prev_dist - dist`, the decrease in blue-robot-to-ball distance |
-| facing | `0.1 * cos(angle between the robot's front and robot->ball)`, every step |
-| holding | `+1.0 * holds(0)`, every step |
-| energy | `-0.15 * dt * ||a||^2`, a cost per simulated second |
-| steal bonus | `+100.0` on the terminating step |
-| crash | `-100.0` on the terminating step |
+| ball distance | `clip(prev_dist - dist, -1, 1) / BALL_DIST_SCALE`, robot-to-ball closing; `BALL_DIST_SCALE = hypot(9.0, 6.0) = 10.8` |
+| ball gradient | `clip(prev - now, -1, 1) / BALL_GRAD_SCALE`, the ball closing on the goal centre `(6.0, 0)`; `BALL_GRAD_SCALE = hypot(4.5, 6.0) / 4 = 1.875` |
+| energy | `-mean(|a_drive|) / 1200` |
 
-Contact is how the ball is won, so touching the opponent is legal; *crashing* is not. It follows
-SSL rules 8.4.2: at the first step of a contact, the difference of the two robots' velocities is
-projected onto the line between them, and over `1.5 m/s` the faster robot fouled. Only the agent
-being the faster one ends the episode. The velocities are the ones going into that step, since by
-its end the impact has already stopped the robots. (The rule's other clause, both robots fouling
-under `0.3 m/s`, is left out: it would punish every slow push for the ball.)
+On an ending step the only reward is the goal: `+5.0` for a ball past `x = 6.0` inside the
+mouth, `0` for anything else. There are no penalties. The scales are rSoccer's formulas on our
+field. rSoccer's energy is `sum |wheel speed| / (4 * 160 rad/s * 1200)`; here the commanded drive,
+as a fraction of its range, stands in for the wheel speed (tier 0 commands `(vx, vy, w)`, not
+wheels), so a saturated drive costs `1 / 1200` a step as there.
 
-`ENERGY = 0.15` per simulated second multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-1.05` / `-0.9` a second at any `control_hz` (`-0.026` / `-0.023` a step at 40 Hz). `test_energy_costs_the_same_per_simulated_second_at_any_rate` pins it.
+The collision step still pays the shaping, as in rSoccer, where the collision check does not
+skip the reward.
 
 ## Starting State
 
-`_place` samples the yellow robot first, then the blue one, both with `sample_pose` at a
-**1.0 m** clearance — the largest separation in the suite except `PassEndurance-v0` — so the
-agent never starts already on top of the contest. Both are uniform in `x` over
-`[-5.7, 5.7]` and `y` over `[-4.2, 4.2]`, with yaw uniform in `[-pi, pi)`. Note that the
-clearance is measured between chassis centres and against previously placed objects only.
-
-`_reset_task` then seats the ball in the **opponent's** mouth with `BaseEnv.seat_ball`: the
-ball is put 0.20 m in front of the yellow robot moving at 2 m/s straight at it, the yellow
-dribbler is set to `DRIBBLER_OMEGA`, and 0.35 s of physics is run so the mechanism catches
-it. The premise of the task is that the opponent already has the ball, and this is the way
-the mechanism actually takes one. Placing the ball at the sphere/bar tangency instead is a
-launcher, not a seat: the contact needs a few tenths of a millimetre of overlap to exist at
-all, and on a 46 g ball that overlap is a compressed spring worth several newtons; below
-about 0.1 mm MuJoCo stops generating the contact entirely.
-
-Because `seat_ball` steps the simulation, the yellow robot's own settle-in motion is part of
-the initial state: it recoils slightly from catching the ball. The blue robot's baseline
-distance and the hold counter are recorded after that.
-
-`_script` runs every step and writes `DRIBBLER_OMEGA` to the yellow dribbler. Nothing else
-about the yellow robot is driven: it has no drive command, so it coasts if pushed.
+rSoccer's layout. The blue robot starts at `(0, 0)` facing +x. The yellow robot is uniform
+over `x` in `[1.8, 4.2]` (penalty depth to half-length less penalty depth) and `y` in
+`[-1.8, 1.8]` (the penalty area's width), facing -x. rSoccer puts the ball 0.1 m in front of it;
+here `seat_ball` rolls it into the yellow robot's mouth with the bar spinning, which leaves it
+resting at about 0.095 m, because a ball placed touching the bar is a compressed spring.
 
 ## Episode End
 
 ### Termination
 
-- **Success.** `holds(0)` has been true for `hold_seconds = 2.0` s of continuous simulated
-  time — 120 control steps at the default rate. The counter resets to zero the moment
-  `holds(0)` goes false, so the two seconds have to be unbroken.
-- **Crash.** A crashing foul by the agent (see Rewards); the step pays `-100.0` and
-  `info["crash"]` is set. `holds` itself already
-  tolerates a 50 ms gap in ball/dribbler contact, which is what makes an unbroken half
-  second achievable with a bar that sticks and re-grips.
-- **Ball out of the field.** `scene.in_field` fails for the ball centre (`|x| > 6.0 m` or
-  `|y| > 4.5 m`); `info["ball_out"]` is set. This env never sets `info["goal"]`, so any
-  ball leaving the field, including over a goal line, ends the episode.
-- **Controlled robot turned over.** The robot's own +z tilts more than 60 deg off world
-  +z (`cos < 0.5`). The step pays `-100.0` on top of whatever the task scored and
-  `info["tipped"]` is set. Only the robots the policy controls count — a scripted robot on
-  its side is the agent's to exploit. Tier 0 never trips this: its chassis is a planar
-  joint and cannot leave the ground.
-- **Diverged simulation.** If `qpos` or `qvel` stops being finite, `step` raises
-  `RuntimeError` rather than returning a NaN observation to train on. This is an error, not
-  a normal termination.
+Checked in rSoccer's order, the first that holds ends the episode:
 
-The episode does not end when the opponent loses the ball, only when the agent has held it
-long enough.
+- **Collision.** The yellow robot moves faster than 0.1 m/s on x or y. `info["collision"]`.
+  Checked first, but it does not stop the checks below from setting the step's reward.
+- **Robot out.** The robot leaves the attacking half (`x < -0.2`) or the field's width
+  (`|y| > 4.5`). `info["robot_out"]`.
+- **Goalkeeper area.** The robot enters the +x penalty area (`x > 4.2`, `|y| < 1.8`, Div A's
+  1.8 x 3.6 m). `info["gk_area"]`.
+- **Ball out.** The ball leaves the attacking half (`x < 0`) or the width. `info["ball_out"]`.
+- **Goal line.** The ball crosses `x = 6.0`: `+5.0` and `info["goal"]` inside the mouth (and
+  under the crossbar), `0` wide.
+- **Controlled robot turned over** (tier 1 only). The robot's own +z tilts more than 60 deg
+  off world +z (`cos < 0.5`); the step pays `-100.0` and `info["tipped"]` is set. rSoccer's
+  robots cannot tip, so this is the one ending that is ours, kept so a robot on its back never
+  collects shaping.
+- **Diverged simulation.** If `qpos` or `qvel` stops being finite, `step` raises
+  `RuntimeError` rather than returning a NaN observation to train on.
 
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**30 s** (rSoccer's), and at the default `control_hz=60` `dt` is exactly 1/60 s, so **1800 steps** (1200 at the 40 Hz the agents train at, rSoccer's 0.025 s step).
+**30 s**, rSoccer's: **1200 steps** at the 40 Hz (0.025 s) the agents act at, rSoccer's step,
+and 1800 at the default `control_hz=60`.
 
 ## Arguments
 
@@ -203,8 +174,12 @@ not `gym.make` keywords.
 
 | key | type | description |
 |---|---|---|
-| `is_success` | `bool` | the agent held the ball for a continuous 2 s |
-| `ball_out` | `bool` | present only on the step the ball leaves the field |
+| `is_success` | `bool` | the ball ended up in the goal |
+| `goal` | `bool` | present on a step the ball crossed the goal line: inside the mouth or not |
+| `robot_out` | `bool` | present when the robot left the attacking half or the width |
+| `gk_area` | `bool` | present when the robot entered the penalty area |
+| `ball_out` | `bool` | present when the ball left the attacking half or the width |
+| `collision` | `bool` | present when the yellow robot was shoved over 0.1 m/s |
 | `tipped` | `bool` | present only on the step a controlled robot turned over |
 | `tilt_deg` | `float` | with `tipped`: the worst controlled robot's tilt off vertical, degrees |
 | `tip_step` | `int` | with `tipped`: control steps since reset, so time-to-tip is `tip_step * dt` |

@@ -52,7 +52,6 @@ class BaseEnv(gym.Env):
     n_controlled = 1
     extra_obs = 0  # task-specific observations appended by _task_obs
     extra_obs_bound = np.inf  # |bound| of each, scalar or one per extra
-    ball_out_penalty = 0.0  # paid on the step the ball leaves the field
 
     def __init__(
         self,
@@ -158,10 +157,6 @@ class BaseEnv(gym.Env):
         ):
             # Loudly, rather than training a policy on NaN observations.
             raise RuntimeError(f"simulation diverged at step {self.steps}")
-        if not scene.in_field(*self.ball.pos(self.data)[:2]) and not info.get("goal"):
-            terminated = True
-            reward -= self.ball_out_penalty
-            info["ball_out"] = True
         if self.tipped():
             reward -= TIPOVER_PENALTY
             terminated = True

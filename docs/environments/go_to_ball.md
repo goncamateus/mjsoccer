@@ -5,22 +5,19 @@
 | | |
 |---|---|
 | Action Space | `Box(-1.0, 1.0, (7,), float32)` on the default tier 1, `Box(-1.0, 1.0, (6,), float32)` on tier 0 |
-| Observation Space | `Box((14,), float32)`, bounded per row below |
+| Observation Space | `Box((62,), float32)`, bounded per row below |
 | import | `gym.make("GoToBall-v0")` |
 
 ## Description
 
-One blue robot and a loose ball are dropped at random on an empty SSL Division A field.
-The robot has to drive to the ball and stop with its dribbler mouth pointed at it — not
-merely nearby, but oriented, because on this robot the kicker, the chipper and the dribbler
-all live behind the same face and nothing can be done with a ball the robot is not facing.
+One blue robot, a loose ball and six parked yellow robots are dropped at random on the
+SSL Division A field. The robot has to get its centre within 0.2 m of the ball; facing does
+not matter. This is rSoccer's `SSLGoToBall-v0` (`kwargs={'field_type': 2, 'n_robots_yellow': 6}`):
+the yellow robots get no commands and are only in the way.
 
-This is the base skill the rest of the suite assumes. It is the only task in the set with a
-closed-form solution — `mjsoccer.tasks.goto_ball_policy` is a P-controller that solves it —
-which is what makes it useful as a smoke test: a task nobody can solve looks identical to a
-working one until you try to train it. The kicker, chipper and dribbler are still in the
-action space here, but the reward ignores them, so a policy is free to learn that leaving
-them at rest costs the least energy.
+It is the one task with a closed-form solution — `mjsoccer.tasks.goto_ball_policy` is a
+P-controller that solves it — which makes it the smoke test of the suite. The kicker, chipper
+and dribbler are in the action space but the reward ignores them.
 
 ## Action Space
 
@@ -62,84 +59,40 @@ is.
 
 ## Observation Space
 
-`Box((14,), float32)`, bounded per row below: 6 ball elements plus 8 for the single robot.
-
-| Num | Observation | Min | Max | Name in XML / source | Unit |
-|---|---|---|---|---|---|
-| 0 | ball x position | -Inf | Inf | `ball` | m, / 6.0 (`FIELD_HALF_X`) |
-| 1 | ball y position | -Inf | Inf | `ball` | m, / 4.5 (`FIELD_HALF_Y`) |
-| 2 | ball height above the carpet | 0 | Inf | `ball` | m, / 0.155 (`GOAL_HEIGHT`) |
-| 3 | ball x velocity | -Inf | Inf | `ball` | m/s, / 8.0 (`MAX_BALL_V`) |
-| 4 | ball y velocity | -Inf | Inf | `ball` | m/s, / 8.0 (`MAX_BALL_V`) |
-| 5 | ball z velocity | -Inf | Inf | `ball` | m/s, / 8.0 (`MAX_BALL_V`) |
-| 6 | x position of the controlled blue robot | -1.05 | 1.05 | `b0_robot` | m, / 6.0 (`FIELD_HALF_X`) |
-| 7 | y position of the controlled blue robot | -1.067 | 1.067 | `b0_robot` | m, / 4.5 (`FIELD_HALF_Y`) |
-| 8 | sin of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
-| 9 | cos of the yaw of the controlled blue robot | -1 | 1 | `b0_robot` | unitless |
-| 10 | world-frame x velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
-| 11 | world-frame y velocity of the controlled blue robot | -Inf | Inf | `b0_robot` | m/s, / 3.3 (`MAX_V`) |
-| 12 | yaw rate of the controlled blue robot | -Inf | Inf | `b0_robot` | rad/s, / 37.1 (`MAX_W`) |
-| 13 | whether the controlled blue robot has the ball | 0 | 1 | `BaseEnv.holds` | 0 or 1 |
-
-Positions and velocities are divided by the constants shown in the Unit column; yaw is
-given as its sine and cosine so the wrap at +/-pi is not a discontinuity in the input. The
-bounds are what the simulator guarantees, not a clip: nothing clips, and every `Inf` is a
-channel with no physical ceiling (see [Observation](../index.md#observation-space)).
+`Box((62,), float32)`: 6 ball elements plus 8 for each of the 7 robots, the controlled blue
+robot first and then the six yellow ones, laid out exactly as in
+[`StaticDefenders-v0`](static_defenders.md#observation-space).
 
 ## Rewards
 
-Per step:
-
-| term | value |
-|---|---|
-| approach shaping | `prev_dist - dist`, the decrease in robot-to-ball distance |
-| facing | `0.5 * (cos - prev_cos)`, the change in cos(angle between the robot's front and robot->ball) |
-| energy | `-0.15 * dt * ||a||^2`, a cost per simulated second |
-| arrival bonus | `+10.0` on the terminating step |
-
-Both shaping terms are changes in a potential, so standing still pays nothing and a full
-about-turn (cos -1 -> 1) is worth what closing 1 m is. The other five tasks pay a raw per-step
-`0.1 * cos` facing term and a `+100` bonus; here that combination kept parking unprofitable
-but drowned the shaping, and SAC fell from 0.93 to 0.10-0.20 tier-0 success at 250k steps.
-Potential facing lets the bonus stay at 10, where it recovers 0.95-0.97
-(`.scratch/rl-learning/issues/01-why-nothing-learns.md`). `test_goto_ball_does_not_pay_camping`
-pins it: turning in place must earn under 1.
-
-`ENERGY = 0.15` per simulated second multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-1.05` / `-0.9` a second at any `control_hz` (`-0.026` / `-0.023` a step at 40 Hz). `test_energy_costs_the_same_per_simulated_second_at_any_rate` pins it.
+rSoccer's, sparse: `+1.0` on the step the robot-to-ball distance (centre to centre) drops
+under 0.2 m, which also ends the episode, and `0` on every other step. No shaping, no facing,
+no energy, no penalties.
 
 ## Starting State
 
-`_place` rejection-samples two positions with `sample_pose`: one for the robot, one for the
-ball. Each is uniform in `x` over `[-5.7, 5.7]` and `y` over `[-4.2, 4.2]` (a 0.3 m margin
-inside the field), resampled until it is at least 0.5 m from everything already placed, up
-to 200 attempts. The robot's yaw is uniform over `[-pi, pi)`. The ball starts at rest on the
-floor; the robot starts at rest at the chassis height the model defines.
-
-`_reset_task` records the initial robot-to-ball distance and facing cosine as the shaping baselines.
+rSoccer's layout. The ball is uniform over the field less a 0.1 m margin (`x` in
+`[-5.9, 5.9]`, `y` in `[-4.4, 4.4]`). The blue robot, then the six yellow ones, are drawn from
+the same box, each resampled until it is at least 0.2 m (centre to centre) from everything
+already placed, with yaw uniform over `[0, 2 pi)`. Everything starts at rest.
 
 ## Episode End
 
 ### Termination
 
-- **Success.** The robot is within `REACH = 0.13 m` of the ball *and* facing it with
-  `cos > 0.9`. `REACH` is a little past the 90 mm chassis radius: the ball sits about 94 mm
-  out from the chassis centre when the dribbler holds it.
-- **Ball out of the field.** `scene.in_field` fails for the ball centre, i.e. `|x| > 6.0 m`
-  or `|y| > 4.5 m`. `info["ball_out"]` is set. This env never sets `info["goal"]`, so a ball
-  crossing the goal line counts as out here.
-- **Controlled robot turned over.** The robot's own +z tilts more than 60 deg off world
-  +z (`cos < 0.5`). The step pays `-100.0` on top of whatever the task scored and
-  `info["tipped"]` is set. Only the robots the policy controls count — a scripted robot on
-  its side is the agent's to exploit. Tier 0 never trips this: its chassis is a planar
-  joint and cannot leave the ground.
+- **Success.** Robot-to-ball distance under 0.2 m: `+1.0`.
+- **Controlled robot turned over** (tier 1 only). The robot's own +z tilts more than 60 deg
+  off world +z (`cos < 0.5`); the step pays `-100.0` and `info["tipped"]` is set. rSoccer's
+  robots cannot tip, so this is the one ending that is ours, kept so a robot on its back never
+  collects shaping.
 - **Diverged simulation.** If `qpos` or `qvel` stops being finite, `step` raises
-  `RuntimeError` rather than returning a NaN observation to train on. This is an error, not
-  a normal termination.
+  `RuntimeError` rather than returning a NaN observation to train on.
 
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**30 s** (rSoccer's), and at the default `control_hz=60` `dt` is exactly 1/60 s, so **1800 steps** (1200 at the 40 Hz the agents train at, rSoccer's 0.025 s step).
+**30 s**, rSoccer's: **1200 steps** at the 40 Hz (0.025 s) the agents act at, rSoccer's step,
+and 1800 at the default `control_hz=60`.
 
 ## Arguments
 
@@ -161,9 +114,8 @@ env = gym.make("GoToBall-v0", tier=0, control_hz=60, horizon_s=30.0, render_mode
 
 | key | type | description |
 |---|---|---|
-| `is_success` | `bool` | the robot arrived at the ball facing it |
+| `is_success` | `bool` | the robot got within 0.2 m of the ball |
 | `dist` | `float` | robot-to-ball distance in metres after this step |
-| `ball_out` | `bool` | present only on the step the ball leaves the field |
 | `tipped` | `bool` | present only on the step a controlled robot turned over |
 | `tilt_deg` | `float` | with `tipped`: the worst controlled robot's tilt off vertical, degrees |
 | `tip_step` | `int` | with `tipped`: control steps since reset, so time-to-tip is `tip_step * dt` |

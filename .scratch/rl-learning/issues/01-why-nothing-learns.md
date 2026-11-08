@@ -175,3 +175,28 @@ um episódio aleatório de 30 s custava −24 contra +10 de chegada; por segundo
 
 γ 0.99 a 40 Hz não travou o GoToBall. `policy_frequency` 2 não ajudou aqui (chegou mais tarde,
 mesmo platô); um seed só, então diferença de velocidade pode ser ruído.
+
+## GTBS at 40 Hz, 60 s, Planning-the-path hyperparameters (2026-11-08)
+
+Tier 0, seed 0, 2.4M transitions. Training success ~0.01-0.02 for both.
+Deterministic probe, 20 episodes:
+
+| impl | min_dist med | steps at_ball | reached | kicked | out | goal | len |
+|---|---|---|---|---|---|---|---|
+| SB3 SAC | 0.26 | 2.2 | 0.35 | 0.15 | 0.10 | 0.00 | 2286 |
+| single-file SAC | 0.47 | 0.4 | 0.20 | 0.00 | 0.00 | 0.00 | 2400 |
+
+Same failure as 15 Hz (approach partial, kicks rare); implementation is not the bottleneck.
+Single-file alpha collapsed to ~2e-4 (exploration gone).
+
+Sweep runs/sweep/sac_20261108-004028: Dribbling tier 0 finished with ep_rew ~1650, success 0
+-> holding exploit (per-step +1 at 40 Hz over 120 s), as predicted.
+
+## Rewards replaced by rSoccer's, task for task (2026-11-08)
+
+User decision: rewards, endings and reset layouts exactly as robocin/rSoccer (full port), keeping
+our physics, control rate and action space. GTB sparse +1 at 0.2 m among 6 parked yellows; GTBS/SD/CP
+rSoccer shooting reward (ball_dist/10.8 + ball_grad/1.875 - energy, +5 goal, attacking-half and
+gk-area endings; CP ends on yellow > 0.1 m/s); Dribbling zigzag checkpoints +1 x7; PE spin-only
+passer, +1 received, -1 wrong ball (out of box / stopped > 20 steps). Only deviation: tier-1
+tipover still ends at -100. The potential-facing / bonus-10 / setup redesign above is gone.

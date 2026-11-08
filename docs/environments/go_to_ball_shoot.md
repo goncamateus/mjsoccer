@@ -10,20 +10,14 @@
 
 ## Description
 
-One blue robot starts on its own half with a loose ball somewhere on the field, and has to
-put the ball in the goal at `x = +6.0`. There is nothing in the way: no keeper, no
-defenders, no opponent.
+One blue robot and a loose ball start in the attacking half; the robot has to put the ball
+in the goal at `x = +6.0`. Nothing is in the way. This is rSoccer's `SSLGoToBallShoot-v0`
+with `random_init=True, enter_goal_area=False`: the reward pays the robot closing on the ball
+and the ball closing on the goal, +5 for the goal, and the episode ends the moment the robot
+or the ball leaves the attacking half, or the robot steps into the penalty area.
 
-The task exists to close the loop between locomotion and the ball-handling mechanisms.
-`GoToBall-v0` ends the moment the robot is in position; here that is only the first half of
-the episode, and the reward keeps paying only for what happens to the *ball* afterwards.
-The robot can dribble the ball down the field, shove it with the chassis, kick it flat or
-chip it — every one of those is in the action space and none of them is privileged by the
-reward, which cares only that the ball ends up past the goal line, inside the mouth and
-under the crossbar.
-
-`StaticDefenders-v0` is this task with six parked yellow robots between the ball and the
-goal; the reward and termination there are identical.
+The robot can dribble, shove, kick or chip the ball; none of them is privileged by the reward.
+`StaticDefenders-v0` and `ContestedPossession-v0` share this reward.
 
 ## Action Space
 
@@ -92,59 +86,54 @@ than 1 exactly when it is too high to score.
 
 ## Rewards
 
-Per step:
+Ported from rSoccer's `_calculate_reward_and_done` (`ssl_go_to_ball_shoot`, and the
+identical one in `ssl_hw_challenge`). Per step, unless the step ends the episode:
 
 | term | value |
 |---|---|
-| approach shaping | `prev_dist - dist` while `not has_kicked`, the decrease in robot-to-ball distance |
-| goal shaping | `prev_goal_dist - goal_dist` once `has_kicked`, the decrease in ball-to-goal distance |
-| setup | `setup - prev_setup` while `not has_kicked`, frozen at the kick; `setup = max(cos_ball, 0) * max(0, 1 - dist / 0.5) * max(cos(front, ball->goal mouth), 0)`: near the ball, facing it, aimed at the goal |
-| facing | `0.5 * (cos - prev_cos)`, the change in cos(angle between the robot's front and robot->ball) |
-| energy | `-0.15 * dt * ||a||^2`, a cost per simulated second |
-| goal bonus | `+10.0` on the terminating step |
-| ball out | `-10.0` on the terminating step |
+| ball distance | `clip(prev_dist - dist, -1, 1) / BALL_DIST_SCALE`, robot-to-ball closing; `BALL_DIST_SCALE = hypot(9.0, 6.0) = 10.8` |
+| ball gradient | `clip(prev - now, -1, 1) / BALL_GRAD_SCALE`, the ball closing on the goal centre `(6.0, 0)`; `BALL_GRAD_SCALE = hypot(4.5, 6.0) / 4 = 1.875` |
+| energy | `-mean(|a_drive|) / 1200` |
 
-`goal_dist` is the 2-D distance from the ball to the nearest point of the goal mouth,
-`(6.0, clip(ball_y, -0.9, 0.9))`. `has_kicked` latches the first time the kicker or chipper fires while the robot is at the ball (within `REACH = 0.13 m` and facing it with `cos > 0.9`, judged on the state the action was taken in). A plunger fired at nothing does not count, or random exploration would spend it on the first step. One kick per episode: after a miss, nothing pays the robot to go back.
-
-Facing is the change in a potential, so parking pays nothing and the bonus and fouls can stay at 10 next to the shaping. A raw per-step `0.1 * cos` with a `+100` bonus paid ~10-12 an episode for parking and SAC never approached the ball (`.scratch/rl-learning/issues/01-why-nothing-learns.md`); `test_kick_tasks_do_not_pay_camping` pins it. The kick counts on facing the ball alone, so without the setup term shots went wherever the robot arrived from; with it GoToBallShoot goals rose from 0-0.05 to 0.08 over seeds 0-4 at 500k steps (`test_kick_tasks_pay_lining_up_behind_the_ball`).
-
-`ENERGY = 0.15` per simulated second multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-1.05` / `-0.9` a second at any `control_hz` (`-0.026` / `-0.023` a step at 40 Hz). `test_energy_costs_the_same_per_simulated_second_at_any_rate` pins it.
+On an ending step the only reward is the goal: `+5.0` for a ball past `x = 6.0` inside the
+mouth, `0` for anything else. There are no penalties. The scales are rSoccer's formulas on our
+field. rSoccer's energy is `sum |wheel speed| / (4 * 160 rad/s * 1200)`; here the commanded drive,
+as a fraction of its range, stands in for the wheel speed (tier 0 commands `(vx, vy, w)`, not
+wheels), so a saturated drive costs `1 / 1200` a step as there.
 
 ## Starting State
 
-`_place` puts the robot on the defending half so that shooting means covering ground: `x`
-uniform in `[-5.7, 0.0]`, `y` uniform in `[-4.2, 4.2]`, yaw uniform in `[-pi, pi)`. The ball
-is then rejection-sampled with `sample_pose` anywhere in the field inside a 0.3 m margin,
-resampled until it is at least 0.5 m from the robot, up to 200 attempts. The ball starts at
-rest on the floor.
-
-`_reset_task` records both baselines: the initial robot-to-ball distance and the initial
-ball-to-goal distance.
+rSoccer's `random_init`. The ball is uniform over `x` in `[0.3, 3.9]` (0.3 m inside the half
+line and off the penalty area, `6.0 - 1.8 - 0.3`) and `y` in `[-4.4, 4.4]`. The robot is drawn
+from the same box with its `y` negated, and redrawn while it is within
+`(ball radius + robot radius) * 1.1 = 0.122 m` of the ball on both axes; yaw uniform over
+`[0, 2 pi)`. Everything starts at rest.
 
 ## Episode End
 
 ### Termination
 
-- **Goal.** `scene.in_goal(ball)`: the ball centre is past `x = 6.0`, inside the mouth
-  (`|y| < 0.9`) and under the crossbar (`z - FLOOR_Z < 0.155`, centre height above the carpet). `info["goal"]` is `True`.
-- **Ball out of the field.** `scene.in_field` fails for the ball centre (`|x| > 6.0 m` or
-  `|y| > 4.5 m`) *and* `info["goal"]` is false, so a scored ball is never also reported as
-  out. `info["ball_out"]` is set and the step pays `-10.0`. A shot that crosses the goal line
-  wide, or over the crossbar, ends the episode as a miss.
-- **Controlled robot turned over.** The robot's own +z tilts more than 60 deg off world
-  +z (`cos < 0.5`). The step pays `-100.0` on top of whatever the task scored and
-  `info["tipped"]` is set. Only the robots the policy controls count — a scripted robot on
-  its side is the agent's to exploit. Tier 0 never trips this: its chassis is a planar
-  joint and cannot leave the ground.
+Checked in rSoccer's order, the first that holds ends the episode:
+
+- **Robot out.** The robot leaves the attacking half (`x < -0.2`) or the field's width
+  (`|y| > 4.5`). `info["robot_out"]`.
+- **Goalkeeper area.** The robot enters the +x penalty area (`x > 4.2`, `|y| < 1.8`, Div A's
+  1.8 x 3.6 m). `info["gk_area"]`.
+- **Ball out.** The ball leaves the attacking half (`x < 0`) or the width. `info["ball_out"]`.
+- **Goal line.** The ball crosses `x = 6.0`: `+5.0` and `info["goal"]` inside the mouth (and
+  under the crossbar), `0` wide.
+- **Controlled robot turned over** (tier 1 only). The robot's own +z tilts more than 60 deg
+  off world +z (`cos < 0.5`); the step pays `-100.0` and `info["tipped"]` is set. rSoccer's
+  robots cannot tip, so this is the one ending that is ours, kept so a robot on its back never
+  collects shaping.
 - **Diverged simulation.** If `qpos` or `qvel` stops being finite, `step` raises
-  `RuntimeError` rather than returning a NaN observation to train on. This is an error, not
-  a normal termination.
+  `RuntimeError` rather than returning a NaN observation to train on.
 
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**60 s** (rSoccer's), and at the default `control_hz=60` `dt` is exactly 1/60 s, so **3600 steps** (2400 at the 40 Hz the agents train at, rSoccer's 0.025 s step).
+**60 s**, rSoccer's: **2400 steps** at the 40 Hz (0.025 s) the agents act at, rSoccer's step,
+and 3600 at the default `control_hz=60`.
 
 ## Arguments
 
@@ -167,8 +156,10 @@ env = gym.make("GoToBallShoot-v0", tier=0, control_hz=60, horizon_s=60.0, render
 | key | type | description |
 |---|---|---|
 | `is_success` | `bool` | the ball ended up in the goal |
-| `goal` | `bool` | the same flag; also read by `base.step` to keep a scored ball from being reported as out of the field |
-| `ball_out` | `bool` | present only on the step the ball leaves the field without scoring |
+| `goal` | `bool` | present on a step the ball crossed the goal line: inside the mouth or not |
+| `robot_out` | `bool` | present when the robot left the attacking half or the width |
+| `gk_area` | `bool` | present when the robot entered the penalty area |
+| `ball_out` | `bool` | present when the ball left the attacking half or the width |
 | `tipped` | `bool` | present only on the step a controlled robot turned over |
 | `tilt_deg` | `float` | with `tipped`: the worst controlled robot's tilt off vertical, degrees |
 | `tip_step` | `int` | with `tipped`: control steps since reset, so time-to-tip is `tip_step * dt` |

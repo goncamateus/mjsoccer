@@ -80,6 +80,9 @@ assert all(np.all(np.diff(v) > 0) for v in KICK_TABLE_MS.values()), "np.interp n
 FIELD_HALF_X = 6.0
 FIELD_HALF_Y = 4.5
 GOAL_HALF_Y = 0.9
+# Div A penalty (goalkeeper) area, rSim field_type 0's: 1.8 m deep, 3.6 m wide.
+PENALTY_DEPTH = 1.8
+PENALTY_HALF_Y = 1.8
 GOAL_DEPTH = 0.18
 GOAL_HEIGHT = 0.155
 # The carpet plane is at z = 0.02, not 0 (models/field.xml). Every height that means

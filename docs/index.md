@@ -48,16 +48,18 @@ reference outputs are in `.scratch/physics-fidelity/candidate-14/`.
 
 | id | robots | obs dim | action dim (tier 1, default / tier 0) | horizon (s) | terminates on |
 |---|---|---|---|---|---|
-| [`GoToBall-v0`](environments/go_to_ball.md) | 1 blue | 14 | 7 / 6 | 30 | within 0.13 m of the ball and facing it (cos > 0.9) |
-| [`GoToBallShoot-v0`](environments/go_to_ball_shoot.md) | 1 blue | 14 | 7 / 6 | 60 | ball in the +x goal |
-| [`Dribbling-v0`](environments/dribbling.md) | 1 blue | 16 | 7 / 6 | 120 | 4 waypoints carried, or ball lost for 2 s |
-| [`StaticDefenders-v0`](environments/static_defenders.md) | 1 blue + 6 yellow | 62 | 7 / 6 | 25 | ball in the +x goal |
-| [`ContestedPossession-v0`](environments/contested_possession.md) | 1 blue + 1 yellow | 22 | 7 / 6 | 30 | blue holds the ball for 2 s |
-| [`PassEndurance-v0`](environments/pass_endurance.md) | 2 blue (1 controlled) | 22 | 7 / 6 | 30 | team-mate receives the pass |
+| [`GoToBall-v0`](environments/go_to_ball.md) | 1 blue + 6 yellow | 62 | 7 / 6 | 30 | within 0.2 m of the ball (+1) |
+| [`GoToBallShoot-v0`](environments/go_to_ball_shoot.md) | 1 blue | 14 | 7 / 6 | 60 | goal (+5); robot or ball leaves the attacking half, robot in the penalty area |
+| [`Dribbling-v0`](environments/dribbling.md) | 1 blue + 4 yellow | 47 | 7 / 6 | 120 | 7 zigzag checkpoints (+1 each); robot off the course, a yellow robot moved |
+| [`StaticDefenders-v0`](environments/static_defenders.md) | 1 blue + 6 yellow | 62 | 7 / 6 | 25 | as GoToBallShoot |
+| [`ContestedPossession-v0`](environments/contested_possession.md) | 1 blue + 1 yellow | 22 | 7 / 6 | 30 | as GoToBallShoot, or the yellow robot shoved over 0.1 m/s |
+| [`PassEndurance-v0`](environments/pass_endurance.md) | 2 blue (1 controlled) | 22 | 7 / 6 | 30 | team-mate receives the pass (+1); wrong ball (-1) |
 
-Every environment also terminates when the ball leaves the field or when a controlled robot
-tips over (more than 60° off vertical, `-100.0`, see [Turnover](#turnover)), and truncates at
-its horizon. All six controls exactly one blue robot; the remaining robots are scripted.
+Rewards, endings and reset layouts are robocin/rSoccer's, ported task by task on our Div A
+field (each env page says what could not be literal). Every environment also terminates when
+a controlled robot tips over (more than 60° off vertical, `-100.0`, see [Turnover](#turnover)),
+the one ending rSoccer does not have, and truncates at its horizon. All six control exactly
+one blue robot; the remaining robots are scripted or idle.
 
 ## Action space
 
@@ -231,7 +233,7 @@ bound, so `observation_space.contains` is true of every observation:
 | ball z | 0 to `inf` | the ball sits on the carpet; a chip has no ceiling |
 | ball x, y | `inf` | a chip clears the 0.2 m wall |
 | every velocity | `inf` | collisions have no ceiling |
-| Dribbling waypoint | ±2.57, ±3.427 | an in-field waypoint seen from a robot inside the walls |
+| Dribbling checkpoints | -1 to 4/3 | rSoccer's `(count / 6) * 2 - 1`, count 0-7 |
 
 Measured under random action, seeds 0-19, six envs: tier 1 robot `|v|` peaks at 0.45 and
 `|omega|` at 0.18 of their divisors; tier 0 at 0.30 and 0.43. Under its own full command
@@ -518,7 +520,7 @@ setting.
 
 **Seconds are the contract.** Horizons, the 250 ms plunger lock and the 50 ms possession
 grace are declared in seconds and converted, so episodes last the same physical time at any
-rate. Per-step rewards are per 1/60 s step. Horizons are rSoccer's (robocin/rSoccer), and the
+rate. Per-step rewards are rSoccer's, per control step, and match it exactly at 40 Hz. Horizons are rSoccer's (robocin/rSoccer), and the
 example agents act every 0.025 s (`control_hz=40`, decimation 24) as rSoccer does. `test_horizon_is_seconds_at_exactly_60_hz` pins
 each env's step count, so a change of rate is never silent.
 
