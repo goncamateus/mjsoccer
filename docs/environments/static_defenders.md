@@ -152,6 +152,7 @@ As `GoToBallShoot-v0`, plus the defenders:
 |---|---|
 | approach shaping | `prev_dist - dist` while `not has_kicked` |
 | goal shaping | `prev_goal_dist - goal_dist` once `has_kicked` |
+| setup | `setup - prev_setup` while `not has_kicked`, frozen at the kick; `setup = max(cos_ball, 0) * max(0, 1 - dist / 0.5) * max(cos(front, ball->goal mouth), 0)`: near the ball, facing it, aimed at the goal |
 | facing | `0.5 * (cos - prev_cos)`, the change in cos(angle between the robot's front and robot->ball) |
 | energy | `-0.01 * ||a||^2` |
 | goal bonus | `+10.0` on the terminating step |
@@ -160,7 +161,7 @@ As `GoToBallShoot-v0`, plus the defenders:
 
 `has_kicked` latches the first time the kicker or chipper fires while the robot is at the ball (within `REACH = 0.13 m` and facing it with `cos > 0.9`, judged on the state the action was taken in). A plunger fired at nothing does not count, or random exploration would spend it on the first step. One kick per episode: after a miss, nothing pays the robot to go back. The defenders are parked, so any contact with one is the agent driving into it.
 
-Facing is the change in a potential, so parking pays nothing and the bonus and fouls can stay at 10 next to the shaping. A raw per-step `0.1 * cos` with a `+100` bonus paid ~10-12 an episode for parking and SAC never approached the ball (`.scratch/rl-learning/issues/01-why-nothing-learns.md`); `test_kick_tasks_do_not_pay_camping` pins it.
+Facing is the change in a potential, so parking pays nothing and the bonus and fouls can stay at 10 next to the shaping. A raw per-step `0.1 * cos` with a `+100` bonus paid ~10-12 an episode for parking and SAC never approached the ball (`.scratch/rl-learning/issues/01-why-nothing-learns.md`); `test_kick_tasks_do_not_pay_camping` pins it. The kick counts on facing the ball alone, so without the setup term shots went wherever the robot arrived from; with it GoToBallShoot goals rose from 0-0.05 to 0.08 over seeds 0-4 at 500k steps (`test_kick_tasks_pay_lining_up_behind_the_ball`).
 
 `ENERGY = 0.01` multiplies the squared norm of the whole flat action (7 dimensions on tier 1, 6 on tier 0), so a saturated action costs `-0.07` / `-0.06` per step.
 

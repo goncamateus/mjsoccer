@@ -390,6 +390,33 @@ def test_kick_tasks_do_not_pay_camping(env_id):
     assert total / 3 < 1.0, f"turning in place earned {total / 3:.2f}"
 
 
+@pytest.mark.parametrize("env_id", ["GoToBallShoot-v0", "PassEndurance-v0"])
+def test_kick_tasks_pay_lining_up_behind_the_ball(env_id):
+    """Before the kick, sitting behind the ball aimed at the target is a potential.
+
+    The kick only counts facing the ball, so nothing told the robot to arrive on the far
+    side of it from the target: kicks went wherever it came from. Weighing the alignment
+    by cos(front, ball->target) lifted GoToBallShoot goals from 0-0.05 to 0.08 over seeds
+    0-4 (.scratch/rl-learning/issues/01-why-nothing-learns.md).
+    """
+    env = gym.make(env_id, tier=0)
+    env.reset(seed=0)
+    u = env.unwrapped
+    b = np.asarray(u.ball.pos(u.data)[:2])
+    to_target = (u._target_point() - b) / np.linalg.norm(u._target_point() - b)
+    p = b - 0.2 * to_target
+    yaw = float(np.arctan2(to_target[1], to_target[0]))
+    values = []
+    for flip in (0.0, np.pi):
+        u.robots[0].place(u.data, p[0], p[1], yaw + flip)
+        mujoco.mj_forward(u.model, u.data)
+        values.append(u._setup())
+    env.close()
+    aimed, backwards = values
+    assert aimed > 0.5, f"aimed behind the ball scored {aimed:.2f}"
+    assert backwards == 0.0, f"facing away scored {backwards:.2f}"
+
+
 @pytest.mark.parametrize("tier", [0, 1])
 @pytest.mark.parametrize("env_id", ["StaticDefenders-v0", "ContestedPossession-v0", "PassEndurance-v0"])
 def test_place_puts_every_robot_where_asked(env_id, tier):

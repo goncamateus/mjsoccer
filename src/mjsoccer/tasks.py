@@ -35,6 +35,7 @@ FACING = 0.1  # per-step weight on cos(robot front, robot->ball), the raw cosine
 # stopped learning (.scratch/rl-learning/issues/01-why-nothing-learns.md).
 GOTO_BONUS = 10.0
 KICK_BONUS = 10.0
+SETUP_RANGE = 0.5  # m: the lining-up potential fades to 0 this far from the ball
 KICK_PENALTY = 10.0  # kick tasks: ball out, or StaticDefenders' collision
 BONUS = 100.0  # task completed; large enough that facing the ball and parking never pays
 OUT_PENALTY = 100.0  # ball out of the field, a collision foul
@@ -90,8 +91,8 @@ class _BallTask(BaseEnv):
 class _KickTask(_BallTask):
     """Reach the ball, then one kick sends it at a target.
 
-    Until the agent kicks, closing on the ball pays; after, the ball closing on the target
-    does. One kick per episode: a kick is the kicker or chipper firing while the robot is
+    Until the agent kicks, closing on the ball pays, and so does lining up behind it aimed at
+    the target (`_setup`); after, the ball closing on the target does. One kick per episode: a kick is the kicker or chipper firing while the robot is
     at the ball (within REACH, facing it), judged on the state the action was taken in.
     A plunger fired at nothing does not count, or random exploration would spend the kick
     on the first step.
@@ -99,17 +100,33 @@ class _KickTask(_BallTask):
 
     ball_out_penalty = KICK_PENALTY
 
-    def _target_dist(self) -> float:
+    def _target_point(self) -> np.ndarray:
         raise NotImplementedError
+
+    def _target_dist(self) -> float:
+        return float(np.linalg.norm(self.ball.pos(self.data)[:2] - self._target_point()))
 
     def _done(self) -> bool:
         raise NotImplementedError
+
+    def _setup(self) -> float:
+        """How lined up the kick is: near the ball, facing it, front aimed at the target.
+
+        The kick counts on facing the ball alone, so without this the shot went wherever the
+        robot happened to arrive from. Paid as a potential until the kick, then frozen.
+        """
+        r = self._agent()
+        b = self.ball.pos(self.data)[:2]
+        aim = float(_unit(self._target_point() - b) @ r.forward(self.data)[:2])
+        near = max(0.0, 1.0 - self._to_ball() / SETUP_RANGE)
+        return max(self._facing(), 0.0) * near * max(aim, 0.0)
 
     def _reset_task(self) -> None:
         self.has_kicked = False
         self._was_at_ball = self._at_ball()
         self._prev, self._prev_target = self._to_ball(), self._target_dist()
         self._prev_facing = self._facing_potential()
+        self._prev_setup = self._setup()
 
     def _facing_potential(self) -> float:
         return self._facing() + self._extra_facing()
@@ -119,9 +136,11 @@ class _KickTask(_BallTask):
             self.has_kicked = True
         d, g = self._to_ball(), self._target_dist()
         if self.has_kicked:
-            reward = self._prev_target - g
+            reward = self._prev_target - g  # setup frozen: the ball leaving costs nothing
         else:
-            reward = self._prev - d
+            s = self._setup()
+            reward = self._prev - d + (s - self._prev_setup)
+            self._prev_setup = s
         f = self._facing_potential()
         reward += 0.5 * (f - self._prev_facing) + self._energy(action)
         self._prev, self._prev_target, self._prev_facing = d, g, f
@@ -180,13 +199,10 @@ class GoToBallShootEnv(_KickTask):
         bx, by = self.sample_pose(taken, clearance=0.5)
         self.ball.place(self.data, bx, by)
 
-    def _target_dist(self) -> float:
-        p = self.ball.pos(self.data)[:2]
-        return float(
-            np.linalg.norm(
-                p - (S.FIELD_HALF_X, np.clip(p[1], -S.GOAL_HALF_Y, S.GOAL_HALF_Y))
-            )
-        )
+    def _target_point(self) -> np.ndarray:
+        """The nearest point of the goal mouth to the ball."""
+        y = self.ball.pos(self.data)[1]
+        return np.array([S.FIELD_HALF_X, np.clip(y, -S.GOAL_HALF_Y, S.GOAL_HALF_Y)])
 
     def _done(self) -> bool:
         return bool(S.in_goal(self.ball.pos(self.data)))
@@ -400,12 +416,8 @@ class PassEnduranceEnv(_KickTask):
         bx, by = self.sample_pose(taken, clearance=0.5)
         self.ball.place(self.data, bx, by)
 
-    def _target_dist(self) -> float:
-        return float(
-            np.linalg.norm(
-                self.ball.pos(self.data)[:2] - self.data.xpos[self.robots[1].body][:2]
-            )
-        )
+    def _target_point(self) -> np.ndarray:
+        return np.array(self.data.xpos[self.robots[1].body][:2])
 
     def _extra_facing(self) -> float:
         # Face the receiver: cos between the passer's front and passer -> receiver. Not

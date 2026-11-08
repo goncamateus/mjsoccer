@@ -134,3 +134,31 @@ mas a política passa só 0.2-2.4 passos por episódio em `_at_ball` (< REACH e 
 só conta ali. Fix levado a `_KickTask` (GTBS, SD, PE; o cos β do PE entra no mesmo potencial);
 `test_kick_tasks_do_not_pay_camping`: girar no lugar rendia 70.1 / 117.8 / 44.1, agora < 1.
 Próximo gargalo: assentar na bola de frente.
+
+### GTBS depois do `7d93d59`: mais treino vs potencial de alinhamento (tier 0, seeds 0-1)
+
+| variante | passos | sucesso treino | chega | passos em `_at_ball` | chutou | fora | gol (sonda) |
+|---|---|---|---|---|---|---|---|
+| HEAD | 1M | 0.04 / 0.06 (platô desde ~400k, ep_rew ~3) | 0.50 / 0.45 | 0.2 / 2.4 | 0.15 / 0.20 | 0.10 / 0 | 0.05 / 0 |
+| + `max(cos,0)·max(0, 1 − d/0.5)` potencial, congelado no chute | 500k | 0.09 / 0.02 | 0.95 / 0.35 | 1.8 / 0.6 | 0.45 / 0.15 | 0.25 / 0.05 | 0 / 0.05 |
+
+- Mais treino não ajuda: platô.
+- O alinhamento ajuda num seed (chega 0.95, chuta 0.45), mas os chutes saem fora, não no gol.
+- Hipótese seguinte: nada antes do chute paga ficar *atrás* da bola na linha do gol; `_at_ball` só
+  pede cos(frente, robô→bola) > 0.9, então o chute sai na direção em que o robô chegou.
+
+### GTBS: alinhamento × cos(frente, bola→gol) (500k, seeds 0-4)
+
+| seed | sucesso treino (fim) | chega | chutou | fora | gol (sonda) |
+|---|---|---|---|---|---|
+| 0 | 0.01 | 0.90 | 0.50 | 0.30 | 0.15 |
+| 1 | 0.03 | 0.65 | 0.40 | 0.10 | 0.10 |
+| 2 | 0.05 | 0.70 | 0.05 | 0.05 | 0.00 |
+| 3 | 0.09 | 0.65 | 0.35 | 0.25 | 0.05 |
+| 4 | 0.10 | 0.55 | 0.20 | 0.10 | 0.10 |
+
+Gol médio na sonda 0.08 (sem mira: 0 / 0.05). Melhora consistente mas pequena; ~1/4 dos chutes
+viram gol, o resto sai ou para no caminho. Comitado em `_KickTask._setup` (GTBS, SD, PE; no PE o alvo
+é o receptor). Achado à parte no caminho: no tier 0 o `place` deslocava robôs de cenas multi-robô
+pelo offset do body (até 1.5 m no SD); corrigido, então resultados tier 0 antigos de SD/CP/PE
+usaram layouts errados.
