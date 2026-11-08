@@ -162,3 +162,16 @@ viram gol, o resto sai ou para no caminho. Comitado em `_KickTask._setup` (GTBS,
 é o receptor). Achado à parte no caminho: no tier 0 o `place` deslocava robôs de cenas multi-robô
 pelo offset do body (até 1.5 m no SD); corrigido, então resultados tier 0 antigos de SD/CP/PE
 usaram layouts errados.
+
+## 40 Hz, horizontes do rSoccer, hiperparâmetros do Planning-the-path (GoToBall tier 0, seed 0)
+
+`be2d530` + energia por segundo simulado (`ENERGY = 0.15 * dt`). Com energia por passo a 40 Hz,
+um episódio aleatório de 30 s custava −24 contra +10 de chegada; por segundo, ~−9.
+
+| implementação | 2.4M transições: sucesso | ~0.9 de sucesso em | ep_len final | fps |
+|---|---|---|---|---|
+| SB3 (`sac_agent.py`, ator a cada update) | 0.99 | ~1.15M | 177 (4.4 s) | ~630 |
+| arquivo único (`sac_cleanrl.py`, `policy_frequency` 2) | 0.99 | ~1.7M | 158 (4.0 s) | ~660 |
+
+γ 0.99 a 40 Hz não travou o GoToBall. `policy_frequency` 2 não ajudou aqui (chegou mais tarde,
+mesmo platô); um seed só, então diferença de velocidade pode ser ruído.
