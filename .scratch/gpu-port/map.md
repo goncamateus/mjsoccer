@@ -102,6 +102,7 @@ branch nem push (convenção do `physics-fidelity`).
 - [Benchmark bruto: MJX-JAX, MJX-Warp e CPU](issues/05-mjx-benchmark.md): pico Warp 918 k / 111 k SPS (2 / 7 robôs) contra 245 k / 80 k da CPU com 12 threads (3.7× / 1.4×); o MJX-JAX na variante fica 40–50× abaixo da CPU; no Warp o pool de contatos (~7 KB/slot, dimensionado pelo broadphase) limita o `nworld`.
 - [O que a variante do MJX-JAX simplifica, e qual a meta de speedup](issues/06-variant-content-and-speedup.md): o MJX-JAX e a variante saem (ADR 0002), o port roda só no Warp; sem limiar de speedup; ContestedPossession e GoToBall portados primeiro, com decisões/s ponta a ponta medidas contra a base CPU (1.5 k / 0.3 k DPS).
 - [O port do controlador de navegação: o que vai verbatim e o que se adapta](issues/07-navigation-controller-port.md): quirks verbatim (`MAX_DV` por passo, frenagem a 1 m/s², chatter, `ω` sem limite), só o `entry` vira puro; `max_velocity` 3.3; entrada pelo `qpos`/`qvel`; PassEndurance zera `vx, vy` depois do controlador; scripted e observação como hoje; `goto_ball_policy` em target pose, com um caminho de velocidade crua só para os testes de envelope.
+- [Qual derivado do PPO, e como se estruturam os scripts de treino](issues/08-ppo-training-scripts.md): `brax ppo.train` vanilla no grupo `gpu` (a API MJX vira `brax.envs.Env`); um `examples/ppo_mjx.py --env`; `--num-envs` 8 192 / 1 024; `repeat_action` só no env; stdout + Orbax; eval no MJX, `--play` no backend CPU.
 
 ## Not yet specified
 
@@ -114,7 +115,7 @@ branch nem push (convenção do `physics-fidelity`).
 - **Estado por mundo**: posse com graça (`POSSESSION_GRACE`), timers, contadores das tasks.
 - **Falhas por mundo**: NaN (hoje `RuntimeError`), overflow do Warp — resetar o mundo, marcar, ou
   abortar.
-- **Render / viewer / GIF** a partir do estado MJX (copiar um mundo para um `MjData`?).
+- **Render / viewer / GIF** a partir do estado MJX (copiar um mundo para um `MjData`?). O `--play` do treino já roda no backend CPU (ticket 08); sobra só se alguém precisar ver um mundo do lote.
 - **Testes do backend MJX-Warp**: ele precisa de GPU CUDA; o que entra na suíte padrão (pulado sem
   GPU) e o que fica `-m validation`.
 

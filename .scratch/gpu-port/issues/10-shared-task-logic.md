@@ -14,5 +14,5 @@ controlador de navegação, oponentes — tem hoje uma implementação em numpy 
   o backend CPU embrulhando a versão JAX) ou **duas** (numpy no CPU, JAX no MJX), com a paridade
   verificada por testes?
 - Se forem duas: o que garante que não divergem quando uma task muda?
-- A API do lado MJX: classe Gymnasium vetorizada, interface funcional `reset(key) / step(state,
-  action)` no estilo Playground/Brax, ou as duas?
+- A API do lado MJX: a interface funcional `brax.envs.Env` é obrigatória (ticket 08, treino por
+  `brax ppo.train`); falta decidir se também há uma classe Gymnasium vetorizada por cima.
