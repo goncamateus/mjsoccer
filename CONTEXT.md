@@ -50,5 +50,17 @@ _Avoid_: transfer, migration
 
 **Parity**:
 Agreement between MJX-Warp and the CPU backend, judged statistically by the acceptance
-criteria, not trajectory by trajectory.
+criteria, not trajectory by trajectory. It is about the physics; the task logic has its own
+**task-logic parity**.
 _Avoid_: equivalence, matching, fidelity, policy transfer
+
+**Task-logic parity**:
+Agreement between the two implementations of a task's logic (observation, reward, termination,
+possession, navigation controller): given the same physical state and action, both give the same
+outputs, up to float32 rounding. Judged exactly, state by state, unlike **parity**.
+_Avoid_: parity (alone), consistency
+
+**Domain randomization (DR)**:
+Giving each parallel world on MJX-Warp its own physical model, a **variant** of the nominal one,
+sampled once per world for a whole training run. The CPU backend always runs the nominal model.
+_Avoid_: noise (observation noise and action latency belong to the task, not the model), variation

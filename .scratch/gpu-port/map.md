@@ -104,11 +104,13 @@ branch nem push (convenção do `physics-fidelity`).
 - [O port do controlador de navegação: o que vai verbatim e o que se adapta](issues/07-navigation-controller-port.md): quirks verbatim (`MAX_DV` por passo, frenagem a 1 m/s², chatter, `ω` sem limite), só o `entry` vira puro; `max_velocity` 3.3; entrada pelo `qpos`/`qvel`; PassEndurance zera `vx, vy` depois do controlador; scripted e observação como hoje; `goto_ball_policy` em target pose, com um caminho de velocidade crua só para os testes de envelope.
 - [Qual derivado do PPO, e como se estruturam os scripts de treino](issues/08-ppo-training-scripts.md): `brax ppo.train` vanilla no grupo `gpu` (a API MJX vira `brax.envs.Env`); um `examples/ppo_mjx.py --env`; `--num-envs` 8 192 / 1 024; `repeat_action` só no env; stdout + Orbax; eval no MJX, `--play` no backend CPU.
 - [Que critérios de aceitação sobrevivem, e com que tolerâncias de paridade](issues/09-acceptance-and-parity.md): tilt/tombamento saem com o tier 1; ficam envelope (por velocidade crua), kick/chip, bola, posse, `spin`/`kick_recoil`/`random`/`competent`; o controlador ganha chegada (< 5 cm, < 2.5°, ≤ 1.25× trapézio), chatter e teto de `ω`; paridade = mesmos limiares + ≤ 2 % (≤ 5 % tempo) nos determinísticos e mediana MJX no [p25, p75] da CPU nos com seed; seeds 0-4 simétricos; throughput fora.
+- [Uma implementação da lógica das tasks para os dois backends, ou duas?](issues/10-shared-task-logic.md): duas (numpy CPU intacto, JAX em `src/mjsoccer/mjx/`), seguradas por um teste de task-logic parity por snapshot (`put_data`, JAX-CPU, sem GPU); constantes e config lidas do CPU; posse pelo sensor `contact` nos dois; só `brax.envs.Env`; `mjsoccer.mjx.make` sobre o `ENV_IDS`.
+- [Que capacidade de domain randomization o port oferece](issues/11-dr-capacity.md): só no MJX, uma variante por slot no início do run; `sampler(mj_model, rng)` do usuário com `mj_setConst` no host e `in_axes` por diff; `opt.timestep` recusado; ruído/latência na task, desligados; eval no nominal.
 
 ## Not yet specified
 
 - **Kick num lote.** Hoje o disparo roda o passo de controle a `timestep / FIRING_SUBSTEPS`
-  mudando o `MjModel` compartilhado; num lote, cada mundo dispara numa hora. `opt.timestep` por mundo é representável nos dois motores (pesquisa de DR), mas `refsafe` limita `timeconst` ≥ 2×`timestep` — efeito numérico não testado. Substep o lote todo,
+  mudando o `MjModel` compartilhado; num lote, cada mundo dispara numa hora. `opt.timestep` por mundo é representável no motor, mas `refsafe` limita `timeconst` ≥ 2×`timestep` — efeito numérico não testado; a DR não mexe no `timestep` (ticket 11). Substep o lote todo,
   `timestep` por mundo, ou outro mecanismo — depende do que o 01 e o 05 mostrarem.
 - **Tabela de kick em float32**: se o MJX-Warp precisa de uma tabela de kick recalibrada própria (o gatilho agora é o [ticket de aceitação e paridade](issues/09-acceptance-and-parity.md): velocidade de saída fora de 2 % da CPU).
 - **Reset em lote**: `sample_pose` é amostragem por rejeição com `raise`; `seat_ball` assenta a bola
@@ -118,7 +120,7 @@ branch nem push (convenção do `physics-fidelity`).
   abortar.
 - **Render / viewer / GIF** a partir do estado MJX (copiar um mundo para um `MjData`?). O `--play` do treino já roda no backend CPU (ticket 08); sobra só se alguém precisar ver um mundo do lote.
 - **Testes do backend MJX-Warp**: ele precisa de GPU CUDA; onde moram as checagens do [ticket de aceitação e paridade](issues/09-acceptance-and-parity.md) (`validation_sweep.py --backend`? `-m validation`?); o que entra na suíte padrão (pulado sem
-  GPU) e o que fica `-m validation`.
+  GPU) e o que fica `-m validation`. O teste de task-logic parity ([ticket 10](issues/10-shared-task-logic.md)) roda em JAX-CPU; falta só decidir se entra na suíte padrão (pulado sem o grupo `gpu`).
 
 ## Fora de escopo
 

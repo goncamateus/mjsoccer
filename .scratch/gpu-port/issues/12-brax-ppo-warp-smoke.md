@@ -18,3 +18,6 @@ registrar:
 - se o `pmap` com 1 dispositivo roda com Warp, ou se o fallback do 08 (vendorizar `ppo/train.py` com
   `jit`) é necessário;
 - SPS de treino ponta a ponta contra o SPS bruto do 05, a 1 024 e 8 192 mundos, e a memória de GPU.
+- com DR por slot ([ticket 11](11-dr-capacity.md)): um `randomization_fn` que varia um campo (ex.
+  massa da bola) com `in_axes`, se o grafo CUDA do Warp recaptura a cada passo (modo default vs
+  `WARP_STAGED`) e o SPS com e sem DR.
