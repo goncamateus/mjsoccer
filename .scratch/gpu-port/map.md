@@ -103,20 +103,21 @@ branch nem push (convenção do `physics-fidelity`).
 - [O que a variante do MJX-JAX simplifica, e qual a meta de speedup](issues/06-variant-content-and-speedup.md): o MJX-JAX e a variante saem (ADR 0002), o port roda só no Warp; sem limiar de speedup; ContestedPossession e GoToBall portados primeiro, com decisões/s ponta a ponta medidas contra a base CPU (1.5 k / 0.3 k DPS).
 - [O port do controlador de navegação: o que vai verbatim e o que se adapta](issues/07-navigation-controller-port.md): quirks verbatim (`MAX_DV` por passo, frenagem a 1 m/s², chatter, `ω` sem limite), só o `entry` vira puro; `max_velocity` 3.3; entrada pelo `qpos`/`qvel`; PassEndurance zera `vx, vy` depois do controlador; scripted e observação como hoje; `goto_ball_policy` em target pose, com um caminho de velocidade crua só para os testes de envelope.
 - [Qual derivado do PPO, e como se estruturam os scripts de treino](issues/08-ppo-training-scripts.md): `brax ppo.train` vanilla no grupo `gpu` (a API MJX vira `brax.envs.Env`); um `examples/ppo_mjx.py --env`; `--num-envs` 8 192 / 1 024; `repeat_action` só no env; stdout + Orbax; eval no MJX, `--play` no backend CPU.
+- [Que critérios de aceitação sobrevivem, e com que tolerâncias de paridade](issues/09-acceptance-and-parity.md): tilt/tombamento saem com o tier 1; ficam envelope (por velocidade crua), kick/chip, bola, posse, `spin`/`kick_recoil`/`random`/`competent`; o controlador ganha chegada (< 5 cm, < 2.5°, ≤ 1.25× trapézio), chatter e teto de `ω`; paridade = mesmos limiares + ≤ 2 % (≤ 5 % tempo) nos determinísticos e mediana MJX no [p25, p75] da CPU nos com seed; seeds 0-4 simétricos; throughput fora.
 
 ## Not yet specified
 
 - **Kick num lote.** Hoje o disparo roda o passo de controle a `timestep / FIRING_SUBSTEPS`
   mudando o `MjModel` compartilhado; num lote, cada mundo dispara numa hora. `opt.timestep` por mundo é representável nos dois motores (pesquisa de DR), mas `refsafe` limita `timeconst` ≥ 2×`timestep` — efeito numérico não testado. Substep o lote todo,
   `timestep` por mundo, ou outro mecanismo — depende do que o 01 e o 05 mostrarem.
-- **Tabela de kick em float32**: se o MJX-Warp precisa de uma tabela de kick recalibrada própria.
+- **Tabela de kick em float32**: se o MJX-Warp precisa de uma tabela de kick recalibrada própria (o gatilho agora é o [ticket de aceitação e paridade](issues/09-acceptance-and-parity.md): velocidade de saída fora de 2 % da CPU).
 - **Reset em lote**: `sample_pose` é amostragem por rejeição com `raise`; `seat_ball` assenta a bola
   por um loop de passos; auto-reset por mundo.
 - **Estado por mundo**: posse com graça (`POSSESSION_GRACE`), timers, contadores das tasks.
 - **Falhas por mundo**: NaN (hoje `RuntimeError`), overflow do Warp — resetar o mundo, marcar, ou
   abortar.
 - **Render / viewer / GIF** a partir do estado MJX (copiar um mundo para um `MjData`?). O `--play` do treino já roda no backend CPU (ticket 08); sobra só se alguém precisar ver um mundo do lote.
-- **Testes do backend MJX-Warp**: ele precisa de GPU CUDA; o que entra na suíte padrão (pulado sem
+- **Testes do backend MJX-Warp**: ele precisa de GPU CUDA; onde moram as checagens do [ticket de aceitação e paridade](issues/09-acceptance-and-parity.md) (`validation_sweep.py --backend`? `-m validation`?); o que entra na suíte padrão (pulado sem
   GPU) e o que fica `-m validation`.
 
 ## Fora de escopo

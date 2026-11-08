@@ -13,7 +13,7 @@ first principles.
 _Avoid_: realism, accuracy
 
 **Acceptance criteria**:
-The hardware-derived physics checks the robot must pass (envelope, acceleration, tilt, kick speed).
+The hardware-derived physics checks the robot must pass (envelope, acceleration, kick speed, ball bounce, possession, arrival at a target pose).
 _Avoid_: validation tests, benchmarks
 
 ### Control
