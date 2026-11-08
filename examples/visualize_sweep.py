@@ -33,8 +33,8 @@ FPS = 20
 
 def render(zip_path: Path, algo) -> str:
     env_id, tier = zip_path.stem.rsplit("_t", 1)
-    # The rate the policy was trained at: sac_agent.py defaults to 15 Hz, ppo_agent.py to the env's 60.
-    env = gym.make(env_id, tier=int(tier), control_hz=15 if algo is SAC else 60)
+    # The rate the policy was trained at: both agents default to 40 Hz, rSoccer's 0.025 s step.
+    env = gym.make(env_id, tier=int(tier), control_hz=40)
     base = env.unwrapped
     model = algo.load(zip_path, device="cpu")
     every = max(1, round(1.0 / base.dt / FPS))  # keeps playback at real time
