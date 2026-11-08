@@ -41,9 +41,21 @@ DEMOS = {
     "GoToBallShoot-v0": (lambda env: np.array([S.FIELD_HALF_X, 0.0]), True),
     "StaticDefenders-v0": (lambda env: np.array([S.FIELD_HALF_X, 0.0]), True),
     "PassEndurance-v0": (lambda env: env.data.xpos[env.robots[1].body][:2].copy(), True),
-    # Dribbling must carry the ball to the waypoint, so this one never fires the kicker.
-    "Dribbling-v0": (lambda env: env._target.copy(), False),
+    # Dribbling must carry the ball through the zigzag, so this one never fires the kicker.
+    "Dribbling-v0": (lambda env: _weave(env), False),
 }
+
+
+def _weave(env) -> np.ndarray:
+    """Next point of a weave through the yellow cones, past wherever the ball now is.
+
+    # ponytail: forward weave only; rSoccer's course also comes back, the clip doesn't need it
+    """
+    n = env.nodes
+    gates = [((a + b) / 2, 0.4 * (-1) ** i) for i, (a, b) in enumerate(zip((0.0, *n), n))]
+    gates.append((n[-1] - 0.5, 0.0))
+    bx = env.ball.pos(env.data)[0]
+    return np.array(next((g for g in gates if g[0] < bx - 0.1), gates[-1]))
 
 # Tasks whose subject is a spatial relationship spread across the field -- where the wall
 # of defenders sits, where the team-mate is standing -- rather than what one robot is doing
