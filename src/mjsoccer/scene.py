@@ -113,6 +113,7 @@ class RobotIds:
     qvel_adr: int
     free: bool
     z0: float  # the height the model places the chassis at
+    xy0: tuple[float, float]  # where the scene built the body; tier 0's slides start there
 
     def place(self, data: mujoco.MjData, x: float, y: float, theta: float) -> None:
         """Teleport the chassis. Assumes mj_resetData has just run, so everything else --
@@ -123,7 +124,8 @@ class RobotIds:
             data.qpos[a + 3 : a + 7] = (np.cos(theta / 2), 0.0, 0.0, np.sin(theta / 2))
             data.qvel[self.qvel_adr : self.qvel_adr + 6] = 0.0
         else:
-            data.qpos[a : a + 3] = (x, y, theta)
+            # Slide joints are relative to the body's built position, not the origin.
+            data.qpos[a : a + 3] = (x - self.xy0[0], y - self.xy0[1], theta)
             data.qvel[self.qvel_adr : self.qvel_adr + 3] = 0.0
 
     def pose(self, data: mujoco.MjData) -> tuple[float, float, float]:
@@ -205,6 +207,7 @@ def _robot_ids(model: mujoco.MjModel, prefix: str, team: str, tier: int) -> Robo
         qvel_adr=int(model.jnt_dofadr[jnt]),
         free=model.jnt_type[jnt] == mujoco.mjtJoint.mjJNT_FREE,
         z0=float(model.body_pos[body][2]),
+        xy0=(float(model.body_pos[body][0]), float(model.body_pos[body][1])),
     )
 
 

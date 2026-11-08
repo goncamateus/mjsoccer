@@ -11,6 +11,7 @@ import re
 import sys
 
 import gymnasium as gym
+import mujoco
 import numpy as np
 import pytest
 from gymnasium.utils.env_checker import check_env
@@ -387,6 +388,26 @@ def test_kick_tasks_do_not_pay_camping(env_id):
                 break
     env.close()
     assert total / 3 < 1.0, f"turning in place earned {total / 3:.2f}"
+
+
+@pytest.mark.parametrize("tier", [0, 1])
+@pytest.mark.parametrize("env_id", ["StaticDefenders-v0", "ContestedPossession-v0", "PassEndurance-v0"])
+def test_place_puts_every_robot_where_asked(env_id, tier):
+    """`place` is absolute on both tiers, whatever offset the scene built the robot at.
+
+    Tier 0's slide joints are relative to the body's built position, which is not the origin
+    once a scene holds more than one robot: each landed off by it, up to 1.5 m in
+    StaticDefenders.
+    """
+    env = gym.make(env_id, tier=tier)
+    env.reset(seed=0)
+    u = env.unwrapped
+    for i, r in enumerate(u.robots):
+        r.place(u.data, 1.0 + 0.3 * i, -0.5, 0.7)
+    mujoco.mj_forward(u.model, u.data)
+    for i, r in enumerate(u.robots):
+        np.testing.assert_allclose(r.pose(u.data), (1.0 + 0.3 * i, -0.5, 0.7), atol=1e-6)
+    env.close()
 
 
 def _ram(env, j: int, speed: float, steps: int = 600) -> dict:
