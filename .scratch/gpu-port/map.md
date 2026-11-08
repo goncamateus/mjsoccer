@@ -101,6 +101,7 @@ branch nem push (convenção do `physics-fidelity`).
 - [Instalar o MJX nesta máquina e rodar o modelo base e a variante](issues/04-mjx-install-smoke.md): env em `~/.venvs/mjsoccer-gpu` com `mujoco`/`mjx` 4.0.0, `warp-lang 1.18.0`, `jax 0.12.0.1`; o Warp roda o base nas duas cenas (`naconmax` ≥ 128/mundo); o MJX-JAX dá OOM no compile até sem robô↔robô, então a variante tira todo mesh de robô da colisão.
 - [Benchmark bruto: MJX-JAX, MJX-Warp e CPU](issues/05-mjx-benchmark.md): pico Warp 918 k / 111 k SPS (2 / 7 robôs) contra 245 k / 80 k da CPU com 12 threads (3.7× / 1.4×); o MJX-JAX na variante fica 40–50× abaixo da CPU; no Warp o pool de contatos (~7 KB/slot, dimensionado pelo broadphase) limita o `nworld`.
 - [O que a variante do MJX-JAX simplifica, e qual a meta de speedup](issues/06-variant-content-and-speedup.md): o MJX-JAX e a variante saem (ADR 0002), o port roda só no Warp; sem limiar de speedup; ContestedPossession e GoToBall portados primeiro, com decisões/s ponta a ponta medidas contra a base CPU (1.5 k / 0.3 k DPS).
+- [O port do controlador de navegação: o que vai verbatim e o que se adapta](issues/07-navigation-controller-port.md): quirks verbatim (`MAX_DV` por passo, frenagem a 1 m/s², chatter, `ω` sem limite), só o `entry` vira puro; `max_velocity` 3.3; entrada pelo `qpos`/`qvel`; PassEndurance zera `vx, vy` depois do controlador; scripted e observação como hoje; `goto_ball_policy` em target pose, com um caminho de velocidade crua só para os testes de envelope.
 
 ## Not yet specified
 
