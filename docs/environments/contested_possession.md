@@ -178,7 +178,7 @@ long enough.
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**20 s**, and at the default `control_hz=60` `dt` is exactly 1/60 s, so **1200 steps** (300 at 15 Hz).
+**30 s** (rSoccer's), and at the default `control_hz=60` `dt` is exactly 1/60 s, so **1800 steps** (1200 at the 40 Hz the agents train at, rSoccer's 0.025 s step).
 
 ## Arguments
 
@@ -186,14 +186,14 @@ long enough.
 |---|---|---|---|
 | `tier` | `int` | `1` | `1` = roller wheels with real slip, the default; `0` = the faster kinematic chassis |
 | `control_hz` | `int` | `60` | control rate, exact: it must divide the 960 Hz physics rate (30, 60, 120, ...), or the env raises `ValueError` |
-| `horizon_s` | `float` | `20.0` | truncation horizon, in seconds |
+| `horizon_s` | `float` | `30.0` | truncation horizon, in seconds |
 | `render_mode` | `str \| None` | `None` | `"human"` or `"rgb_array"` |
 
 ```python
 import gymnasium as gym
 import mjsoccer
 
-env = gym.make("ContestedPossession-v0", tier=0, control_hz=60, horizon_s=20.0, render_mode="rgb_array")
+env = gym.make("ContestedPossession-v0", tier=0, control_hz=60, horizon_s=30.0, render_mode="rgb_array")
 ```
 
 `hold_seconds` (2.0) and `n_yellow` (1) are class attributes on `ContestedPossessionEnv`,

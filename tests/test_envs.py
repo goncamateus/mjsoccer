@@ -834,8 +834,8 @@ def test_tier0_has_the_tier1_envelope():
 # changing every episode length and every reward's rate per second.
 @pytest.mark.parametrize(
     "env_id,steps",
-    [("GoToBall-v0", 600), ("GoToBallShoot-v0", 720), ("Dribbling-v0", 1800),
-     ("StaticDefenders-v0", 1200), ("ContestedPossession-v0", 1200), ("PassEndurance-v0", 720)],
+    [("GoToBall-v0", 1800), ("GoToBallShoot-v0", 3600), ("Dribbling-v0", 7200),
+     ("StaticDefenders-v0", 1500), ("ContestedPossession-v0", 1800), ("PassEndurance-v0", 1800)],
 )
 def test_horizon_is_seconds_at_exactly_60_hz(env_id, steps):
     env = gym.make(env_id).unwrapped

@@ -48,12 +48,12 @@ reference outputs are in `.scratch/physics-fidelity/candidate-14/`.
 
 | id | robots | obs dim | action dim (tier 1, default / tier 0) | horizon (s) | terminates on |
 |---|---|---|---|---|---|
-| [`GoToBall-v0`](environments/go_to_ball.md) | 1 blue | 14 | 7 / 6 | 10 | within 0.13 m of the ball and facing it (cos > 0.9) |
-| [`GoToBallShoot-v0`](environments/go_to_ball_shoot.md) | 1 blue | 14 | 7 / 6 | 12 | ball in the +x goal |
-| [`Dribbling-v0`](environments/dribbling.md) | 1 blue | 16 | 7 / 6 | 30 | 4 waypoints carried, or ball lost for 2 s |
-| [`StaticDefenders-v0`](environments/static_defenders.md) | 1 blue + 6 yellow | 62 | 7 / 6 | 20 | ball in the +x goal |
-| [`ContestedPossession-v0`](environments/contested_possession.md) | 1 blue + 1 yellow | 22 | 7 / 6 | 20 | blue holds the ball for 2 s |
-| [`PassEndurance-v0`](environments/pass_endurance.md) | 2 blue (1 controlled) | 22 | 7 / 6 | 12 | team-mate receives the pass |
+| [`GoToBall-v0`](environments/go_to_ball.md) | 1 blue | 14 | 7 / 6 | 30 | within 0.13 m of the ball and facing it (cos > 0.9) |
+| [`GoToBallShoot-v0`](environments/go_to_ball_shoot.md) | 1 blue | 14 | 7 / 6 | 60 | ball in the +x goal |
+| [`Dribbling-v0`](environments/dribbling.md) | 1 blue | 16 | 7 / 6 | 120 | 4 waypoints carried, or ball lost for 2 s |
+| [`StaticDefenders-v0`](environments/static_defenders.md) | 1 blue + 6 yellow | 62 | 7 / 6 | 25 | ball in the +x goal |
+| [`ContestedPossession-v0`](environments/contested_possession.md) | 1 blue + 1 yellow | 22 | 7 / 6 | 30 | blue holds the ball for 2 s |
+| [`PassEndurance-v0`](environments/pass_endurance.md) | 2 blue (1 controlled) | 22 | 7 / 6 | 30 | team-mate receives the pass |
 
 Every environment also terminates when the ball leaves the field or when a controlled robot
 tips over (more than 60° off vertical, `-100.0`, see [Turnover](#turnover)), and truncates at
@@ -518,7 +518,8 @@ setting.
 
 **Seconds are the contract.** Horizons, the 250 ms plunger lock and the 50 ms possession
 grace are declared in seconds and converted, so episodes last the same physical time at any
-rate. Per-step rewards are per 1/60 s step. `test_horizon_is_seconds_at_exactly_60_hz` pins
+rate. Per-step rewards are per 1/60 s step. Horizons are rSoccer's (robocin/rSoccer), and the
+example agents act every 0.025 s (`control_hz=40`, decimation 24) as rSoccer does. `test_horizon_is_seconds_at_exactly_60_hz` pins
 each env's step count, so a change of rate is never silent.
 
 **Why 1/960 s.** The contact time constants are 4-6 ms (`solref`), and 2 ms resolved them in

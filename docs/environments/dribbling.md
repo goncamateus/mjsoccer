@@ -174,7 +174,7 @@ first is a success.
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**30 s**, and at the default `control_hz=60` `dt` is exactly 1/60 s, so **1800 steps** (450 at 15 Hz) —
+**120 s** (rSoccer's), and at the default `control_hz=60` `dt` is exactly 1/60 s, so **7200 steps** (4800 at the 40 Hz the agents train at, rSoccer's 0.025 s step) —
 the longest horizon in the suite, because four waypoints across a 12 x 9 m field is a lot of
 ground to cover at a speed that keeps the ball.
 
@@ -184,14 +184,14 @@ ground to cover at a speed that keeps the ball.
 |---|---|---|---|
 | `tier` | `int` | `1` | `1` = roller wheels with real slip, the default; `0` = the faster kinematic chassis |
 | `control_hz` | `int` | `60` | control rate, exact: it must divide the 960 Hz physics rate (30, 60, 120, ...), or the env raises `ValueError` |
-| `horizon_s` | `float` | `40.0` | truncation horizon, in seconds |
+| `horizon_s` | `float` | `120.0` | truncation horizon, in seconds |
 | `render_mode` | `str \| None` | `None` | `"human"` or `"rgb_array"` |
 
 ```python
 import gymnasium as gym
 import mjsoccer
 
-env = gym.make("Dribbling-v0", tier=0, control_hz=60, horizon_s=40.0, render_mode="rgb_array")
+env = gym.make("Dribbling-v0", tier=0, control_hz=60, horizon_s=120.0, render_mode="rgb_array")
 ```
 
 `n_waypoints` (4) and `waypoint_tol` (0.3 m) are class attributes on `DribblingEnv`, not
