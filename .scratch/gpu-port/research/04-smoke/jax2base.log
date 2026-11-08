@@ -1,0 +1,8 @@
+mujoco 4.0.0
+impl=jax robots=2 cut=False geom_pairs=9366 mesh-mesh=9017 rss0=886MB
+put_model 1.9s rss=1379MB
+exit=137
+
+real	11m24.390s
+user	9m56.512s
+sys	1m31.795s

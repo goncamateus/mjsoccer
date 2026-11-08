@@ -1,0 +1,9 @@
+mujoco 4.0.0
+cut variant: excluded 2 robot roots ['b0_robot', 'y0_robot']...
+impl=jax robots=2 cut=True geom_pairs=4325 mesh-mesh=3976 rss0=931MB
+put_model 2.0s rss=1346MB
+exit=137
+
+real	11m41.105s
+user	10m44.735s
+sys	1m0.326s

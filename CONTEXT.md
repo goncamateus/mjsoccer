@@ -39,21 +39,16 @@ _Avoid_: step (alone), action repeat
 
 **Backend**:
 The engine that steps the physics of a task: the **CPU backend** (MuJoCo's C library, the reference
-for what the physics should do), **MJX-JAX** or **MJX-Warp**. The two MJX backends run one shared
-task implementation.
+for what the physics should do) or **MJX-Warp** (MJX's GPU engine). MJX-JAX, MJX's pure-JAX engine,
+is not a backend here (ADR 0002).
 _Avoid_: simulator (when the engine is meant), wrapper, impl
 
-**Model variant**:
-A robot-and-field model generated from the base MJCF by a declared transform, so that one backend
-can run it (MJX-JAX's variant swaps unsupported shapes); the CPU backend can run it too.
-_Avoid_: second model, fork, simplified model
-
 **GPU port**:
-Reimplementing the six tasks once on MJX, so they run on both MJX backends alongside the CPU backend,
-not replacing it.
+Reimplementing the six tasks once on MJX, so they run on MJX-Warp alongside the CPU backend, not
+replacing it.
 _Avoid_: transfer, migration
 
 **Parity**:
-Agreement between an MJX backend and the CPU backend, judged statistically by the acceptance
+Agreement between MJX-Warp and the CPU backend, judged statistically by the acceptance
 criteria, not trajectory by trajectory.
 _Avoid_: equivalence, matching, fidelity, policy transfer

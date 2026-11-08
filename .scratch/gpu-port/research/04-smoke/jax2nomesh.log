@@ -1,0 +1,16 @@
+mujoco 4.0.0
+nomesh variant: excluded 2 robot roots ['b0_robot', 'y0_robot']...
+impl=jax robots=2 cut=nomesh geom_pairs=33 mesh-mesh=0 rss0=870MB
+put_model 0.6s rss=1288MB
+first call (compile+24 steps, nworld=64) 13.7s rss=2230MB
+steady: 771 physics steps/s (nworld=64; smoke, not a benchmark)
+/home/mateus/doc/ssl-rl/.scratch/gpu-port/research/04-smoke/smoke.py:161: DeprecationWarning: Accessing `ncon` directly from `Data` is deprecated. Access it via `data._impl.ncon` instead.
+  print(f"finite={np.isfinite(qpos).all()} ncon/world={np.asarray(dx.ncon).mean() if hasattr(dx, 'ncon') else '?'}")
+finite=True ncon/world=33.0
+889 MiB GPU used (whole device)
+peak rss=2610MB
+exit=0
+
+real	0m27.533s
+user	1m30.863s
+sys	0m3.110s
