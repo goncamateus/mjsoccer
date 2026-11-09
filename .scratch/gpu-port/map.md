@@ -109,21 +109,10 @@ branch nem push (convenção do `physics-fidelity`).
 - [Rodar o `brax ppo.train` sobre o MJX-Warp nesta máquina](issues/12-brax-ppo-warp-smoke.md): roda com o Brax do `main` (`c860529`; o 0.14.2 do PyPI quebra no `jax 0.12`), `pmap` de 1 GPU ok, sem vendorizar; `WARP` dá 88–91 % da física bruta mas recaptura por época e estoura a GPU (8 192 e 4 096); `WARP_STAGED`/`NONE` estáveis a ~metade; DR por `in_axes` sem custo.
 - [Modo de grafo do Warp e `--num-envs` default do treino](issues/13-graph-mode-and-num-envs.md): `WARP_STAGED` default no treino e na eval, kwarg `graph_mode`/`--graph-mode`; `--num-envs` 4 096 (2 robôs); 7 robôs pela regra "maior estável 30 épocas, ≥ 2 GB de folga", medido no ticket 14; `WARP` vira default só se o 14 o estabilizar.
 - [Estabilizar o `WARP` e medir o treino de 7 robôs](issues/14-warp-stability-and-7-robot-train.md): o `WARP` passa a ser o default, com `wp.clear_jax_callable_graph_cache()` a cada época (GPU plana por 30 épocas; recaptura +3 por época, aceita pelo dev); `--num-envs` 8 192 com 2 robôs (29.2 k decisões/s, 2.1× o `STAGED`, ~2.4 GB livres) e 2 048 com 7 robôs (4.0 k; o treino satura a 512); `WARP_STAGED_EX` sai.
+- [O que o `mujoco.studio` oferece para viewer, vídeo e GIF](issues/20-mujoco-studio.md): viewer interativo novo (Filament + ImGui), já instalado pelo `mujoco` 4.0; `launch_native.launch` + `handle.sync` substitui o `launch_passive` (aqui só `gfx='opengl_headless'` ou `web`); não grava vídeo nem GIF, e o Filament offscreen é 2–4× mais lento que o `mujoco.Renderer`/EGL, que fica para `rgb_array` e `make_gifs.py`; um mundo do lote Warp chega ao viewer copiando `qpos`/`qvel` (~1 ms).
+- [Medir o kick no MJX-Warp: substeps, `timestep` por mundo e a tabela](issues/15-kick-on-warp.md): Warp = CPU a 0.0006 % (mesma tabela); `timestep` por mundo grátis, ociosos congelados por `timestep = 0`; substep necessário (K ≥ 32); o mecanismo de hoje custa 3.8× no lote, K = 32 2×, o passo curto ~0 com tabela própria; tabela recalibra no 4.0.
 
 ## Not yet specified
-
-- **Kick num lote.** Hoje o disparo roda o passo de controle a `timestep / FIRING_SUBSTEPS`
-  mudando o `MjModel` compartilhado; num lote, cada mundo dispara numa hora. `opt.timestep` por mundo é representável no motor, mas `refsafe` limita `timeconst` ≥ 2×`timestep` — efeito numérico não testado; a DR não mexe no `timestep` (ticket 11). Substep o lote todo,
-  `timestep` por mundo, ou outro mecanismo — depende do que o 01 e o 05 mostrarem.
-- **Tabela de kick em float32**: se o MJX-Warp precisa de uma tabela de kick recalibrada própria (o gatilho agora é o [ticket de aceitação e paridade](issues/09-acceptance-and-parity.md): velocidade de saída fora de 2 % da CPU).
-- **Reset em lote**: `sample_pose` é amostragem por rejeição com `raise`; `seat_ball` assenta a bola
-  por um loop de passos; auto-reset por mundo.
-- **Estado por mundo**: posse com graça (`POSSESSION_GRACE`), timers, contadores das tasks.
-- **Falhas por mundo**: NaN (hoje `RuntimeError`), overflow do Warp — resetar o mundo, marcar, ou
-  abortar.
-- **Render / viewer / GIF** a partir do estado MJX (copiar um mundo para um `MjData`?). O `--play` do treino já roda no backend CPU (ticket 08); sobra só se alguém precisar ver um mundo do lote.
-- **Testes do backend MJX-Warp**: ele precisa de GPU CUDA; onde moram as checagens do [ticket de aceitação e paridade](issues/09-acceptance-and-parity.md) (`validation_sweep.py --backend`? `-m validation`?); o que entra na suíte padrão (pulado sem
-  GPU) e o que fica `-m validation`. O teste de task-logic parity ([ticket 10](issues/10-shared-task-logic.md)) roda em JAX-CPU; falta só decidir se entra na suíte padrão (pulado sem o grupo `gpu`).
 
 ## Fora de escopo
 

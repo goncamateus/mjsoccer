@@ -1,0 +1,43 @@
+Unhandled exception on the viewer thread; the viewer is closing.
+Traceback (most recent call last):
+  File "/home/mateus/.venvs/mjsoccer-gpu/lib/python3.12/site-packages/mujoco/studio/viewer_protocol.py", line 329, in run_viewer_loop
+    viewer.sync()
+  File "/home/mateus/.venvs/mjsoccer-gpu/lib/python3.12/site-packages/mujoco/studio/native_viewer.py", line 214, in sync
+    self._renderer.render([scene_view, ux_view])
+  File "/home/mateus/.venvs/mjsoccer-gpu/lib/python3.12/site-packages/mujoco/rendering/filament/renderer.py", line 200, in render
+    raise ValueError(f"Target not found: {view.target}")
+ValueError: Target not found: 
+FEngine (64 bits) created at 0x79860c169de0 (threading is enabled)
+FEngine resolved backend: OpenGL
+[NVIDIA Corporation], [NVIDIA GeForce RTX 3060/PCIe/SSE2], [4.1.0 NVIDIA 595.99.02], [4.10 NVIDIA via Cg compiler]
+Feature level: 1
+Active workarounds: 
+allow_read_only_ancillary_feedback_loop
+Backend feature level: 1
+FEngine feature level: 1
+Traceback (most recent call last):
+  File "/home/mateus/doc/ssl-rl/.scratch/gpu-port/research/20-studio/native_probe.py", line 12, in <module>
+    while h.is_running() and time.time() < t_end:
+          ^^^^^^^^^^^^^^
+  File "/home/mateus/.venvs/mjsoccer-gpu/lib/python3.12/site-packages/mujoco/studio/viewer_handle.py", line 170, in is_running
+    self.close()
+  File "/home/mateus/.venvs/mjsoccer-gpu/lib/python3.12/site-packages/mujoco/studio/viewer_handle.py", line 146, in close
+    self._forward_error_fn()
+  File "/home/mateus/.venvs/mjsoccer-gpu/lib/python3.12/site-packages/mujoco/studio/launch_thread.py", line 120, in forward_error
+    raise e
+  File "/home/mateus/.venvs/mjsoccer-gpu/lib/python3.12/site-packages/mujoco/studio/launch_thread.py", line 112, in run
+    target_fn(viewer_endpoint)
+  File "/home/mateus/.venvs/mjsoccer-gpu/lib/python3.12/site-packages/mujoco/studio/launch_native.py", line 65, in target
+    run_native_viewer(config, endpoint, plugins=viewer_plugins)
+  File "/home/mateus/.venvs/mjsoccer-gpu/lib/python3.12/site-packages/mujoco/studio/launch_native.py", line 43, in run_native_viewer
+    viewer_protocol.run_viewer_loop(viewer)
+  File "/home/mateus/.venvs/mjsoccer-gpu/lib/python3.12/site-packages/mujoco/studio/viewer_protocol.py", line 329, in run_viewer_loop
+    viewer.sync()
+  File "/home/mateus/.venvs/mjsoccer-gpu/lib/python3.12/site-packages/mujoco/studio/native_viewer.py", line 214, in sync
+    self._renderer.render([scene_view, ux_view])
+  File "/home/mateus/.venvs/mjsoccer-gpu/lib/python3.12/site-packages/mujoco/rendering/filament/renderer.py", line 200, in render
+    raise ValueError(f"Target not found: {view.target}")
+ValueError: Target not found: 
+libc++abi: terminating due to uncaught exception of type utils::PreconditionPanic: Precondition
+in shutdown:620
+reason: Engine::shutdown() called from the wrong thread!

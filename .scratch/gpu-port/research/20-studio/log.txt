@@ -1,0 +1,66 @@
+Warp 1.18.0 initialized:
+   CUDA Toolkit 13.4, Driver 13.2
+   Devices:
+     "cpu"      : "CPU"
+     "cuda:0"   : "NVIDIA GeForce RTX 3060" (12 GiB, sm_86, mempool enabled)
+   Kernel cache:
+     /home/mateus/.cache/warp/1.18.0
+Module mujoco.mjx.warp.ffi 4443472 load on device 'cuda:0' took 0.59 ms  (cached)
+Module mujoco.mjx.third_party.mujoco_warp._src.smooth 441c003 load on device 'cuda:0' took 1.07 ms  (cached)
+Module _nxn_broadphase__locals__kernel_f67d158d f67d158 load on device 'cuda:0' took 1.68 ms  (cached)
+Module _nxn_broadphase__locals__kernel_f67d158d 0ef9096 load on device 'cuda:0' took 1.02 ms  (cached)
+Module ccd_kernel_builder__locals__ccd_kernel_2f86d429 2f86d42 load on device 'cuda:0' took 3.79 ms  (cached)
+Module ccd_kernel_builder__locals__ccd_kernel_6f18dc8d 6f18dc8 load on device 'cuda:0' took 2.09 ms  (cached)
+Module _primitive_narrowphase__locals__primitive_narrowphase_a1ac959d a1ac959 load on device 'cuda:0' took 0.56 ms  (cached)
+Module mujoco.mjx.third_party.mujoco_warp._src.constraint 8d4d513 load on device 'cuda:0' took 1.77 ms  (cached)
+Module _friction_dof__locals__kernel_3e1b25b9 3e1b25b load on device 'cuda:0' took 2.12 ms  (cached)
+Module _limit_slide_hinge__locals__kernel_2d7f0194 2d7f019 load on device 'cuda:0' took 0.28 ms  (cached)
+Module _efc_contact_init__locals__kernel_4b889bb1 4b889bb load on device 'cuda:0' took 1.82 ms  (cached)
+Module _efc_contact_jac_dense__locals__kernel_5f90c20f d32528c load on device 'cuda:0' took 0.45 ms  (cached)
+Module _efc_contact_update__locals__kernel_fd314d91 fd314d9 load on device 'cuda:0' took 1.27 ms  (cached)
+Module _transmission__locals__kernel_1bdbf482 1bdbf48 load on device 'cuda:0' took 0.91 ms  (cached)
+Module mujoco.mjx.third_party.mujoco_warp._src.sensor f748fd2 load on device 'cuda:0' took 1.03 ms  (cached)
+Module mujoco.mjx.third_party.mujoco_warp._src.forward 62ed0d0 load on device 'cuda:0' took 1.77 ms  (cached)
+Module mujoco.mjx.third_party.mujoco_warp._src.passive a59a48e load on device 'cuda:0' took 2.32 ms  (cached)
+Module _gravity_force__locals__kernel_13862bab 13862ba load on device 'cuda:0' took 0.78 ms  (cached)
+Module _qfrc_passive_kernel__locals__kernel_976399dd 976399d load on device 'cuda:0' took 1.70 ms  (cached)
+Module _qfrc_actuator__locals__kernel_5704235d 5704235 load on device 'cuda:0' took 1.74 ms  (cached)
+Module _qfrc_smooth__locals__kernel_8b823980 8b82398 load on device 'cuda:0' took 1.37 ms  (cached)
+Module mujoco.mjx.third_party.mujoco_warp._src.support 970ef9a load on device 'cuda:0' took 1.69 ms  (cached)
+Module _small_cholesky_factorize_solve_block__locals__kernel_9da335f1 a5c2521 load on device 'cuda:0' took 0.83 ms  (cached)
+Module _tile_cholesky_factorize_solve_block__locals__kernel_5e87e26e b8fb111 load on device 'cuda:0' took 29.02 ms  (cached)
+Module _solve_init_dof__locals__kernel_15fd9529 15fd952 load on device 'cuda:0' took 1.31 ms  (cached)
+Module mujoco.mjx.third_party.mujoco_warp._src.solver b7b9b35 load on device 'cuda:0' took 0.37 ms  (cached)
+Module _solve_init_jaref_kernel__locals__kernel_78cddb94 78cddb9 load on device 'cuda:0' took 1.06 ms  (cached)
+Module mul_m_kernel__locals___mul_m_f3de1cc7 f3de1cc load on device 'cuda:0' took 1.62 ms  (cached)
+Module _update_constraint_efc__locals__kernel_867d7711 867d771 load on device 'cuda:0' took 2.29 ms  (cached)
+Module _update_constraint_init_qfrc_constraint_dense__locals__kernel_bd7ca2ec bd7ca2e load on device 'cuda:0' took 1.64 ms  (cached)
+Module _update_gradient_zero_grad_dot__locals__kernel_b20934d7 b20934d load on device 'cuda:0' took 1.80 ms  (cached)
+Module _update_gradient_grad__locals__kernel_b7028268 b702826 load on device 'cuda:0' took 1.53 ms  (cached)
+Module _update_gradient_JTDAJ_dense_tiled__locals__kernel_439a725e 1351662 load on device 'cuda:0' took 2.46 ms  (cached)
+Module _update_gradient_JTCJ_dense__locals__kernel_9fe97875 9fe9787 load on device 'cuda:0' took 2.23 ms  (cached)
+Module _update_gradient_cholesky__locals__kernel_074f20d1 09b6679 load on device 'cuda:0' took 30.96 ms  (cached)
+Module _linesearch_iterative_kernel__locals__kernel_1fdf8033 14adcb6 load on device 'cuda:0' took 1.54 ms  (cached)
+Module _solve_done__locals__kernel_5c8f0d18 5c8f0d1 load on device 'cuda:0' took 1.78 ms  (cached)
+Module mujoco.mjx.third_party.mujoco_warp._src.derivative e6461e6 load on device 'cuda:0' took 0.84 ms  (cached)
+Module _qderiv_actuator_passive_actuation_sparse__locals__kernel_78ba6323 78ba632 load on device 'cuda:0' took 1.84 ms  (cached)
+Module _next_time_builder__locals___next_time_f62082d8 f62082d load on device 'cuda:0' took 2.83 ms  (cached)
++---------------------------------------------------------------------+
+| MuJoCo Web Viewer running at:                                       |
+|                                                                     |
+|   Remote:  ]8;;http://mateus:8099/\http://mateus:8099/]8;;\                                      |
+|   Local:   ]8;;http://localhost:8099/\http://localhost:8099/]8;;\                                   |
+|                                                                     |
+| Ctrl+C to quit                                                      |
+|                                                                     |
+| Warning: No authentication or encryption. Anyone who can reach this |
+|          port can connect and see your logs and file paths.         |
++---------------------------------------------------------------------+
+Model changed: the browser page reloads automatically.
+RESULT {"nworld": 1024, "step24_ms": 158.9656010037288, "get_data_ms": 51.202053000452, "slim_ms": 1.0318919958081096, "slim_plus_filament_640x360_ms": 3.9834409835748374, "web_sync_ms": 0.16870797844603658, "web_iters": 46}
+FEngine (64 bits) created at 0x28a50950 (threading is enabled)
+FEngine resolved backend: Vulkan
+Vulkan device driver: NVIDIA 595.99.02
+Selected physical device 'NVIDIA GeForce RTX 3060' from 2 physical devices. (vendor 0x10de, device 0x2504, driver 0x94d8c080, api 1.4)
+Backend feature level: 3
+FEngine feature level: 1
