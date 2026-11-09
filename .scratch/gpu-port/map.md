@@ -51,8 +51,8 @@ tickets `research`. CodeGraph (`codegraph_*`) antes de ler código-fonte à mão
    critério de transferência de política — depende da política, não só do simulador.
 9. **Treino**: scripts novos, derivados do PPO, em JAX.
 10. **DR**: o spec decide a capacidade (quais campos variam por mundo, e como), não quais nem ranges.
-11. **Dependências**: grupo opcional `gpu` (`mujoco-mjx[warp]`, JAX CUDA; o `mujoco-warp` separado é
-    desnecessário, pesquisa 01); a base continua
+11. **Dependências**: grupo opcional `gpu` (`mujoco-mjx[warp]`, JAX CUDA, `brax` pinado no git
+    `c860529` — ticket 12; o `mujoco-warp` separado é desnecessário, pesquisa 01); a base continua
     `gymnasium`, `mujoco`, `numpy`.
 12. **Alvo MuJoCo 4.0** (decidido 2026-11-08): o port e o backend CPU sobem juntos de 3.11.0 para
     `mujoco 4.0.0` / `mujoco-mjx[warp]==4.0.0` (→ `warp-lang==1.18.0`; MuJoCo Warp embutido 3.17),
@@ -106,6 +106,7 @@ branch nem push (convenção do `physics-fidelity`).
 - [Que critérios de aceitação sobrevivem, e com que tolerâncias de paridade](issues/09-acceptance-and-parity.md): tilt/tombamento saem com o tier 1; ficam envelope (por velocidade crua), kick/chip, bola, posse, `spin`/`kick_recoil`/`random`/`competent`; o controlador ganha chegada (< 5 cm, < 2.5°, ≤ 1.25× trapézio), chatter e teto de `ω`; paridade = mesmos limiares + ≤ 2 % (≤ 5 % tempo) nos determinísticos e mediana MJX no [p25, p75] da CPU nos com seed; seeds 0-4 simétricos; throughput fora.
 - [Uma implementação da lógica das tasks para os dois backends, ou duas?](issues/10-shared-task-logic.md): duas (numpy CPU intacto, JAX em `src/mjsoccer/mjx/`), seguradas por um teste de task-logic parity por snapshot (`put_data`, JAX-CPU, sem GPU); constantes e config lidas do CPU; posse pelo sensor `contact` nos dois; só `brax.envs.Env`; `mjsoccer.mjx.make` sobre o `ENV_IDS`.
 - [Que capacidade de domain randomization o port oferece](issues/11-dr-capacity.md): só no MJX, uma variante por slot no início do run; `sampler(mj_model, rng)` do usuário com `mj_setConst` no host e `in_axes` por diff; `opt.timestep` recusado; ruído/latência na task, desligados; eval no nominal.
+- [Rodar o `brax ppo.train` sobre o MJX-Warp nesta máquina](issues/12-brax-ppo-warp-smoke.md): roda com o Brax do `main` (`c860529`; o 0.14.2 do PyPI quebra no `jax 0.12`), `pmap` de 1 GPU ok, sem vendorizar; `WARP` dá 88–91 % da física bruta mas recaptura por época e estoura a GPU (8 192 e 4 096); `WARP_STAGED`/`NONE` estáveis a ~metade; DR por `in_axes` sem custo.
 
 ## Not yet specified
 

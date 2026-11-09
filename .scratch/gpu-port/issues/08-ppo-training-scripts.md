@@ -28,7 +28,7 @@ Resolvido em 2026-11-08 (grilling).
   assimétrico, LR por KL, distribucional) ficam como flags do Brax, sem código nosso.
 - **Script**: um só, `examples/ppo_mjx.py --env <id>`, espelho do `examples/ppo_agent.py` (`--env`,
   `--seed`, `--save`, `--play`), saída em `runs/ppo_mjx_<env>/`, rodado com `uv run --group gpu`.
-- **`nworld`**: `--num-envs` com default 8 192 (tasks de 2 robôs) e 1 024 (7 robôs), folga sobre o
+- **`nworld`** *(revisto: 8 192 não roda estável, ver [Modo de grafo do Warp e `--num-envs` default do treino](13-graph-mode-and-num-envs.md))*: `--num-envs` com default 8 192 (tasks de 2 robôs) e 1 024 (7 robôs), folga sobre o
   pico do 05; overridable; sem autotune. `naconmax`/`njmax` dimensionados pelo env, não pelo script.
 - **Decisão**: `--repeat-action` vai como kwarg do env (default 1); `action_repeat=1` no Brax. A
   decisão tem um dono só, o env.
