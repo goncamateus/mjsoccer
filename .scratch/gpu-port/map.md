@@ -108,6 +108,7 @@ branch nem push (convenção do `physics-fidelity`).
 - [Que capacidade de domain randomization o port oferece](issues/11-dr-capacity.md): só no MJX, uma variante por slot no início do run; `sampler(mj_model, rng)` do usuário com `mj_setConst` no host e `in_axes` por diff; `opt.timestep` recusado; ruído/latência na task, desligados; eval no nominal.
 - [Rodar o `brax ppo.train` sobre o MJX-Warp nesta máquina](issues/12-brax-ppo-warp-smoke.md): roda com o Brax do `main` (`c860529`; o 0.14.2 do PyPI quebra no `jax 0.12`), `pmap` de 1 GPU ok, sem vendorizar; `WARP` dá 88–91 % da física bruta mas recaptura por época e estoura a GPU (8 192 e 4 096); `WARP_STAGED`/`NONE` estáveis a ~metade; DR por `in_axes` sem custo.
 - [Modo de grafo do Warp e `--num-envs` default do treino](issues/13-graph-mode-and-num-envs.md): `WARP_STAGED` default no treino e na eval, kwarg `graph_mode`/`--graph-mode`; `--num-envs` 4 096 (2 robôs); 7 robôs pela regra "maior estável 30 épocas, ≥ 2 GB de folga", medido no ticket 14; `WARP` vira default só se o 14 o estabilizar.
+- [Estabilizar o `WARP` e medir o treino de 7 robôs](issues/14-warp-stability-and-7-robot-train.md): o `WARP` passa a ser o default, com `wp.clear_jax_callable_graph_cache()` a cada época (GPU plana por 30 épocas; recaptura +3 por época, aceita pelo dev); `--num-envs` 8 192 com 2 robôs (29.2 k decisões/s, 2.1× o `STAGED`, ~2.4 GB livres) e 2 048 com 7 robôs (4.0 k; o treino satura a 512); `WARP_STAGED_EX` sai.
 
 ## Not yet specified
 
