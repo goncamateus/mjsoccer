@@ -114,6 +114,7 @@ branch nem push (convenção do `physics-fidelity`).
 - [Como o lote dispara o kick, e com que tabela](issues/16-kick-in-batch.md): K = 32 (32 passos a `dt/4` + 16 a `dt`, passo de 25 ms) nos dois backends, com o CPU mudando no upgrade para o 4.0; no Warp, `timestep` por mundo e ociosos a `timestep = 0` (0.51×); uma `KICK_TABLE_MS` por plunger em `scene.py`, recalibrada no CPU 4.0; `_plunger_lock` `int32` `(n_robots, 2)` no `State.info`.
 - [Reset em lote e estado por mundo](issues/17-batch-reset-and-world-state.md): auto-reset do Brax/Playground por estado em cache, re-amostrado a cada eval (`num_resets_per_eval`), sem `full_reset`; `seat_ball` com o mesmo loop físico no reset JAX; `sample_pose` com 200 candidatos e primeiro válido (mesma distribuição), fallback de maior folga contado em `reset_overlap`; estado por mundo num pytree em `State.info`, coberto pelo task-logic parity; o env é dono do `steps`/`truncation`.
 - [Falhas por mundo: NaN e overflow do Warp](issues/18-per-world-failures.md): NaN/inf ou qualquer bit de `overflow` termina o mundo (terminal, recompensa e obs sanitizadas a 0) e o auto-reset restaura, sem abort no treino; `State.metrics` com `diverged`, `overflow`, `reset_overlap`; eval standalone e testes abortam com contador > 0; CPU mantém o `RuntimeError`.
+- [Onde moram os testes do backend MJX-Warp](issues/19-mjx-test-placement.md): sem CI, tudo local; suíte padrão ganha o task-logic parity (JAX-CPU) e um Warp smoke de 6 tasks (pulados sem `gpu`/CUDA); paridade por `validation_sweep.py --backend mjx` e asserções em `tests/test_validation.py` por `backend`, no `-m validation`; sem marker `gpu`; kick dividido por camada (lock no parity, congelamento a `timestep = 0` no smoke, tabela no validation).
 
 ## Not yet specified
 
@@ -131,3 +132,4 @@ branch nem push (convenção do `physics-fidelity`).
 - Portar os scripts SB3 / cleanRL; algoritmos fora da família PPO.
 - Sim-to-real.
 - MJX-JAX e a variante de modelo: 40–50× abaixo da CPU no 05, e o contato da barra pior ([ADR 0002](../../docs/adr/0002-mjx-warp-only.md), [ticket da variante](issues/06-variant-content-and-speedup.md)).
+- CI: sem workflow hoje e runner hospedado sem GPU; tudo roda local ([ticket dos testes](issues/19-mjx-test-placement.md)).
