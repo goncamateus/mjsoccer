@@ -13,5 +13,5 @@ milhares de mundos, um mundo que diverge não pode derrubar o treino, e o Warp t
 [ticket de reset em lote](17-batch-reset-and-world-state.md):
 - NaN/inf num mundo: resetar o mundo (com que recompensa/`done`), marcar numa métrica, ou abortar;
 - overflow do Warp: abortar o run (buffers mal dimensionados), resetar o mundo, ou só contar;
-- o que o `State.metrics` expõe para o log do treino (contadores por época);
+- o que o `State.metrics` expõe para o log do treino (contadores por época), junto do `reset_overlap` que o reset em lote já conta;
 - se o eval e os testes de paridade tratam diferente (abortar onde o treino reseta).
