@@ -31,6 +31,10 @@ _Avoid_: planner, path planner (the policy plans; the controller only follows)
 One 25 ms tick of the navigation controller, at a fixed 40 Hz.
 _Avoid_: step (alone), frame, tick
 
+**Firing step**:
+A control step on which a kicker or chipper fires; still one 25 ms control step, only simulated more finely.
+_Avoid_: kick step, substep (a substep is a physics step inside it)
+
 **Decision**:
 One policy action, a target pose plus kick, chip and dribble, held for `repeat_action` control steps.
 _Avoid_: step (alone), action repeat
