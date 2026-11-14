@@ -203,7 +203,8 @@ class DribblingEnv(_BallTask):
         c = c + passed
         backwards = ~out & even & in_last & ~down & up
         done = self.yellow_moved(d, 0.05) | out | backwards | (passed & even & (c == 7))
-        return passed.astype(jnp.float32), done, {**w, "count": c, "last_ball": jnp.stack([bx, by])}
+        w = {**w, "count": c, "last_ball": jnp.stack([bx, by])}
+        return passed.astype(jnp.float32), done, w
 
 
 class PassEnduranceEnv(_BallTask):
