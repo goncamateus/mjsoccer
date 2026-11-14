@@ -56,3 +56,8 @@ Spec: [port GPU](../../gpu-port/spec.md)
 - **Achado (para o 13/17) — o `AutoResetWrapper` do Brax só restaura `pipeline_state` e `obs`**:
   `info["world"]` (`steps`, `grace`, `prev`, …) segue do episódio que acabou. O Playground não
   está no grupo `gpu`; o wrapper do 13 tem de resetar o `info["world"]` junto.
+- **Merge com o 08**: o smoke passou a sortear kick/chip também (o 08 tirou o repouso); NaN e
+  overflow rodam com essas ações. O probe dos bits acima foi com kick em repouso.
+- **Verificação** (depois do merge com `gpu-port-impl`, 08 dentro): `uv sync && uv run pytest`
+  95 passed, 2 skipped; `uv sync --group gpu` + `systemd-run --user --scope -p MemoryMax=10G uv
+  run pytest` 124 passed. Nenhum processo na GPU depois.
