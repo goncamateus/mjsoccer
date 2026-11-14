@@ -1,0 +1,5 @@
+mujoco 3.11.0
+ContestedPossession-v0,24,async,1513 DPS
+ContestedPossession-v0,1,sync,526 DPS
+GoToBall-v0,12,async,319 DPS
+GoToBall-v0,1,sync,203 DPS
