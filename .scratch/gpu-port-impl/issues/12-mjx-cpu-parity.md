@@ -92,3 +92,7 @@ Spec: [port GPU](../../gpu-port/spec.md)
   216 passed; `-m validation` 149 passed, 1 xfailed (`hold_turn[mjx]`, 73/120 nesse run),
   1 failed (`test_parity_seeded[competent-StaticDefenders-v0-ret]`), 12.7 min. Sem o grupo:
   `uv run pytest` 95 passed, 2 skipped; `-m validation` 41 passed, 112 skipped (MJX), 47 s. Nenhum processo na GPU depois.
+
+### Decisão do usuário (2026-11-14)
+- Giro de 2 rad/s no MJX: investigar o contato → ticket 16.
+- `test_parity_seeded`: mais seeds só no MJX (mundos extras são baratos), CPU fica em seeds 0-4; fixar o número de seeds pela taxa de falso-negativo simulada.
