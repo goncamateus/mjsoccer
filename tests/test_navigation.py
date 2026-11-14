@@ -13,7 +13,7 @@ import pytest
 from mjsoccer.navigation import go_to_point
 
 sys.path.insert(0, str(Path(__file__).parent))
-import _ptp_navigation as ptp  # noqa: E402
+import _ptp_navigation as ptp
 
 
 def _original(pos, vel, angle, target, target_angle, max_velocity=3.3):

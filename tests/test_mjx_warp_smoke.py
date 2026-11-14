@@ -17,11 +17,10 @@ same session never see it. Heavy runs belong under
 from __future__ import annotations
 
 import json
-import os
-import subprocess
 import sys
 
 import pytest
+from _gpu import SKIP, run_json
 
 pytest.importorskip("jax")
 pytest.importorskip("mujoco.mjx")
@@ -31,20 +30,10 @@ pytest.importorskip("brax")
 TASKS = ["ContestedPossession-v0", "GoToBall-v0", "GoToBallShoot-v0", "StaticDefenders-v0",
          "Dribbling-v0", "PassEndurance-v0"]
 NWORLD = 4
-SKIP = 77  # the child's exit code for "no CUDA device"
 
 
 def _run(*args) -> dict:
-    env = {k: v for k, v in os.environ.items() if k != "JAX_PLATFORMS"}
-    env.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
-    p = subprocess.run(
-        [sys.executable, __file__, *map(str, args)],
-        env=env, capture_output=True, text=True, timeout=1800,
-    )
-    if p.returncode == SKIP:
-        pytest.skip("no CUDA device")
-    assert p.returncode == 0, p.stderr[-4000:]
-    return json.loads(p.stdout.strip().splitlines()[-1])
+    return run_json(__file__, *args)
 
 
 @pytest.mark.parametrize("env_id", TASKS)
@@ -111,6 +100,17 @@ def test_timeout_is_truncation_and_resets_per_world_state(env_id, repeat_action)
     assert out["truncation"] == [1.0] * NWORLD, out
     assert all(out["world_restored"]), out
     assert out["episode_length"] == [float(out["length"])] * NWORLD, out
+
+
+def test_a_reset_between_epochs_redraws_the_cached_first_states():
+    """What `ppo.train(num_resets_per_eval=N)` does between epochs: `reset` the wrapped
+    batch with fresh keys. Every world's cached first state (data, obs and per-world state)
+    is the new draw, and a world that then ends comes back at the new draw, not the old."""
+    out = _run("resample", TASKS[1], 1)
+    assert out["redrawn"] == [True] * NWORLD, out
+    assert out["cache_is_new"] == [True] * NWORLD, out
+    assert out["done"] == [1.0] * NWORLD, out
+    assert out["restored_to_new"] == [True] * NWORLD, out
 
 
 @pytest.mark.parametrize("repeat_action", [1, 2])
@@ -205,10 +205,10 @@ def kick(env_id: str) -> None:
             np.asarray(bd.qvel[:, env.ball.qvel_adr : env.ball.qvel_adr + 3]), axis=1))
         lift = np.maximum(lift, np.asarray(bd.xpos[:, env.ball.body, 2]) - z0)
         state = step(state, rest)
-    print(json.dumps(dict(
-        fired=fired[:, 0].tolist(), lock=lock, speed=speed.tolist(), lift=lift.tolist(),
-        frozen_iters=int((np.asarray(ts) == 0).sum(1).max()), idle_bitwise=idle,
-    )))
+    print(json.dumps({
+        "fired": fired[:, 0].tolist(), "lock": lock, "speed": speed.tolist(), "lift": lift.tolist(),
+        "frozen_iters": int((np.asarray(ts) == 0).sum(1).max()), "idle_bitwise": idle,
+    }))
 
 
 @pytest.mark.parametrize("env_id", ["PassEndurance-v0"])
@@ -265,10 +265,10 @@ def smoke(env_id: str, repeat_action: int) -> dict:
         finite &= bool(np.isfinite(np.asarray(state.obs)).all())
         finite &= bool(np.isfinite(np.asarray(state.pipeline_state.qpos)).all())
     steps = np.asarray(state.info["world"]["steps"])
-    return dict(finite=finite, steps=n, robot0_holds_at_reset=holds[0],
-                robot1_holds_at_reset=holds[1],
-                control_steps=steps.tolist(), reset_overlap=overlap,
-                min_spacing_at_reset=gaps.min((1, 2)).tolist(), overflow_bits=bits.tolist())
+    return {"finite": finite, "steps": n, "robot0_holds_at_reset": holds[0],
+            "robot1_holds_at_reset": holds[1],
+            "control_steps": steps.tolist(), "reset_overlap": overlap,
+            "min_spacing_at_reset": gaps.min((1, 2)).tolist(), "overflow_bits": bits.tolist()}
 
 
 def _poison(state):
@@ -279,6 +279,7 @@ def _poison(state):
 def nan(env_id: str, repeat_action: int) -> dict:
     import jax
     import numpy as np
+
     import mjsoccer.mjx
     from mjsoccer.mjx import wrappers
 
@@ -289,18 +290,18 @@ def nan(env_id: str, repeat_action: int) -> dict:
 
     s = jax.jit(jax.vmap(env.step))(_poison(jax.jit(jax.vmap(env.reset))(keys)), a)
     d = s.pipeline_state
-    raw = dict(
-        done=np.asarray(s.done).tolist(),
-        truncation=np.asarray(s.info["truncation"]).tolist(),
-        reward0=float(s.reward[0]),
-        obs0_zero=bool((np.asarray(s.obs[0]) == 0).all()),
-        diverged=np.asarray(s.metrics["diverged"]).tolist(),
-        overflow=np.asarray(s.metrics["overflow"]).tolist(),
-        others_finite=bool(np.isfinite(np.asarray(d.qpos[1:])).all()
-                           and np.isfinite(np.asarray(d.qvel[1:])).all()
-                           and np.isfinite(np.asarray(s.obs[1:])).all()),
-        check_failures=_error(lambda: mjsoccer.mjx.check_failures(s)),
-    )
+    raw = {
+        "done": np.asarray(s.done).tolist(),
+        "truncation": np.asarray(s.info["truncation"]).tolist(),
+        "reward0": float(s.reward[0]),
+        "obs0_zero": bool((np.asarray(s.obs[0]) == 0).all()),
+        "diverged": np.asarray(s.metrics["diverged"]).tolist(),
+        "overflow": np.asarray(s.metrics["overflow"]).tolist(),
+        "others_finite": bool(np.isfinite(np.asarray(d.qpos[1:])).all()
+                              and np.isfinite(np.asarray(d.qvel[1:])).all()
+                              and np.isfinite(np.asarray(s.obs[1:])).all()),
+        "check_failures": _error(lambda: mjsoccer.mjx.check_failures(s)),
+    }
 
     wenv = wrappers.wrap(env, episode_length=10**6)
     reset, step = jax.jit(wenv.reset), jax.jit(wenv.step)
@@ -313,14 +314,14 @@ def nan(env_id: str, repeat_action: int) -> dict:
     restored = all(np.array_equal(np.asarray(x[0]), np.asarray(y[0]))
                    for x, y in [(d.qpos, d0.qpos), (d.qvel, d0.qvel), (s.obs, first.obs)])
     world = jax.tree.map(np.asarray, (s.info["world"], first.info["world"]))
-    wrapped = dict(
-        diverged=np.asarray(s.metrics["diverged"]).tolist(),
-        restored=restored,
-        world_restored=_same_world(world, 0),
-        others_kept=[not _same_world(world, w) for w in range(1, NWORLD)],
-        control_steps=world[0]["steps"].tolist(),
-        episode_diverged=np.asarray(s.info["episode_metrics"]["diverged"]).tolist(),
-    )
+    wrapped = {
+        "diverged": np.asarray(s.metrics["diverged"]).tolist(),
+        "restored": restored,
+        "world_restored": _same_world(world, 0),
+        "others_kept": [not _same_world(world, w) for w in range(1, NWORLD)],
+        "control_steps": world[0]["steps"].tolist(),
+        "episode_diverged": np.asarray(s.info["episode_metrics"]["diverged"]).tolist(),
+    }
     finite, failures = True, 0
     for _ in range(5):
         s = step(s, _actions(rng, env))
@@ -329,7 +330,7 @@ def nan(env_id: str, repeat_action: int) -> dict:
         failures += int(np.asarray(s.metrics["diverged"]).sum()
                         + np.asarray(s.metrics["overflow"]).sum())
     wrapped.update(after_finite=finite, after_failures=failures)
-    return dict(raw=raw, wrapped=wrapped)
+    return {"raw": raw, "wrapped": wrapped}
 
 
 def _same_world(world, w) -> bool:
@@ -369,12 +370,50 @@ def truncation(env_id: str, repeat_action: int) -> dict:
         mjsoccer.mjx.check_failures(s)
         done.append(np.asarray(s.done).tolist())
     world = jax.tree.map(np.asarray, (s.info["world"], first.info["world"]))
-    return dict(
-        max_steps=env.max_steps, length=length, done=done,
-        truncation=np.asarray(s.info["truncation"]).tolist(),
-        world_restored=[_same_world(world, w) for w in range(NWORLD)],
-        episode_length=np.asarray(s.info["episode_metrics"]["length"]).tolist(),
-    )
+    return {
+        "max_steps": env.max_steps, "length": length, "done": done,
+        "truncation": np.asarray(s.info["truncation"]).tolist(),
+        "world_restored": [_same_world(world, w) for w in range(NWORLD)],
+        "episode_length": np.asarray(s.info["episode_metrics"]["length"]).tolist(),
+    }
+
+
+def resample(env_id: str, repeat_action: int) -> dict:
+    """The child for test_a_reset_between_epochs_redraws_the_cached_first_states: a 0.1 s
+    horizon, so the worlds end within a few decisions after the second reset."""
+    import math
+
+    import jax
+    import numpy as np
+
+    import mjsoccer.mjx
+    from mjsoccer import ENV_IDS
+    from mjsoccer.mjx import tasks, wrappers
+
+    cls = getattr(tasks, ENV_IDS[env_id][0])
+    env = cls(horizon_s=0.1, nworld=NWORLD, repeat_action=repeat_action)
+    length = math.ceil(env.max_steps / repeat_action)
+    wenv = wrappers.wrap(env, episode_length=length)
+    reset, step = jax.jit(wenv.reset), jax.jit(wenv.step)
+    a = np.zeros((NWORLD, env.action_size), np.float32)
+    old = s = reset(jax.random.split(jax.random.PRNGKey(0), NWORLD))
+    s = step(s, a)
+    new = s = reset(jax.random.split(jax.random.PRNGKey(1), NWORLD))
+    for _ in range(length):
+        s = step(s, a)
+        mjsoccer.mjx.check_failures(s)
+    q = lambda st, k: np.asarray(st.info[k].qpos) if k else np.asarray(st.pipeline_state.qpos)
+    world = jax.tree.map(np.asarray, (s.info["world"], new.info["world"]))
+    return {
+        "redrawn": [not np.allclose(q(new, None)[w], q(old, None)[w]) for w in range(NWORLD)],
+        "cache_is_new": [bool(np.array_equal(q(new, "first_pipeline_state")[w], q(new, None)[w])
+                              and np.array_equal(np.asarray(new.info["first_obs"])[w],
+                                                 np.asarray(new.obs)[w]))
+                         for w in range(NWORLD)],
+        "done": np.asarray(s.done).tolist(),
+        "restored_to_new": [bool(np.array_equal(q(s, None)[w], q(new, None)[w])
+                                 and _same_world(world, w)) for w in range(NWORLD)],
+    }
 
 
 def overlap(env_id: str, repeat_action: int) -> dict:
@@ -394,8 +433,8 @@ def overlap(env_id: str, repeat_action: int) -> dict:
     s = step(s, a)
     first = np.asarray(s.metrics["reset_overlap"]).tolist()
     s = step(s, a)
-    return dict(at_reset=at_reset, first=first,
-                second=np.asarray(s.metrics["reset_overlap"]).tolist())
+    return {"at_reset": at_reset, "first": first,
+            "second": np.asarray(s.metrics["reset_overlap"]).tolist()}
 
 
 def overflow(env_id: str, repeat_action: int) -> dict:
@@ -409,13 +448,13 @@ def overflow(env_id: str, repeat_action: int) -> dict:
     keys = jax.random.split(jax.random.PRNGKey(0), NWORLD)
     s = jax.jit(jax.vmap(env.reset))(keys)
     s = jax.jit(jax.vmap(env.step))(s, _actions(np.random.default_rng(0), env))
-    return dict(
-        done=np.asarray(s.done).tolist(),
-        overflow=np.asarray(s.metrics["overflow"]).tolist(),
-        reward_zero=bool((np.asarray(s.reward) == 0).all()),
-        obs_zero=bool((np.asarray(s.obs) == 0).all()),
-        check_failures=_error(lambda: mjsoccer.mjx.check_failures(s)),
-    )
+    return {
+        "done": np.asarray(s.done).tolist(),
+        "overflow": np.asarray(s.metrics["overflow"]).tolist(),
+        "reward_zero": bool((np.asarray(s.reward) == 0).all()),
+        "obs_zero": bool((np.asarray(s.obs) == 0).all()),
+        "check_failures": _error(lambda: mjsoccer.mjx.check_failures(s)),
+    }
 
 
 def scripted(env_id: str, repeat_action: int) -> dict:
@@ -440,7 +479,7 @@ def scripted(env_id: str, repeat_action: int) -> dict:
         dribble = min(dribble, float(ctrl[:, receiver.dribble].min()))
         state = step(state, a)
         mjsoccer.mjx.check_failures(state)
-    return dict(passer_drive_xy=drive, receiver_dribble=dribble)
+    return {"passer_drive_xy": drive, "receiver_dribble": dribble}
 
 
 def main(mode: str, env_id: str, repeat_action: int) -> None:
@@ -450,8 +489,8 @@ def main(mode: str, env_id: str, repeat_action: int) -> None:
         jax.devices("gpu")
     except RuntimeError:
         sys.exit(SKIP)
-    run = dict(smoke=smoke, nan=nan, overflow=overflow, truncation=truncation,
-               overlap=overlap, scripted=scripted)[mode]
+    run = {"smoke": smoke, "nan": nan, "overflow": overflow, "truncation": truncation,
+           "overlap": overlap, "scripted": scripted, "resample": resample}[mode]
     print(json.dumps(run(env_id, repeat_action)))
 
 

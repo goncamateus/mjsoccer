@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import re
 import socket
+import subprocess
+import sys
 import time
 
 import gymnasium as gym
@@ -21,23 +23,15 @@ def test_unknown_viewer_gfx_is_refused():
         gym.make("GoToBall-v0", render_mode="human", viewer_gfx="vulkan")
 
 
-def _web_port(capfd) -> int:
-    """The port the web viewer printed in its launch banner."""
-    deadline = time.time() + 10
-    seen = ""
-    while time.time() < deadline:
-        seen += capfd.readouterr().out
-        m = re.search(r"http://localhost:(\d+)/", seen)
-        if m:
-            return int(m.group(1))
-        time.sleep(0.05)
-    raise AssertionError(f"no web viewer banner in {seen!r}")
-
-
 def _listening(port: int) -> bool:
-    with socket.socket(socket.AF_INET6) as s:
-        s.settimeout(0.5)
-        return s.connect_ex(("::1", port, 0, 0)) == 0
+    """Something accepts on `port` at localhost, over IPv4 or IPv6 (whichever it bound)."""
+    for family, addr in ((socket.AF_INET, ("127.0.0.1", port)),
+                         (socket.AF_INET6, ("::1", port, 0, 0))):
+        with socket.socket(family) as s:
+            s.settimeout(0.5)
+            if s.connect_ex(addr) == 0:
+                return True
+    return False
 
 
 def _wait(cond, timeout=10.0) -> bool:
@@ -49,29 +43,73 @@ def _wait(cond, timeout=10.0) -> bool:
     return cond()
 
 
-def test_web_viewer_serves_while_open_stops_on_close_and_opens_once_per_process(capfd):
+def _web_child() -> None:
+    """Child of the web viewer test; one stage per line on stdin, a marker on stdout after
+    each, so the parent probes the port while this process holds it."""
+    def mark(m):
+        print(m, flush=True)
+        sys.stdin.readline()
+
     env = gym.make("GoToBall-v0", render_mode="human", viewer_gfx="web")
     try:
         env.reset(seed=0)
         env.step(env.action_space.sample())  # human mode renders on every step
-        port = _web_port(capfd)
-        assert _wait(lambda: _listening(port))
+        mark("OPEN")
         for _ in range(5):
             env.step(env.action_space.sample())
     finally:
         env.close()
-    assert _wait(lambda: not _listening(port))
-
-    # mujoco 4.0.0: a second WebViewer in one process never renders a frame and its
-    # server outlives close(). Refuse it up front instead of leaving a port open.
+    mark("CLOSED")
     env = gym.make("GoToBall-v0", render_mode="human", viewer_gfx="web")
     try:
         env.reset(seed=0)
-        with pytest.raises(RuntimeError, match="one web viewer per process"):
-            env.step(env.action_space.sample())
+        env.step(env.action_space.sample())
+        print("SECOND OPENED", flush=True)
+    except RuntimeError as e:
+        print(f"SECOND REFUSED: {e}", flush=True)
     finally:
         env.close()
-    assert "localhost" not in capfd.readouterr().out
+
+
+def test_web_viewer_serves_while_open_stops_on_close_and_opens_once_per_process():
+    """In a fresh process: the viewer state is per process, and a viewer left by an
+    earlier test in this one would make the first open the refused second."""
+    p = subprocess.Popen([sys.executable, __file__, "web"], stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+
+    def until(done):
+        seen = ""
+        for line in p.stdout:
+            seen += line
+            if done(seen):
+                return seen
+        raise AssertionError(f"child ended early: {seen!r}")
+
+    banner = re.compile(r"http://localhost:(\d+)/")
+
+    def go():
+        p.stdin.write("\n")
+        p.stdin.flush()
+
+    try:
+        # The banner comes from the server's thread, before or after the marker.
+        seen = until(lambda s: "OPEN\n" in s and banner.search(s))
+        port = int(banner.search(seen).group(1))
+        assert _wait(lambda: _listening(port))
+        go()
+        until(lambda s: "CLOSED\n" in s)
+        assert _wait(lambda: not _listening(port))
+        go()
+        # mujoco 4.0.0: a second WebViewer in one process never renders a frame and its
+        # server outlives close(). Refuse it up front instead of leaving a port open.
+        rest = p.stdout.read()
+        assert p.wait(timeout=30) == 0
+    finally:
+        if p.poll() is None:
+            p.kill()
+            p.wait()
+    assert "SECOND REFUSED: mujoco 4.0.0 supports one web viewer per process" in rest, rest
+    assert "localhost" not in rest, rest
 
 
 class _FakeStudio:
@@ -142,3 +180,7 @@ def test_frame_field_sets_the_field_view_once_then_leaves_the_camera_free():
     cam.azimuth, cam.distance = 10.0, 3.0  # the user drags the view
     registry.dispatch(messages.PostModelEvent(model=model, data=data))
     assert (cam.azimuth, cam.distance) == (10.0, 3.0)
+
+
+if __name__ == "__main__" and sys.argv[1:] == ["web"]:
+    _web_child()

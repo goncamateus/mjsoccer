@@ -16,32 +16,21 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import os
-import subprocess
 import sys
 
 import pytest
+from _gpu import SKIP, run_json
 
-# Present, but not imported: importing jax here would put it on the GPU before
-# tests/test_mjx_task_logic.py (collected after this file) sets JAX_PLATFORMS=cpu.
 if any(importlib.util.find_spec(m) is None for m in ("jax", "brax", "warp")):
     pytest.skip("needs the gpu group (uv sync --group gpu)", allow_module_level=True)
 
 ENV_ID = "ContestedPossession-v0"
 NWORLD = 4
-SKIP = 77
 ATOL = 2e-3
 
 
 def _run(*args) -> dict:
-    env = {k: v for k, v in os.environ.items() if k != "JAX_PLATFORMS"}
-    env.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
-    p = subprocess.run([sys.executable, __file__, *map(str, args)],
-                       env=env, capture_output=True, text=True, timeout=1800)
-    if p.returncode == SKIP:
-        pytest.skip("no CUDA device")
-    assert p.returncode == 0, p.stderr[-4000:]
-    return json.loads(p.stdout.strip().splitlines()[-1])
+    return run_json(__file__, *args)
 
 
 @pytest.mark.parametrize("repeat_action", [1, 2])
@@ -147,10 +136,10 @@ def off(repeat_action: int) -> dict:
     # the exact part of "off" is the stack and the keys. Not the raw qvel: the dribbler
     # bar's spin is large enough that the jitter on it passes 1e-2; the obs carries the
     # robots' and ball's velocities, normalised.
-    pick = lambda s: (s.obs, s.reward, s.done, s.metrics, s.info["world"],  # noqa: E731
+    pick = lambda s: (s.obs, s.reward, s.done, s.metrics, s.info["world"],
                       s.pipeline_state.qpos)
-    return dict(same_stack=stacks[0] == stacks[1], same_keys=keys_of(a) == keys_of(b),
-                same=_tree_close(pick(a), pick(b), atol=1e-2))
+    return {"same_stack": stacks[0] == stacks[1], "same_keys": keys_of(a) == keys_of(b),
+            "same": _tree_close(pick(a), pick(b), atol=1e-2)}
 
 
 def latency(repeat_action: int, n: int) -> dict:
@@ -209,8 +198,8 @@ def latency_reset(repeat_action: int, n: int) -> dict:
         s = step(s, rng.uniform(-1, 1, (NWORLD, env.action_size)).astype(np.float32))
     buf = [k for k in first.info["world"] if "action" in k]
     now, then = (np.asarray(x.info["world"][buf[0]]) for x in (s, first)) if buf else (0, 0)
-    return dict(has_buffer=bool(buf), buffer_restored=[
-        bool(np.array_equal(now[w], then[w])) for w in range(NWORLD)] if buf else [])
+    return {"has_buffer": bool(buf), "buffer_restored": [
+        bool(np.array_equal(now[w], then[w])) for w in range(NWORLD)] if buf else []}
 
 
 def noise(repeat_action: int) -> dict:
@@ -239,14 +228,14 @@ def noise(repeat_action: int) -> dict:
     other, _ = rollout(1, 0.05)
     clean1, _ = rollout(1, 0.0)
     eps = noisy - clean
-    return dict(
-        same_seed_equal=bool(np.allclose(noisy, again, atol=ATOL)),
-        other_seed_equal=bool(np.allclose(eps, other - clean1, atol=ATOL)),
-        physics_equal=bool(np.allclose(q_clean, q_noisy, atol=ATOL)),
-        noise_std=float(eps.std()),
-        reset_noisy=bool(np.abs(eps[0]).max() > 0),
-        fresh_each_step=bool(not np.allclose(eps[1], eps[2], atol=ATOL)),
-    )
+    return {
+        "same_seed_equal": bool(np.allclose(noisy, again, atol=ATOL)),
+        "other_seed_equal": bool(np.allclose(eps, other - clean1, atol=ATOL)),
+        "physics_equal": bool(np.allclose(q_clean, q_noisy, atol=ATOL)),
+        "noise_std": float(eps.std()),
+        "reset_noisy": bool(np.abs(eps[0]).max() > 0),
+        "fresh_each_step": bool(not np.allclose(eps[1], eps[2], atol=ATOL)),
+    }
 
 
 def main() -> None:
@@ -257,7 +246,7 @@ def main() -> None:
     except RuntimeError:
         sys.exit(SKIP)
     mode, *args = sys.argv[1:]
-    run = dict(off=off, latency=latency, latency_reset=latency_reset, noise=noise)[mode]
+    run = {"off": off, "latency": latency, "latency_reset": latency_reset, "noise": noise}[mode]
     print(json.dumps(run(*map(int, args))))
 
 

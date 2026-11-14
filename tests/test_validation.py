@@ -28,11 +28,10 @@ Parity (spec, Testing Decisions; .scratch/gpu-port/issues/09-acceptance-and-pari
 from __future__ import annotations
 
 import csv
-import os
-import subprocess
 import sys
 from pathlib import Path
 
+import _gpu
 import numpy as np
 import pytest
 
@@ -42,10 +41,22 @@ from mjsoccer.base import MAX_W
 # ponytail: scripts/ is not a package; the path hack keeps one definition of each scenario.
 SCRIPTS = Path(__file__).parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
-from validation_sweep import (  # noqa: E402
-    BOUNCE_GRID, COR_RANGE, ENVELOPE, ENVELOPE_REL, HOLD_TURN_COPIES, HOLD_TURN_MEDIAN_MIN,
-    HOLD_TURN_MIN, KICK_ABS, KICK_GRID,
-    NAV_CHATTER_RMS, NAV_POS_ERR, NAV_TIME_RATIO, NAV_YAW_ERR_DEG, NO_MJX, SCENARIOS,
+from validation_sweep import (
+    BOUNCE_GRID,
+    COR_RANGE,
+    ENVELOPE,
+    ENVELOPE_REL,
+    HOLD_TURN_COPIES,
+    HOLD_TURN_MEDIAN_MIN,
+    HOLD_TURN_MIN,
+    KICK_ABS,
+    KICK_GRID,
+    NAV_CHATTER_RMS,
+    NAV_POS_ERR,
+    NAV_TIME_RATIO,
+    NAV_YAW_ERR_DEG,
+    NO_MJX,
+    SCENARIOS,
     trapezoid_time,
 )
 
@@ -77,13 +88,9 @@ def sweep(tmp_path_factory):
     def get(backend):
         if backend not in cache:
             out = tmp_path_factory.mktemp(f"sweep-{backend}")
-            env = {k: v for k, v in os.environ.items() if k != "JAX_PLATFORMS"}
             seeds = MJX_SEEDS if backend == "mjx" else SEEDS
-            p = subprocess.run(
-                [sys.executable, str(SCRIPTS / "validation_sweep.py"), "--backend", backend,
-                 "--seeds", f"{seeds[0]}-{seeds[-1]}", "--out", str(out)],
-                env=env, capture_output=True, text=True,
-            )
+            p = _gpu.run(SCRIPTS / "validation_sweep.py", "--backend", backend,
+                         "--seeds", f"{seeds[0]}-{seeds[-1]}", "--out", out, timeout=None)
             if p.returncode == NO_MJX:
                 cache[backend] = p.stdout.strip() or "MJX unavailable"
             else:

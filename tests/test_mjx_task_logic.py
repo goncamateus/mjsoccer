@@ -15,15 +15,13 @@ Skipped without the `gpu` group.
 from __future__ import annotations
 
 import dataclasses
-import os
 
-os.environ["JAX_PLATFORMS"] = "cpu"  # before jax is imported anywhere: never the GPU
+import gymnasium as gym
+import mujoco
+import numpy as np
+import pytest
 
-import gymnasium as gym  # noqa: E402
-import mujoco  # noqa: E402
-import numpy as np  # noqa: E402
-import pytest  # noqa: E402
-
+# JAX runs on the CPU here: tests/conftest.py pins the session before any test imports it.
 jax = pytest.importorskip("jax")
 mjx = pytest.importorskip("mujoco.mjx")
 pytest.importorskip("brax")
@@ -35,8 +33,8 @@ pytest.importorskip("brax")
 # is then the logic, to float32 tolerance.
 jax.config.update("jax_enable_x64", True)
 
-import mjsoccer  # noqa: E402
-import mjsoccer.mjx  # noqa: E402
+import mjsoccer
+import mjsoccer.mjx
 
 SEEDS = range(5)
 TASKS = ["ContestedPossession-v0", "GoToBall-v0", "GoToBallShoot-v0",
@@ -53,7 +51,7 @@ TASK_STATE = {"ContestedPossession-v0": {"prev": "_prev", "prev_goal": "_prev_go
               "Dribbling-v0": {"count": "_count", "last_ball": "_last_ball"},
               "PassEndurance-v0": {"prev": "_prev", "stopped": "_stopped"}}
 
-TOL = dict(rtol=1e-5, atol=1e-5)
+TOL = {"rtol": 1e-5, "atol": 1e-5}
 
 
 _TEMPLATES = {}
@@ -68,6 +66,7 @@ def _put(cpu):
     `control`/`settle` would copy it in and out on every call."""
     key = id(cpu.model)
     if key not in _TEMPLATES:
+        # impl="jax": a CPU-only test harness for the task logic, never a backend (ADR 0002).
         _TEMPLATES[key] = mjx.put_data(cpu.model, cpu.data, impl="jax").replace(_impl=None)
     t = _TEMPLATES[key]
     fields = {
@@ -160,6 +159,10 @@ def _placement_uniforms(env_id, env, seed):
         u[2] = u[0]
         return u, _Scattered(u, 2, 0, lead=(mjsoccer.mjx.tasks.PASS_CANDIDATES,))
     return u, _Injected(u)
+
+
+def test_runs_on_jax_cpu_whatever_was_collected_first():
+    assert jax.default_backend() == "cpu"
 
 
 def test_every_env_id_is_ported_and_covered():
@@ -433,8 +436,8 @@ def test_non_finite_world_ends_with_zero_reward_and_obs(field):
     cpu.reset(seed=0)
     env = mjsoccer.mjx.make(env_id)
     state = env.init_state(_put(cpu), jax.random.PRNGKey(0))
-    assert {k: float(v) for k, v in state.metrics.items()} == dict(
-        diverged=0.0, overflow=0.0, reset_overlap=0.0)
+    assert {k: float(v) for k, v in state.metrics.items()} == {
+        "diverged": 0.0, "overflow": 0.0, "reset_overlap": 0.0}
     d = state.pipeline_state
     bad = d.replace(**{field: getattr(d, field).at[3].set(np.nan)})
     state = jax.jit(env.settle)(state.replace(pipeline_state=bad))

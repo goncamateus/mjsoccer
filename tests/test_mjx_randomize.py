@@ -17,27 +17,22 @@ from __future__ import annotations
 
 import copy
 import json
-import os
-import subprocess
 import sys
 
-if sys.argv[1:] != ["warp"]:  # the warp child below is the one place the GPU is wanted
-    os.environ["JAX_PLATFORMS"] = "cpu"  # before jax is imported anywhere
-
-import mujoco  # noqa: E402
-import numpy as np  # noqa: E402
-import pytest  # noqa: E402
+import mujoco
+import numpy as np
+import pytest
+from _gpu import SKIP, run_json
 
 jax = pytest.importorskip("jax")
 mjx = pytest.importorskip("mujoco.mjx")
 pytest.importorskip("brax")
 
-import mjsoccer.mjx  # noqa: E402
-from mjsoccer.mjx import wrappers  # noqa: E402
+import mjsoccer.mjx
+from mjsoccer.mjx import wrappers
 
 ENV = "ContestedPossession-v0"
 N = 4
-SKIP = 77
 
 
 def heavier_robot(m, rng):
@@ -57,6 +52,7 @@ def env():
 
 
 def _sys(env):
+    # impl="jax": a CPU-only test harness for the DR logic, never a backend (ADR 0002).
     return mjx.put_model(env.mj_model, impl="jax")
 
 
@@ -140,14 +136,7 @@ def test_without_a_sampler_the_env_stays_nominal_under_wrap():
 
 
 def test_randomized_batch_steps_on_warp():
-    env = {k: v for k, v in os.environ.items() if k != "JAX_PLATFORMS"}
-    env.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
-    p = subprocess.run([sys.executable, __file__, "warp"], env=env, capture_output=True,
-                       text=True, timeout=1800)
-    if p.returncode == SKIP:
-        pytest.skip("no CUDA device")
-    assert p.returncode == 0, p.stderr[-4000:]
-    out = json.loads(p.stdout.strip().splitlines()[-1])
+    out = run_json(__file__, "warp")
     assert out["finite"] and out["failures"] == 0, out
     assert len(set(out["mass"])) == N, out
 
