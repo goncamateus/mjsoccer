@@ -1,0 +1,42 @@
+=== ContestedPossession-v0 2026-11-14T03:08:23-03:00 other_gpu_procs=0
+ContestedPossession-v0 on cuda:0: 8192 worlds, repeat_action 1, WARP, 19,660,800 decisions in 30 epochs -> /home/mateus/doc/ssl-rl/.claude/worktrees/agent-ac177e3169072f226/runs/ppo_mjx_ContestedPossession-v0
+Warp 1.18.0 initialized:
+   CUDA Toolkit 13.4, Driver 13.2
+   Devices:
+     "cpu"      : "CPU"
+     "cuda:0"   : "NVIDIA GeForce RTX 3060" (12 GiB, sm_86, mempool enabled)
+   Kernel cache:
+     /home/mateus/.cache/warp/1.18.0
+step           0  dps     nan (train     nan)  eval return   -0.032 len 1197.2  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 5970 MB, free 6044 MB  t     43s
+step     655,360  dps    7902 (train   13387)  eval return   -0.068 len 1034.8  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6052 MB, free 5965 MB  t    126s
+step   1,310,720  dps    8479 (train   15023)  eval return   -0.153 len  625.6  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6166 MB, free 5849 MB  t    204s
+step   1,966,080  dps    9260 (train   16447)  eval return   -0.231 len  847.5  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5847 MB  t    274s
+step   2,621,440  dps    9267 (train   16427)  eval return   -0.016 len 1199.8  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5847 MB  t    345s
+step   3,276,800  dps    9252 (train   16377)  eval return   -0.015 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5847 MB  t    416s
+step   3,932,160  dps    9242 (train   16341)  eval return   -0.013 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t    487s
+step   4,587,520  dps    9280 (train   16422)  eval return   -0.011 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t    557s
+step   5,242,880  dps    9261 (train   16439)  eval return   -0.004 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t    628s
+step   5,898,240  dps    9281 (train   16439)  eval return    0.002 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t    699s
+step   6,553,600  dps    9276 (train   16452)  eval return    0.001 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5874 MB  t    770s
+step   7,208,960  dps    9287 (train   16443)  eval return    0.010 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t    840s
+step   7,864,320  dps    9284 (train   16451)  eval return    0.015 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t    911s
+step   8,519,680  dps    9273 (train   16440)  eval return    0.025 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t    981s
+step   9,175,040  dps    9289 (train   16459)  eval return    0.037 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5874 MB  t   1052s
+step   9,830,400  dps    9272 (train   16433)  eval return    0.051 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t   1123s
+step  10,485,760  dps    9234 (train   16296)  eval return    0.048 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t   1194s
+step  11,141,120  dps    9256 (train   16366)  eval return    0.057 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t   1264s
+step  11,796,480  dps    9272 (train   16405)  eval return    0.071 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t   1335s
+step  12,451,840  dps    9228 (train   16322)  eval return    0.075 len 1185.6  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5868 MB  t   1406s
+step  13,107,200  dps    9249 (train   16294)  eval return    0.078 len 1193.8  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t   1477s
+step  13,762,560  dps    9133 (train   16177)  eval return    0.082 len 1187.3  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t   1549s
+step  14,417,920  dps    9127 (train   16254)  eval return    0.090 len 1167.7  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t   1620s
+step  15,073,280  dps    9027 (train   16204)  eval return    0.095 len 1157.9  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t   1693s
+step  15,728,640  dps    8999 (train   16256)  eval return    0.097 len 1176.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5867 MB  t   1766s
+step  16,384,000  dps    9007 (train   16163)  eval return    0.109 len 1174.5  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t   1839s
+step  17,039,360  dps    9091 (train   16253)  eval return    0.125 len 1162.2  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t   1911s
+step  17,694,720  dps    9051 (train   16164)  eval return    0.127 len 1135.9  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t   1983s
+step  18,350,080  dps    9045 (train   16211)  eval return    0.135 len 1132.8  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5874 MB  t   2056s
+step  19,005,440  dps    8954 (train   16114)  eval return    0.131 len 1134.2  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5868 MB  t   2129s
+step  19,660,800  dps    8950 (train   16043)  eval return    0.163 len 1103.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6168 MB, free 5872 MB  t   2202s
+saved /home/mateus/doc/ssl-rl/.claude/worktrees/agent-ac177e3169072f226/runs/ppo_mjx_ContestedPossession-v0/000019660800
+exit 0 2026-11-14T03:45:09-03:00
