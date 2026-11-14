@@ -15,9 +15,9 @@ from __future__ import annotations
 
 from .. import ENV_IDS
 from . import tasks
-from .base import MjxEnv
+from .base import MjxEnv, check_failures
 
-__all__ = ["ENV_IDS", "MjxEnv", "make"]
+__all__ = ["ENV_IDS", "MjxEnv", "check_failures", "make"]
 
 
 def make(env_id: str, *, repeat_action: int = 1, graph_mode: str = "WARP", randomize=None,
@@ -25,7 +25,8 @@ def make(env_id: str, *, repeat_action: int = 1, graph_mode: str = "WARP", rando
     """The MJX twin of `gymnasium.make(env_id)`: same ids, same horizons (`ENV_IDS`).
 
     `nworld` (in `kw`) is how many worlds the env will be vmapped over; it sizes Warp's
-    contact buffer, which is shared by the whole batch. Undersizing it overflows.
+    contact buffer, which is shared by the whole batch. Undersizing it overflows;
+    `nacon_per_world` (in `kw`) overrides the per-world share of it.
     """
     cls_name, horizon_s = ENV_IDS[env_id]
     cls = getattr(tasks, cls_name, None)

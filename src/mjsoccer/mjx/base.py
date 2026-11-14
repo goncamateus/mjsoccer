@@ -15,8 +15,13 @@ because Brax's `EpisodeWrapper` keeps its own `info["steps"]`; the env still own
 ending: `done` includes truncation at `max_steps`, flagged in `info["truncation"]`, so an
 `EpisodeWrapper(episode_length=max_steps / repeat_action)` only agrees with it.
 
-Not yet: the kick and chip (ticket 08: those action dims are ignored here), per-world
-failure handling (ticket 09), domain randomisation (ticket 14).
+A world whose qpos/qvel stops being finite, or that sets any bit of Warp's overflow mask,
+ends there (terminal) with reward and obs 0, and the auto-reset brings it back; nothing
+aborts inside the jit. `State.metrics` counts `diverged`, `overflow` and `reset_overlap`
+(0/1 per step); `check_failures` turns them into a host-side abort where one is wanted.
+
+Not yet: the kick and chip (ticket 08: those action dims are ignored here), domain
+randomisation (ticket 14).
 """
 
 from __future__ import annotations
@@ -119,6 +124,41 @@ def sample_pose(u, taken, margin: float = 0.3, clearance: float = 0.25):
     return cand[pick], ~free.any()
 
 
+def overflow_bits(d: mjx.Data) -> jax.Array:
+    """Warp's per-world overflow bitmask (`OverflowType`), sticky until the world is reset;
+    0 for data that is not on Warp (the JAX-CPU parity snapshots)."""
+    bits = getattr(d._impl, "overflow", None)
+    return jnp.zeros((), jnp.int32) if bits is None else bits
+
+
+def check_failures(state: State) -> None:
+    """Abort on the host if any world of `state` (batched or not) diverged or overflowed.
+
+    Inside the jit a failed world just ends and resets; a run that must not paper over it
+    (the parity tests, the standalone eval) calls this after each step, reading
+    `metrics["diverged"]`/`["overflow"]` and naming the overflow bits per type, so an
+    undersized `naconmax`/`njmax` says which buffer.
+    """
+    diverged = np.asarray(state.metrics["diverged"]).reshape(-1) > 0
+    overflow = np.asarray(state.metrics["overflow"]).reshape(-1) > 0
+    if not (diverged.any() or overflow.any()):
+        return
+    n = diverged.size
+    parts = []
+    if diverged.any():
+        parts.append(f"{diverged.sum()} of {n} world(s) diverged (qpos/qvel not finite)")
+    if overflow.any():
+        from mujoco.mjx.third_party.mujoco_warp import OverflowType
+
+        bits = np.asarray(overflow_bits(state.pipeline_state)).reshape(-1)
+        kinds = ", ".join(f"{t.name} in {((bits & t.value) != 0).sum()}"
+                          for t in OverflowType if (bits & t.value).any())
+        kinds = kinds or "bits already cleared by a reset"
+        parts.append(f"{overflow.sum()} of {n} world(s) overflowed Warp ({kinds}): "
+                     "naconmax/njmax too small?")
+    raise RuntimeError("MJX: " + "; ".join(parts))
+
+
 def _default(fn, name):
     """A keyword default off a CPU signature, so the number lives in one place."""
     return inspect.signature(fn).parameters[name].default
@@ -139,7 +179,8 @@ class MjxEnv(Env):
     n_uniform = 0
 
     def __init__(self, horizon_s: float = 30.0, repeat_action: int = 1,
-                 graph_mode: str = "WARP", randomize=None, nworld: int = 1) -> None:
+                 graph_mode: str = "WARP", randomize=None, nworld: int = 1,
+                 nacon_per_world: int | None = None) -> None:
         if randomize is not None:
             raise NotImplementedError("domain randomisation lands in ticket 14")
         if graph_mode not in GRAPH_MODES:
@@ -155,7 +196,8 @@ class MjxEnv(Env):
         self.graph_mode = graph_mode
         self.nworld = int(nworld)
         n = len(self.robots)
-        self.nacon_per_world = max(NACON_MIN, NACON_PER_ROBOT * n)
+        # Overridable to size the buffer by hand (or undersize it, to test the overflow path).
+        self.nacon_per_world = nacon_per_world or max(NACON_MIN, NACON_PER_ROBOT * n)
         self.njmax = NJMAX_PER_CONTACT * self.nacon_per_world
 
         r = self.robots
@@ -248,7 +290,7 @@ class MjxEnv(Env):
         )
         world["grace"] = self._possession(data, world["grace"])
         zero = jnp.zeros(())
-        return State(data, self._obs(data, world), zero, zero, {},
+        return State(data, self._obs(data, world), zero, zero, self._metrics(),
                      {"world": world, "truncation": zero})
 
     def control(self, state: State, action: jax.Array) -> State:
@@ -279,15 +321,31 @@ class MjxEnv(Env):
         w["grace"] = self._possession(d, w["grace"])
         obs = self._obs(d, w)
         reward, terminated, w = self.reward_done(d, w)
+        # A world that diverged or overflowed Warp's buffers ends here, terminal (its next
+        # obs is garbage, nothing to bootstrap from), with reward and obs zeroed so the NaN
+        # never reaches a gradient; the auto-reset brings it back. The CPU raises instead.
+        diverged = ~(jnp.isfinite(d.qpos).all() & jnp.isfinite(d.qvel).all())
+        overflow = overflow_bits(d) != 0
+        failed = diverged | overflow
+        terminated = terminated | failed
         truncated = (w["steps"] >= self.max_steps) & ~terminated
         return state.replace(
-            obs=obs,
-            reward=jnp.asarray(reward, jnp.float32),
+            obs=jnp.where(failed, 0.0, obs),
+            reward=jnp.where(failed, 0.0, jnp.asarray(reward, jnp.float32)),
             done=(terminated | truncated).astype(jnp.float32),
+            metrics=self._metrics(diverged=diverged, overflow=overflow),
             info={**state.info, "world": w, "truncation": truncated.astype(jnp.float32)},
         )
 
     # ------------------------------------------------------------- helpers
+
+    @staticmethod
+    def _metrics(diverged=False, overflow=False, reset_overlap=False):
+        """The per-step 0/1 counters Brax's `EpisodeWrapper` sums per episode.
+        `reset_overlap` stays 0 until a task places through `sample_pose` (tickets 10-11)."""
+        def f(x):
+            return jnp.asarray(x, jnp.float32)
+        return dict(diverged=f(diverged), overflow=f(overflow), reset_overlap=f(reset_overlap))
 
     def _navigate(self, d, i, pose):
         r = self.robots[i]

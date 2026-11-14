@@ -147,6 +147,7 @@ def test_initial_state_matches_cpu(env_id, seed):
     obs, _ = cpu.reset(seed=seed)
     env = mjsoccer.mjx.make(env_id)
     state = env.init_state(_put(cpu), jax.random.PRNGKey(seed))
+    mjsoccer.mjx.check_failures(state)
     np.testing.assert_allclose(np.asarray(state.obs), obs, **TOL)
     _assert_world(env_id, state.info["world"], cpu, "after reset")
     assert float(state.done) == 0.0 and float(state.reward) == 0.0
@@ -189,6 +190,7 @@ def test_control_steps_match_cpu(env_id, seed):
         np.testing.assert_allclose(np.asarray(state.info["world"]["drive_cmd"]), cpu.drive_cmd,
                                    **TOL, err_msg=f"drive_cmd {when}")
         state = settle(state.replace(pipeline_state=_put(cpu)))
+        mjsoccer.mjx.check_failures(state)  # a reset world would hide behind its zeros
         np.testing.assert_allclose(np.asarray(state.obs), obs, **TOL, err_msg=f"obs {when}")
         np.testing.assert_allclose(float(state.reward), reward, **TOL, err_msg=f"reward {when}")
         assert bool(state.done) == (terminated or truncated), when
@@ -217,3 +219,44 @@ def test_controller_matches_cpu_over_random_states():
     want = np.array([navigation.go_to_point(*args) for args in
                      zip(pos, vel, angle, target, target_angle)])
     np.testing.assert_allclose(got, want, **TOL)
+
+
+# ------------------------------------------------------------------ per-world failures
+
+
+@pytest.mark.parametrize("field", ["qpos", "qvel"])
+def test_non_finite_world_ends_with_zero_reward_and_obs(field):
+    """A world whose state stops being finite ends right there -- terminal, not truncation
+    -- with reward and observation zeroed so the NaN never reaches a gradient, and says so
+    in `metrics["diverged"]`. Nothing raises: that is the CPU's answer, not the batch's."""
+    env_id = TASKS[0]
+    cpu = gym.make(env_id).unwrapped
+    cpu.reset(seed=0)
+    env = mjsoccer.mjx.make(env_id)
+    state = env.init_state(_put(cpu), jax.random.PRNGKey(0))
+    assert {k: float(v) for k, v in state.metrics.items()} == dict(
+        diverged=0.0, overflow=0.0, reset_overlap=0.0)
+    d = state.pipeline_state
+    bad = d.replace(**{field: getattr(d, field).at[3].set(np.nan)})
+    state = jax.jit(env.settle)(state.replace(pipeline_state=bad))
+    assert float(state.done) == 1.0
+    assert float(state.info["truncation"]) == 0.0
+    assert float(state.reward) == 0.0
+    np.testing.assert_array_equal(np.asarray(state.obs), 0.0)
+    assert float(state.metrics["diverged"]) == 1.0
+    assert float(state.metrics["overflow"]) == 0.0
+
+
+def test_check_failures_aborts_on_the_host_with_the_count():
+    """Outside the jit the counters are read back and a run that must not tolerate a reset
+    world -- a parity test, the standalone eval -- stops with a message that says what."""
+    env_id = TASKS[0]
+    cpu = gym.make(env_id).unwrapped
+    cpu.reset(seed=0)
+    env = mjsoccer.mjx.make(env_id)
+    state = env.init_state(_put(cpu), jax.random.PRNGKey(0))
+    mjsoccer.mjx.check_failures(state)  # a healthy world passes
+    d = state.pipeline_state
+    state = env.settle(state.replace(pipeline_state=d.replace(qvel=d.qvel.at[0].set(np.inf))))
+    with pytest.raises(RuntimeError, match=r"1 of 1 world\(s\) diverged"):
+        mjsoccer.mjx.check_failures(state)
