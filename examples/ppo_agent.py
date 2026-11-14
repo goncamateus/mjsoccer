@@ -27,9 +27,6 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--env", default="GoToBall-v0")
     ap.add_argument(
-        "--tier", type=int, choices=(0, 1), default=1, help="0 = kinematic chassis, 1 = roller wheels"
-    )
-    ap.add_argument(
         "--control-hz", type=int, default=40, help="policy rate, Hz; 40 acts every 0.025 s as rSoccer does"
     )
     ap.add_argument("--timesteps", type=int, default=1_000_000)
@@ -45,7 +42,7 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     if args.play:
-        env = gym.make(args.env, tier=args.tier, control_hz=args.control_hz, render_mode="human")
+        env = gym.make(args.env, control_hz=args.control_hz, render_mode="human")
         model = PPO.load(args.play)
         obs, _ = env.reset(seed=args.seed)
         while True:
@@ -57,7 +54,7 @@ def main(argv=None) -> int:
 
     # ponytail: no VecNormalize, no callbacks, no tensorboard dir -- SB3 defaults are the
     # baseline these tasks get compared against. Add them when a run needs tuning, not before.
-    venv = make_vec_env(args.env, n_envs=args.n_envs, seed=args.seed, env_kwargs={"tier": args.tier, "control_hz": args.control_hz})
+    venv = make_vec_env(args.env, n_envs=args.n_envs, seed=args.seed, env_kwargs={"control_hz": args.control_hz})
     # Defaults to cpu, not auto: SB3 itself warns that an MLP-policy PPO is slower on the GPU
     # than off it -- the nets are tiny and the transfers dominate. --device cuda if you widen them.
     model = PPO("MlpPolicy", venv, seed=args.seed, device=args.device, verbose=1)

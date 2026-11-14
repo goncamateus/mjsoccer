@@ -43,7 +43,7 @@ was missing and no network fetch was needed beyond the two documentation URLs ab
 this side. The sections below are kept as the audit of that commit, with inline corrections
 only where the audit itself was wrong *at* that commit (`W3`, `B9`, `P4`, `C2`, `B6`). Where
 this table and a section disagree about mjsoccer's *current* state, this table wins, and
-[`docs/index.md`](../index.md) is the reference for today's numbers.
+[`docs/index.md`](../../../docs/index.md) is the reference for today's numbers.
 
 | ids | at `147d2af` | now | ticket |
 |---|---|---|---|

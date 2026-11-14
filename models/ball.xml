@@ -18,7 +18,7 @@
   <!-- COR 0.50 off the carpet and the wall (ticket 05); MuJoCo has no restitution coefficient, so
        the solref was found by measurement (ticket 17). The wall goes by a pair per hull, not by
        the ball geom's solref, which every unpaired ball contact averages in (hull, kicker:
-       ticket 09). Both tiers include this file. -->
+       ticket 09). -->
   <contact>
     <pair geom1="ball" geom2="floor" condim="6" friction="0.35 0.35 0.005 0.0009 0.0009" solref="0.012 0.225" />
     <pair class="ball_wall" geom1="ball" geom2="col_f_walls_1_c00" />

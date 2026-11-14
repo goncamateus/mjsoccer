@@ -74,10 +74,8 @@ def _demo_action(env, obs: np.ndarray, target, kick: bool) -> np.ndarray:
     """
     a = np.zeros(env.action_space.shape, dtype=np.float32)
     a[-1] = 1.0  # dribbler on; a spinning bar is what holds the ball on the way in
-    # goto_ball_policy and the aiming below are both tier-0 (vx, vy, omega) commands; on
-    # tier 1 the drive slice is wheel speeds and neither applies.
-    if target is None or env.drive_dim != 3:
-        a[: min(3, env.drive_dim)] = goto_ball_policy(obs)[: min(3, env.drive_dim)]
+    if target is None:
+        a[:3] = goto_ball_policy(obs)
         return a
 
     ball = env.ball.pos(env.data)[:2]
@@ -214,11 +212,7 @@ def main(argv=None) -> int:
     n_frames = round(args.seconds * args.fps)
 
     for env_id in args.envs:
-        # tier 0, not the env default of 1: every clip is driven by goto_ball_policy and
-        # the striker in _demo_action, both of which command a body-frame velocity that
-        # tier 1's four wheel servos cannot be given. On tier 1 the clips fall back to
-        # noise. The physics on show is the same field, ball and dribbler either way.
-        env = gym.make(env_id, tier=0, render_mode="rgb_array").unwrapped
+        env = gym.make(env_id, render_mode="rgb_array").unwrapped
         # base.render() hardcodes 720x1280; build our own renderer so the docs can ask for
         # a size small enough to commit. The wide clips get more pixels because a fixed
         # camera leaves most of the frame identical between frames and compresses several

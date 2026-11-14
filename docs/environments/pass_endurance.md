@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Action Space | `Box(-1.0, 1.0, (7,), float32)` on the default tier 1, `Box(-1.0, 1.0, (6,), float32)` on tier 0 |
+| Action Space | `Box(-1.0, 1.0, (6,), float32)` |
 | Observation Space | `Box((22,), float32)`, bounded per row below |
 | import | `gym.make("PassEndurance-v0")` |
 
@@ -16,38 +16,24 @@ it from the other side of the line `y = 0`. The pass has to arrive: the episode 
 the receiver holds the ball, and -1 for a wrong ball.
 
 The action space is still the shared one; the env reduces the passer's drive to a spin
-(tier 0 zeroes `vx, vy`; tier 1 drives all four wheels at their mean, a pure spin).
+(it zeroes `vx, vy` and keeps the yaw rate).
 
 ## Action Space
 
-The action is a `Box(-1, 1, (7,), float32)` on the default tier 1 and drives the passer
+The action is a `Box(-1, 1, (6,), float32)` and drives the passer
 only. The team-mate is scripted and never appears in the action, which is why the action is
-7 wide even though the model contains two robots.
+6 wide even though the model contains two robots.
 
 | Num | Action | Min | Max | Unit |
 |---|---|---|---|---|
-| 0 | wheel 1 speed (`wheel1_vel`) | -95 | 95 | rad/s |
-| 1 | wheel 2 speed (`wheel2_vel`) | -95 | 95 | rad/s |
-| 2 | wheel 3 speed (`wheel3_vel`) | -95 | 95 | rad/s |
-| 3 | wheel 4 speed (`wheel4_vel`) | -95 | 95 | rad/s |
-| 4 | kicker plunger force (`kicker_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
-| 5 | chipper plunger force (`chipper_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
-| 6 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
-
-On tier 0 the action is a `Box(-1, 1, (6,), float32)`, 6 wide for the same reason: the four
-wheel servos are replaced by the three chassis rows, and kicker, chipper and dribbler shift
-down to indices 3, 4 and 5.
-
-| Num | Action | Min | Max | Unit |
-|---|---|---|---|---|
-| 0 | body-frame forward velocity (`vel_x`) | -4 | 4 | m/s |
-| 1 | body-frame lateral velocity (`vel_y`) | -4 | 4 | m/s |
-| 2 | yaw rate (`vel_yaw`) | -30 | 30 | rad/s |
+| 0 | body-frame forward velocity (`vel_x`) | -3.3 | 3.3 | m/s |
+| 1 | body-frame lateral velocity (`vel_y`) | -3.3 | 3.3 | m/s |
+| 2 | yaw rate (`vel_yaw`) | -37.1 | 37.1 | rad/s |
 | 3 | kicker plunger force (`kicker_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
 | 4 | chipper plunger force (`chipper_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
 | 5 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
 
-The kicker — row 4 on tier 1, row 3 on tier 0 — is the natural control for this task, and it
+The kicker — row 3 — is the natural control for this task, and it
 asks for a speed: `a in (0, 1]` sends the ball out at `6.5 * a` m/s, so pass strength is
 the action, and `a <= 0` does not kick. Each shot locks that plunger out for 250 ms. The chipper is the alternative over an obstacle, though there
 are no obstacles here. See [the action space contract](../index.md#action-space).
@@ -114,10 +100,6 @@ over `[-1.5, 1.5]` redrawn until it is at least 1 m from the ball's `x`, facing 
 
 - **Received.** The receiver holds the ball: `+1.0`, `info["is_success"]`.
 - **Wrong ball.** Out of the passer-receiver box, or stopped for more than 20 steps: `-1.0`.
-- **Controlled robot turned over** (tier 1 only). The robot's own +z tilts more than 60 deg
-  off world +z (`cos < 0.5`); the step pays `-100.0` and `info["tipped"]` is set. rSoccer's
-  robots cannot tip, so this is the one ending that is ours, kept so a robot on its back never
-  collects shaping.
 - **Diverged simulation.** If `qpos` or `qvel` stops being finite, `step` raises
   `RuntimeError` rather than returning a NaN observation to train on.
 
@@ -131,7 +113,6 @@ and 1800 at the default `control_hz=60`.
 
 | parameter | type | default | description |
 |---|---|---|---|
-| `tier` | `int` | `1` | `1` = roller wheels with real slip, the default; `0` = the faster kinematic chassis |
 | `control_hz` | `int` | `60` | control rate, exact: it must divide the 960 Hz physics rate (30, 60, 120, ...), or the env raises `ValueError` |
 | `horizon_s` | `float` | `30.0` | truncation horizon, in seconds |
 | `render_mode` | `str \| None` | `None` | `"human"` or `"rgb_array"` |
@@ -140,7 +121,7 @@ and 1800 at the default `control_hz=60`.
 import gymnasium as gym
 import mjsoccer
 
-env = gym.make("PassEndurance-v0", tier=0, control_hz=60, horizon_s=30.0, render_mode="rgb_array")
+env = gym.make("PassEndurance-v0", control_hz=60, horizon_s=30.0, render_mode="rgb_array")
 ```
 
 `n_blue` (2) is a class attribute on `PassEnduranceEnv`, not a `gym.make` keyword — it
@@ -153,9 +134,6 @@ action alone.
 | key | type | description |
 |---|---|---|
 | `is_success` | `bool` | the team-mate received the ball |
-| `tipped` | `bool` | present only on the step a controlled robot turned over |
-| `tilt_deg` | `float` | with `tipped`: the worst controlled robot's tilt off vertical, degrees |
-| `tip_step` | `int` | with `tipped`: control steps since reset, so time-to-tip is `tip_step * dt` |
 
 ## Version History
 

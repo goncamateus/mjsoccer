@@ -6,9 +6,9 @@ Spec: [port GPU](../../gpu-port/spec.md)
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `gymnasium.make(id)` nas 6 tasks roda só o chassi cinemático; não existe kwarg `tier`
-- [ ] Nenhuma ocorrência de "tier" ou do roller robot em código, modelos, scripts e `docs/`
-- [ ] Testes de tilt/tombamento e cenários `head_on`/`wall`/`dribble_turn` removidos do sweep e do `test_validation`
-- [ ] `uv run pytest` e `uv run pytest -m validation` verdes
+- [x] `gymnasium.make(id)` nas 6 tasks roda só o chassi cinemático; não existe kwarg `tier`
+- [x] Nenhuma ocorrência de "tier" ou do roller robot em código, modelos, scripts e `docs/`
+- [x] Testes de tilt/tombamento e cenários `head_on`/`wall`/`dribble_turn` removidos do sweep e do `test_validation`
+- [x] `uv run pytest` e `uv run pytest -m validation` verdes

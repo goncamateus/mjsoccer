@@ -4,7 +4,6 @@
     import mjsoccer                    # registers the ids
 
     env = gym.make("GoToBall-v0")
-    env = gym.make("GoToBallShoot-v0", tier=1)      # roller physics
 """
 
 from __future__ import annotations

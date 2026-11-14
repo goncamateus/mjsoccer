@@ -1,6 +1,6 @@
 """Single-file SAC (cleanRL style) on any mjsoccer task.
 
-    uv run --group rl python examples/sac_cleanrl.py --env GoToBall-v0 --tier 0
+    uv run --group rl python examples/sac_cleanrl.py --env GoToBall-v0
 
 A port of goncamateus/Planning-the-path-with-rl's methods/sac.py + train.py with its PURE
 hyperparameters (utils/experiment.py, experiments.yml), to compare against SB3's SAC in
@@ -71,7 +71,6 @@ class Actor(nn.Module):
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--env", default="GoToBall-v0")
-    ap.add_argument("--tier", type=int, choices=(0, 1), default=1)
     ap.add_argument("--control-hz", type=int, default=40, help="40 acts every 0.025 s, as rSoccer")
     ap.add_argument("--n-envs", type=int, default=16)
     ap.add_argument("--total-steps", type=int, default=150_000, help="vector steps")
@@ -95,7 +94,7 @@ def main(argv=None) -> int:
     dev = torch.device(args.device)
 
     def make():
-        e = gym.make(args.env, tier=args.tier, control_hz=args.control_hz)
+        e = gym.make(args.env, control_hz=args.control_hz)
         return gym.wrappers.RecordEpisodeStatistics(e)
 
     envs = SyncVectorEnv([make for _ in range(args.n_envs)], autoreset_mode=AutoresetMode.SAME_STEP)

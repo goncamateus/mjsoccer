@@ -10,10 +10,9 @@ robots get a slice; scripted ones are driven inside `_script`.
 
 Per-robot slice, in order:
 
-    tier 1 (default):  w1, w2, w3, w4        tier 0:  vx, vy, omega
-    then always:  kick, chip, dribble
+    vx, vy, omega, kick, chip, dribble
 
-so `act_dim` is 7 on the default tier 1 and 6 on tier 0, the same for every task. Every robot always
+so `act_dim` is 6, the same for every task. Every robot always
 exposes every control it physically has; a task that does not care about one simply does
 not reward it, which keeps a single action head transferable across all the envs.
 
@@ -30,16 +29,10 @@ from gymnasium import spaces
 
 from . import scene
 
-MAX_V = 3.3  # m/s -- the tier-0 chassis servo ctrlrange (ticket 12), used to normalise observations
+MAX_V = 3.3  # m/s -- the chassis servo ctrlrange (ticket 12), used to normalise observations
 MAX_W = 37.1  # rad/s, likewise: the yaw ceiling of a spin about the CoM (ticket 12)
 MAX_BALL_V = 8.0  # m/s -- kicks cap at 6.5 (scene.KICK_SPEED_MAX) off a standing robot, ~8.5 moving
 POSSESSION_GRACE = 0.05  # s of no ball/dribbler contact before the ball counts as lost
-# A robot is over when its own +z is more than 60 deg off world +z. Well past anything
-# driving produces -- the roller chassis pitches a couple of degrees under hard
-# acceleration -- and well short of 90, so a robot on its way down does not have to land
-# flat before the episode ends.
-TIPPED_COS = 0.5
-TIPOVER_PENALTY = 100.0  # same order as the task bonuses, so falling is never worth it
 
 
 class BaseEnv(gym.Env):
@@ -55,15 +48,11 @@ class BaseEnv(gym.Env):
 
     def __init__(
         self,
-        tier: int = 1,
         control_hz: int = 60,
         horizon_s: float = 30.0,
         render_mode: str | None = None,
     ) -> None:
-        self.tier = tier
-        self.model, self.robots, self.ball = scene.build(
-            self.n_blue, self.n_yellow, tier
-        )
+        self.model, self.robots, self.ball = scene.build(self.n_blue, self.n_yellow)
         self.data = mujoco.MjData(self.model)
 
         # Exact or refused (ticket 13): rounding turned a requested 60 Hz into 62.5 and
@@ -79,7 +68,7 @@ class BaseEnv(gym.Env):
         self.metadata = dict(self.metadata, render_fps=round(1.0 / self.dt))
         self.max_steps = max(1, round(horizon_s / self.dt))
 
-        self.drive_dim = 3 if tier == 0 else 4
+        self.drive_dim = 3  # vx, vy, omega
         self.act_dim = self.drive_dim + 3  # kick, chip, dribble
         self.action_space = spaces.Box(
             -1.0, 1.0, (self.n_controlled * self.act_dim,), dtype=np.float32
@@ -157,15 +146,6 @@ class BaseEnv(gym.Env):
         ):
             # Loudly, rather than training a policy on NaN observations.
             raise RuntimeError(f"simulation diverged at step {self.steps}")
-        if self.tipped():
-            reward -= TIPOVER_PENALTY
-            terminated = True
-            info["tipped"] = True
-            # Logged so the tip rate and the time-to-tip distribution come off the env
-            # rather than a bespoke harness. Worst controlled robot; steps since reset.
-            cos = np.clip(self._upright_cos(), -1.0, 1.0)
-            info["tilt_deg"] = float(np.degrees(np.arccos(cos)))
-            info["tip_step"] = self.steps
         if self.render_mode == "human":
             self.render()
         return obs, float(reward), bool(terminated), bool(truncated), info
@@ -181,14 +161,12 @@ class BaseEnv(gym.Env):
         lo, hi = r.drive_range[:, 0], r.drive_range[:, 1]
         # Symmetric ranges, so a single scale keeps 0 -> 0 rather than -> midpoint.
         cmd = a[: self.drive_dim] * np.maximum(hi, -lo)
-        if self.tier == 0:
-            # The tier-0 chassis joints are *world*-axis slides, but the action means a
-            # body-frame velocity -- that is how SSL firmware is commanded, and it is what
-            # tier 1's wheel speeds inherently produce. Rotating here is what makes the two
-            # tiers mean the same thing. A diagonal command can ask for 4*sqrt(2) on one
-            # world axis; MuJoCo clamps it to ctrlrange, same as a real servo would.
-            v = self.data.xmat[r.body].reshape(3, 3) @ (cmd[0], cmd[1], 0.0)
-            cmd = (v[0], v[1], cmd[2])
+        # The chassis joints are *world*-axis slides, but the action means a body-frame
+        # velocity -- that is how SSL firmware is commanded, so rotate it here. A diagonal
+        # command can ask for 4*sqrt(2) on one world axis; MuJoCo clamps it to ctrlrange,
+        # same as a real servo would.
+        v = self.data.xmat[r.body].reshape(3, 3) @ (cmd[0], cmd[1], 0.0)
+        cmd = (v[0], v[1], cmd[2])
         self.data.ctrl[list(r.drive)] = cmd
         k = self.drive_dim
         # Kicker and chipper are the same mechanism twice over: a force actuator against a
@@ -196,7 +174,7 @@ class BaseEnv(gym.Env):
         # like the dribbler: a <= 0 never fires, (0, 1] asks for (0, KICK_SPEED_MAX] m/s.
         for j, actuator in enumerate((r.kick, r.chip)):
             if a[k + j] > 0.0 and self._plunger_lock[index, j] == 0:
-                speeds = scene.KICK_TABLE_MS[self.tier, j]
+                speeds = scene.KICK_TABLE_MS[j]
                 self.data.ctrl[actuator] = np.interp(
                     scene.KICK_SPEED_MAX * float(a[k + j]),
                     speeds,
@@ -211,24 +189,6 @@ class BaseEnv(gym.Env):
         self.data.ctrl[r.dribble] = scene.DRIBBLER_OMEGA * max(float(a[k + 2]), 0.0)
 
     # ------------------------------------------------------------ observation
-
-    def tipped(self) -> bool:
-        """Has any *controlled* robot fallen over?
-
-        Only the controlled ones: a scripted opponent knocked on its side is the agent's
-        problem to exploit, not a reason to end its episode. Read off the body frame's
-        third column, which is the robot's own +z in world coordinates, so it is one dot
-        product rather than a quaternion. Always False on tier 0, whose chassis is a planar
-        joint and cannot leave the ground.
-        """
-        return self._upright_cos() < TIPPED_COS
-
-    def _upright_cos(self) -> float:
-        """cos of the worst controlled robot's tilt off world +z."""
-        return min(
-            self.data.xmat[r.body].reshape(3, 3)[2, 2]
-            for r in self.robots[: self.n_controlled]
-        )
 
     def holds(self, i: int) -> bool:
         """Is robot `i` carrying the ball? Valid after the last _obs."""
@@ -314,7 +274,7 @@ class BaseEnv(gym.Env):
 
         So do what the real robot does -- spin the bar up, roll a ball in at 1 m/s, let it
         be caught. Not faster: with the measured ball inertia (beta = 0.5) a ball arriving
-        at 2 m/s from 200 mm rebounds off the bar and rolls out of reach on both tiers.
+        at 2 m/s from 200 mm rebounds off the bar and rolls out of reach.
         Fixed distance, fixed speed, no timestep dependence, and the ball ends up in the
         pocket the dribbler actually holds it in rather than one chosen with a ruler. Must
         be called from _reset_task, after reset() has run mj_forward.

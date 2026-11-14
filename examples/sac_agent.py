@@ -44,13 +44,6 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--env", default="GoToBall-v0")
     ap.add_argument(
-        "--tier",
-        type=int,
-        choices=(0, 1),
-        default=1,
-        help="0 = kinematic chassis, 1 = roller wheels",
-    )
-    ap.add_argument(
         "--control-hz",
         type=int,
         default=40,
@@ -83,7 +76,7 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     if args.play:
-        env = gym.make(args.env, tier=args.tier, control_hz=args.control_hz, render_mode="human")
+        env = gym.make(args.env, control_hz=args.control_hz, render_mode="human")
         model = SAC.load(args.play)
         obs, _ = env.reset(seed=args.seed)
         while True:
@@ -100,7 +93,7 @@ def main(argv=None) -> int:
         args.env,
         n_envs=args.n_envs,
         seed=args.seed,
-        env_kwargs={"tier": args.tier, "control_hz": args.control_hz},
+        env_kwargs={"control_hz": args.control_hz},
     )
     model = SAC(
         "MlpPolicy",

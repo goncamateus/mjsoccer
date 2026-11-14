@@ -21,7 +21,6 @@ from mjsoccer import scene as S
 from mjsoccer.tasks import goto_ball_policy
 
 ENV_IDS = list(mjsoccer.ENV_IDS)
-TIERS = (0, 1)
 
 
 @pytest.mark.parametrize("env_id", ENV_IDS)
@@ -33,14 +32,13 @@ def test_gym_api(env_id):
 
 
 @pytest.mark.parametrize("env_id", ENV_IDS)
-@pytest.mark.parametrize("tier", TIERS)
-def test_steps_finite(env_id, tier):
-    """Both tiers compile, and 100 random actions leave the state finite and in-space.
+def test_steps_finite(env_id):
+    """Every task compiles, and 100 random actions leave the state finite and in-space.
 
     The direct analogue of a settle check: a model that explodes under load produces NaN
     observations that a policy will happily train on.
     """
-    env = gym.make(env_id, tier=tier)
+    env = gym.make(env_id)
     obs, _ = env.reset(seed=0)
     for i in range(100):
         obs, reward, terminated, truncated, _ = env.step(env.action_space.sample())
@@ -52,8 +50,7 @@ def test_steps_finite(env_id, tier):
     env.close()
 
 
-@pytest.mark.parametrize("tier", TIERS)
-def test_ball_pairs_replicated(tier):
+def test_ball_pairs_replicated():
     """Every robot must keep its own explicit ball contact pairs.
 
     Attaching the robot N times does not carry the scene's <pair> elements with it, and a
@@ -62,9 +59,9 @@ def test_ball_pairs_replicated(tier):
     pairs -- the carpet and the 12 wall hulls (tickets 17, 21) -- appear once, not per robot.
     """
     n_blue, n_yellow = 2, 1
-    model, robots, _ = S.build(n_blue, n_yellow, tier)
+    model, robots, _ = S.build(n_blue, n_yellow)
 
-    source = (S.MODELS_DIR / S.SCENES[tier]).read_text()
+    source = (S.MODELS_DIR / S.SCENE).read_text()
     want = {
         m["g2"]: [float(v) for v in m["fric"].split()]
         for m in re.finditer(
@@ -96,8 +93,7 @@ def test_ball_pairs_replicated(tier):
     assert len(seen) == len(robots) * len(want), f"only matched {sorted(seen)}"
 
 
-@pytest.mark.parametrize("tier", TIERS)
-def test_ball_inertia_is_measured(tier):
+def test_ball_inertia_is_measured():
     """The ball's moment of inertia is the measured golf ball's, not a solid sphere's.
 
     I = beta * m * r^2 with beta = 0.5 (.scratch/physics-fidelity/research/
@@ -107,16 +103,15 @@ def test_ball_inertia_is_measured(tier):
     """
     import mujoco
 
-    model, _, _ = S.build(1, 0, tier)
+    model, _, _ = S.build(1, 0)
     b = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "ball")
     beta = model.body_inertia[b] / (model.body_mass[b] * 0.0215**2)
     np.testing.assert_allclose(model.body_mass[b], 0.046, rtol=1e-9)
     np.testing.assert_allclose(beta, [0.5, 0.5, 0.5], rtol=1e-6)
 
 
-@pytest.mark.parametrize("tier", TIERS)
 @pytest.mark.parametrize("surface", ("floor", "wall"))
-def test_ball_bounces_at_its_measured_cor(tier, surface):
+def test_ball_bounces_at_its_measured_cor(surface):
     """The ball comes off the carpet and the wall at COR 0.47-0.56, target 0.50 (ticket 05,
     ER-Force/TIGERs). MuJoCo has no literal restitution: the bounce comes out of each
     surface's <pair> solref, found by measurement (ticket 17) and applied by ticket 21.
@@ -129,7 +124,7 @@ def test_ball_bounces_at_its_measured_cor(tier, surface):
     """
     import mujoco
 
-    model, robots, ball = S.build(1, 0, tier)
+    model, robots, ball = S.build(1, 0)
     r = ball.radius
     # 4.7865: the inner face of col_f_walls_1_c05 at x = 0.865, by contact onset (ticket 17).
     axis, sign, face = (2, -1, S.FLOOR_Z) if surface == "floor" else (1, 1, 4.7865)
@@ -158,57 +153,6 @@ def test_ball_bounces_at_its_measured_cor(tier, surface):
             assert hit, f"{surface}: the ball never reached it"
             cors.append(0.0 if touching else -sign * data.qvel[d + axis] / v_in)  # never left: 0
         assert 0.47 <= np.mean(cors) <= 0.56, f"{surface} at {v} m/s: COR {np.mean(cors):.3f}"
-
-
-def test_roller_floor_friction_is_measured():
-    """Roller rubber on carpet slides at mu = 0.25 (Williams et al., IEEE T-RA 18(3) 2002).
-
-    There is no explicit pair for it, so MuJoCo takes the elementwise max of the two geoms:
-    setting only the roller leaves the floor's own value in charge. That is what bounds the
-    chassis to 1.30-1.95 m/s^2, friction-limited rather than torque-limited (ticket 12).
-    """
-    import mujoco
-
-    model, _, _ = S.build(1, 0, tier=1)  # rollers exist only on tier 1
-    floor = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "floor")
-    rollers = [g for g in range(model.ngeom) if "roller" in mj_geom_name(model, g)
-               and model.geom_conaffinity[g]]  # contype 0: neighbouring rollers overlap
-    assert len(rollers) > 4, "found no roller collision geoms"
-    for g in rollers:
-        mu = max(model.geom_friction[g][0], model.geom_friction[floor][0])
-        assert mu == pytest.approx(0.25), f"{mj_geom_name(model, g)}: roller/floor mu {mu}"
-
-
-def test_full_spin_stays_under_max_w():
-    """Every wheel at the top of its ctrlrange must spin the chassis slower than MAX_W.
-
-    Nothing clips yaw in Python (ticket 04): the bound comes from the motor envelope
-    (+-95 rad/s, +-0.078 N*m). With free rollers (ticket 20) a full spin rolls without slip
-    about the CoM, 3.45 mm behind the wheel centre, at 36.2 rad/s: past the 35.9 about the
-    centre, because the front wheels are dragged past 95 rad/s by the rear ones. MAX_W =
-    37.1 is where the wheel nearest the CoM reaches 95 rad/s (ticket 12): faster, every
-    wheel brakes the spin. The bound is the derived one, not a measured one with a few
-    percent of margin.
-    """
-    import mujoco
-
-    from mjsoccer.base import MAX_W
-
-    model, robots, ball = S.build(1, 0, tier=1)  # the wheel actuators are tier 1 only
-    r = robots[0]
-    data = mujoco.MjData(model)
-    r.place(data, 0.0, 0.0, 0.0)
-    ball.place(data, 4.0, 3.0)  # far away: nothing else in contact
-    mujoco.mj_forward(model, data)
-    peak_w = peak_tilt = 0.0
-    for _ in range(round(5.0 / model.opt.timestep)):
-        data.ctrl[list(r.drive)] = r.drive_range[:, 1]
-        mujoco.mj_step(model, data)
-        R = data.xmat[r.body].reshape(3, 3)
-        peak_w = max(peak_w, abs((R @ data.qvel[r.qvel_adr + 3 : r.qvel_adr + 6])[2]))
-        peak_tilt = max(peak_tilt, np.degrees(np.arccos(np.clip(R[2, 2], -1, 1))))
-    assert peak_w < MAX_W, f"full-command yaw {peak_w:.1f} rad/s exceeds MAX_W = {MAX_W}"
-    assert peak_tilt < 15.0, f"chassis tilted {peak_tilt:.1f} deg spinning in place"
 
 
 def mj_geom_name(model, gid: int) -> str:
@@ -240,8 +184,7 @@ def test_deterministic(env_id):
 @pytest.mark.parametrize(
     "env_id,index,min_held", [("Dribbling-v0", 0, 111)]
 )
-@pytest.mark.parametrize("tier", TIERS)
-def test_seated_ball_is_possessed(env_id, index, min_held, tier):
+def test_seated_ball_is_possessed(env_id, index, min_held):
     """Tasks that begin with the ball carried must actually begin that way.
 
     Both the seating and the detection have failed silently here before -- a ball placed
@@ -252,15 +195,14 @@ def test_seated_ball_is_possessed(env_id, index, min_held, tier):
     ContestedPossession is out since it took rSoccer's layout: its yellow robot gets no
     commands, so the ball rests in its mouth, untouched by a bar that is not spinning.
 
-    Both tiers. Measured over 8 seeds on the 1/960 s step with the calibrated ball bounce
-    (ticket 21), holds() steps out of 120 idle ones: ContestedPossession 120 on tier 0 and 118
-    on tier 1, Dribbling 117 and 119, every seed alike. Each bar sits 5 % under the worse
-    tier's worst seed -- a ball that is actually dropped scores near zero, so the margin is
-    for seed noise only. On the old 2 ms step
-    ContestedPossession tier 0 scattered 69-95 and looked chaotic; ticket 13 found it was
-    the step under-resolving the ball/dribbler contact (120 at 0.5 ms, 87 at 2 ms, 0 at 4).
+    Measured over 8 seeds on the 1/960 s step with the calibrated ball bounce (ticket 21),
+    holds() steps out of 120 idle ones: ContestedPossession 120, Dribbling 117, every seed
+    alike. The bar sits 5 % under the worst seed -- a ball that is actually dropped scores
+    near zero, so the margin is for seed noise only. On the old 2 ms step ContestedPossession scattered
+    69-95 and looked chaotic; ticket 13 found it was the step under-resolving the
+    ball/dribbler contact (120 at 0.5 ms, 87 at 2 ms, 0 at 4).
     """
-    env = gym.make(env_id, tier=tier).unwrapped
+    env = gym.make(env_id).unwrapped
     for seed in range(5):
         env.reset(seed=seed)
         # Seated at reset: ~94 mm out along the robot's own +x, at ball radius height.
@@ -276,32 +218,29 @@ def test_seated_ball_is_possessed(env_id, index, min_held, tier):
         hold = np.zeros(env.action_space.shape, dtype=np.float32)
         hold[-1] = 0.5
         held = sum(int(env.holds(index)) for _ in range(120) if env.step(hold) or True)
-        assert held >= min_held, f"seed {seed}: carried only {held}/120 idle steps on tier {tier}"
+        assert held >= min_held, f"seed {seed}: carried only {held}/120 idle steps"
     env.close()
 
 
-@pytest.mark.parametrize("tier,min_held", [(0, 77), (1, 69)])
-def test_seated_ball_survives_a_2_rad_s_turn(tier, min_held):
+def test_seated_ball_survives_a_2_rad_s_turn():
     """Spinning in place at 2 rad/s with the bar at full speed must not drop the ball.
 
     Ticket 22: with the old ball<->bar solref "0.004 0.5" -- ~10x stiffer than the PU 65A
     sleeve and underdamped -- the bar hammered the ball (normal force p10/p90 0.44/11 N, in
     contact on 83 % of substeps) and a 2 rad/s turn kept it 13-14 of 120 steps. The PU 65A
-    solref "0.008 1" keeps it 81 (tier 0) and 73 (tier 1), worst of seeds 0-2; each bar sits
-    5 % under that. 3 rad/s still drops it on both tiers -- an open fidelity gap, not a target.
+    solref "0.008 1" keeps it 81, worst of seeds 0-2; the bar sits 5 % under that. 3 rad/s
+    still drops it -- an open fidelity gap, not a target.
     """
     from mjsoccer.base import MAX_W
-    from mjsoccer.tasks import wheel_command
 
-    env = gym.make("Dribbling-v0", tier=tier).unwrapped
+    env = gym.make("Dribbling-v0").unwrapped
     for seed in range(3):
         env.reset(seed=seed)
         held = 0
         for _ in range(120):
-            drive = [0.0, 0.0, 2.0 / MAX_W] if tier == 0 else wheel_command(env, 0, 0.0, 0.0, 2.0)
-            env.step(np.concatenate([drive, [0.0, 0.0, 1.0]]).astype(np.float32))
+            env.step(np.array([0.0, 0.0, 2.0 / MAX_W, 0.0, 0.0, 1.0], dtype=np.float32))
             held += env.holds(0)
-        assert held >= min_held, f"seed {seed}: held {held}/120 steps of a 2 rad/s turn"
+        assert held >= 77, f"seed {seed}: held {held}/120 steps of a 2 rad/s turn"
     env.close()
 
 
@@ -316,10 +255,7 @@ def test_goto_ball_is_solvable():
     the contact: 53/60 seeds both at 2 ms and at 1/960 s (ticket 13), so 18/20 sat on a
     lucky window and the bar is 16.
     """
-    # Pinned to tier 0: goto_ball_policy emits a body-frame (vx, vy, omega) command, and
-    # tier 1's drive slice is four wheel speeds. What is under test is the reward, not the
-    # chassis, so run it on the chassis the controller was written for.
-    env = gym.make("GoToBall-v0", tier=0)
+    env = gym.make("GoToBall-v0")
     wins, returns = 0, []
     for seed in range(20):
         obs, _ = env.reset(seed=seed)
@@ -352,7 +288,7 @@ def _ball(env, x, y):
 
 def test_goto_ball_pays_one_within_20_cm():
     """rSoccer's GoToBall: +1 and done when the robot centre is under 0.2 m from the ball."""
-    env = gym.make("GoToBall-v0", tier=0)
+    env = gym.make("GoToBall-v0")
     env.reset(seed=0)
     u = env.unwrapped
     b = u.ball.pos(u.data)
@@ -368,7 +304,7 @@ def test_shoot_tasks_pay_five_for_a_goal_and_end_on_leaving_the_half(env_id):
     ball leaves the attacking half; neither pays a penalty."""
     from mjsoccer import scene as S
 
-    env = gym.make(env_id, tier=0)
+    env = gym.make(env_id)
     zero = np.zeros(env.action_space.shape, np.float32)
     env.reset(seed=0)
     _ball(env, S.FIELD_HALF_X + 0.05, 0.0)
@@ -383,7 +319,7 @@ def test_shoot_tasks_pay_five_for_a_goal_and_end_on_leaving_the_half(env_id):
 
 def test_contested_possession_ends_when_the_opponent_is_shoved():
     """rSoccer's collision rule: the yellow robot moving over 0.1 m/s ends the episode."""
-    env = gym.make("ContestedPossession-v0", tier=0)
+    env = gym.make("ContestedPossession-v0")
     env.reset(seed=0)
     u = env.unwrapped
     opp = u.robots[1]
@@ -395,7 +331,7 @@ def test_contested_possession_ends_when_the_opponent_is_shoved():
 
 def test_dribbling_pays_a_checkpoint_crossed_the_right_way():
     """The first gap is between the first two robots, crossed from +y to -y."""
-    env = gym.make("Dribbling-v0", tier=0)
+    env = gym.make("Dribbling-v0")
     env.reset(seed=0)
     u = env.unwrapped
     _put(env, 0, -0.75, -0.3, np.pi)
@@ -408,7 +344,7 @@ def test_dribbling_pays_a_checkpoint_crossed_the_right_way():
 
 def test_pass_endurance_ends_a_ball_left_sitting():
     """A ball whose distance to the receiver stays put for 21 steps is a wrong ball, -1."""
-    env = gym.make("PassEndurance-v0", tier=0)
+    env = gym.make("PassEndurance-v0")
     env.reset(seed=0)
     for n in range(1, 100):
         _, reward, terminated, _, _ = env.step(np.zeros(env.action_space.shape, np.float32))
@@ -418,16 +354,15 @@ def test_pass_endurance_ends_a_ball_left_sitting():
     env.close()
 
 
-@pytest.mark.parametrize("tier", [0, 1])
 @pytest.mark.parametrize("env_id", ["StaticDefenders-v0", "ContestedPossession-v0", "PassEndurance-v0"])
-def test_place_puts_every_robot_where_asked(env_id, tier):
-    """`place` is absolute on both tiers, whatever offset the scene built the robot at.
+def test_place_puts_every_robot_where_asked(env_id):
+    """`place` is absolute, whatever offset the scene built the robot at.
 
-    Tier 0's slide joints are relative to the body's built position, which is not the origin
+    The chassis's slide joints are relative to the body's built position, which is not the origin
     once a scene holds more than one robot: each landed off by it, up to 1.5 m in
     StaticDefenders.
     """
-    env = gym.make(env_id, tier=tier)
+    env = gym.make(env_id)
     env.reset(seed=0)
     u = env.unwrapped
     for i, r in enumerate(u.robots):
@@ -436,53 +371,6 @@ def test_place_puts_every_robot_where_asked(env_id, tier):
     for i, r in enumerate(u.robots):
         np.testing.assert_allclose(r.pose(u.data), (1.0 + 0.3 * i, -0.5, 0.7), atol=1e-6)
     env.close()
-
-
-def test_wheel_command_full_spin_is_every_wheel_at_its_limit():
-    """95 rad/s at every wheel is the 35.9 rad/s kinematic yaw ceiling (ticket 01)."""
-    from mjsoccer.base import MAX_W
-    from mjsoccer.tasks import wheel_command
-
-    env = gym.make("GoToBall-v0", tier=1).unwrapped
-    env.reset(seed=0)
-    np.testing.assert_allclose(np.abs(wheel_command(env, 0, 0.0, 0.0, 35.9)), 1.0, atol=1e-3)
-    env.close()
-
-
-@pytest.mark.parametrize("cmd", [(1.0, 0.0, 0.0), (0.0, 0.5, 0.0), (0.0, 0.0, 10.0), (-1.0, 0.0, 0.0)])
-def test_wheel_command_drives_the_body_frame(cmd):
-    """wheel_command turns a body-frame (vx, vy, omega) into tier-1 wheel actions, so the
-    scripted controllers mean the same thing on both tiers (ticket 14).
-
-    Direction, not magnitude: the chassis settles at 80 % of 1 m/s forward, 61 % of 0.5
-    lateral and 88 % of 10 rad/s, which is the wheels losing the floor (ticket 18), not
-    the map. Speed is only held to "more than half".
-    """
-    from mjsoccer.base import MAX_W
-    from mjsoccer.tasks import wheel_command
-
-    env = gym.make("GoToBall-v0", tier=1).unwrapped
-    env.reset(seed=0)
-    r = env.robots[0]
-    env.ball.place(env.data, 5.5, 4.0)
-    r.place(env.data, 0.0, 0.0, 0.7)
-    action = np.zeros(env.action_space.shape, dtype=np.float32)
-    for _ in range(90):
-        action[:4] = wheel_command(env, 0, *cmd)
-        env.step(action)
-    R = env.data.xmat[r.body].reshape(3, 3)
-    vx, vy, w = r.velocity(env.data)
-    body = R.T @ (vx, vy, 0.0)
-    env.close()
-    v, want = body[:2], np.array(cmd[:2])
-    if cmd[2]:
-        assert np.linalg.norm(v) < 0.05 and w > 0.5 * cmd[2], f"moved {v}, {w:.2f} rad/s"
-    else:
-        assert v @ want / (np.linalg.norm(v) * np.linalg.norm(want)) > 0.99, f"moved {v}"
-        assert np.linalg.norm(v) > 0.5 * np.linalg.norm(want), f"moved {v}"
-        # Measured 0.07 forward, 0.06 lateral, 0.15 reversing: the 3.5 mm CoM offset
-        # (ticket 03) pulls the chassis round, the map does not.
-        assert abs(w) < 0.3, f"a straight command yawed at {w:.2f} rad/s"
 
 
 def test_kicker_rearms():
@@ -499,8 +387,7 @@ def test_kicker_rearms():
     stroke = int(env.model.jnt_qposadr[jid])
 
     action = np.zeros(env.action_space.shape, dtype=np.float32)
-    # The kick channel sits directly after the drive slice, which is 3 wide on tier 0 and
-    # 4 on tier 1 -- index off drive_dim so this follows the default tier wherever it goes.
+    # The kick channel sits directly after the drive slice.
     action[env.drive_dim] = 1.0  # kick, held down for a second
     fired, travel = 0, []
     for _ in range(60):
@@ -533,17 +420,16 @@ def test_dribbler_neutral_is_off(a, omega):
     assert ctrl == pytest.approx(omega)
 
 
-@pytest.mark.parametrize("tier", TIERS)
 @pytest.mark.parametrize("plunger", (0, 1), ids=("kick", "chip"))
 @pytest.mark.parametrize("a", (0.5, 1.0))
-def test_kick_exit_speed(tier, plunger, a):
+def test_kick_exit_speed(plunger, a):
     """Ticket 09: a in (0, 1] asks for 6.5 * a m/s, the §8.4.2 cap at a = 1.
 
     Seated and settled ball, robot standing, dribbler off -- the conditions the table is
     calibrated in. Peak 3-D ball speed over half a second. The stock 2 ms step left this at 7.06 m/s
-    on tier 0 and wandered +-35 % with force, which is what the 6.5 bound catches.
+    and wandered +-35 % with force, which is what the 6.5 bound catches.
     """
-    env = gym.make("Dribbling-v0", tier=tier).unwrapped
+    env = gym.make("Dribbling-v0").unwrapped
     env.reset(seed=0)
     action = np.zeros(env.action_space.shape, dtype=np.float32)
     for _ in range(30):  # let the seated ball settle, as calibrate.py does
@@ -558,12 +444,11 @@ def test_kick_exit_speed(tier, plunger, a):
     assert best == pytest.approx(S.KICK_SPEED_MAX * a, abs=0.3)
 
 
-@pytest.mark.parametrize("tier", TIERS)
 @pytest.mark.parametrize("a", (-1.0, -0.3, 0.0))
-def test_kick_neutral_never_fires(tier, a):
+def test_kick_neutral_never_fires(a):
     """Half range (ticket 09, like the dribbler's 08): a <= 0 asks for no kick at all, so
     neither plunger leaves its seat and the ball stays in the mouth."""
-    env = gym.make("Dribbling-v0", tier=tier).unwrapped
+    env = gym.make("Dribbling-v0").unwrapped
     env.reset(seed=0)
     action = np.zeros(env.action_space.shape, dtype=np.float32)
     action[env.drive_dim : env.drive_dim + 2] = a
@@ -606,62 +491,8 @@ def test_chipper_rearms():
     assert min(travel) < 0.002, f"plunger never retracted, min {min(travel) * 1e3:.1f} mm"
 
 
-@pytest.mark.parametrize("env_id", ENV_IDS)
-def test_tipover_ends_episode(env_id):
-    """A controlled robot on its side ends the episode, at a loss.
-
-    Nothing a policy commands tips the chassis, so this rolls it over by hand: a robot
-    that keeps collecting shaping while lying on its back is training a behaviour the real
-    thing cannot perform, and the penalty is what makes falling never worth it.
-    """
-    env = gym.make(env_id, tier=1).unwrapped
-    env.reset(seed=0)
-    assert not env.tipped(), "a fresh reset must be upright"
-    a = env.robots[0].qpos_adr
-    # 90 deg roll about the chassis' own x -- flat on its side.
-    env.data.qpos[a + 3 : a + 7] = (np.cos(np.pi / 4), np.sin(np.pi / 4), 0.0, 0.0)
-    _, reward, terminated, _, info = env.step(np.zeros(env.action_space.shape, dtype=np.float32))
-    assert terminated and info.get("tipped"), f"episode continued: {info}"
-    # The penalty is 100 (ticket 10 kept it); one step of task shaping is nowhere near 50.
-    assert reward < -50.0, f"tipping over paid {reward:+.2f}"
-    # Logged so tip rate and time-to-tip come from the env itself (ticket 10). One
-    # 16 ms step from a 90 deg roll barely moves it.
-    assert 80.0 < info["tilt_deg"] < 100.0, f"logged tilt {info['tilt_deg']:.1f} deg"
-    assert info["tip_step"] == 1, f"logged step {info['tip_step']}"
-    env.close()
-
-
-def test_chassis_rests_on_carpet():
-    """A tier-1 robot dropped on its side lies on the carpet, not under it.
-
-    Only the rollers used to collide with the floor, so a tipped chassis sank through and
-    ended up on its back with the CoM at carpet height. Rolling over pivots the chassis
-    onto the carpet from ~10 deg of tilt on, well inside the 60 deg termination, so this is
-    in-episode physics, not post-mortem. Measured (ticket 06): CoM 87 mm up at 89 deg
-    with the contact, 1.6 mm at 180 deg without.
-    """
-    import mujoco
-
-    model, robots, _ = S.build(1, 0, tier=1)
-    r, data = robots[0], mujoco.MjData(model)
-    mujoco.mj_resetData(model, data)
-    r.place(data, 0, 0, 0)
-    a = r.qpos_adr
-    carpet = model.geom_pos[mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "floor")][2]
-    data.qpos[a + 2] = carpet + 0.15  # released clear of the carpet
-    # 90 deg roll about the chassis' own x -- flat on its side.
-    data.qpos[a + 3 : a + 7] = (np.cos(np.pi / 4), np.sin(np.pi / 4), 0.0, 0.0)
-    for _ in range(round(2.0 / model.opt.timestep)):
-        mujoco.mj_step(model, data)
-    height = data.xipos[r.body][2] - carpet
-    tilt = np.degrees(np.arccos(np.clip(data.xmat[r.body][8], -1, 1)))
-    assert height > 0.05, f"CoM {height * 1e3:.1f} mm above the carpet, chassis sank through"
-    assert tilt < 120, f"settled at {tilt:.0f} deg, rolled through the floor onto its back"
-
-
-@pytest.mark.parametrize("tier", (0, 1))
-def test_no_buried_collision_hulls(tier):
-    """The CAD decomposition's buried hulls stay pruned on both tiers.
+def test_no_buried_collision_hulls():
+    """The CAD decomposition's buried hulls stay pruned.
 
     These 16 lie wholly inside the union of the other rigid chassis hulls (exact surface
     test, ticket 07), so no contact can reach them without penetration: the dribbler
@@ -670,7 +501,7 @@ def test_no_buried_collision_hulls(tier):
     """
     import mujoco
 
-    model, _, _ = S.build(1, 0, tier=tier)
+    model, _, _ = S.build(1, 0)
     buried = re.compile(
         r"r_col_(motorDribbler_c0[1-6]|gear(Motor|Middle)Dribbler_c0[0-3]|bumper(Left|Right)_1_c02)$"
     )
@@ -679,22 +510,20 @@ def test_no_buried_collision_hulls(tier):
 
 
 @pytest.mark.parametrize("env_id", ENV_IDS)
-@pytest.mark.parametrize("tier,dim", [(0, 6), (1, 7)])
-def test_action_space_is_uniform(env_id, tier, dim):
+def test_action_space_is_uniform(env_id):
     """Every robot exposes drive + kick + chip + dribble, so an action head transfers."""
-    env = gym.make(env_id, tier=tier)
-    assert env.action_space.shape == (dim,)
+    env = gym.make(env_id)
+    assert env.action_space.shape == (6,)
     env.close()
 
 
-@pytest.mark.parametrize("tier", TIERS)
-def test_ball_height_is_above_the_carpet(tier):
+def test_ball_height_is_above_the_carpet():
     """A ball resting on the carpet reads its own radius, not its world z.
 
     The floor plane sits at z = 0.02 (models/field.xml), so dividing world z by
     GOAL_HEIGHT read 0.267 for a ball at rest instead of 0.0215 / 0.155 = 0.139 (ticket 11).
     """
-    env = gym.make("GoToBall-v0", tier=tier)
+    env = gym.make("GoToBall-v0")
     obs, _ = env.reset(seed=0)
     for _ in range(30):
         obs, *_ = env.step(np.zeros(env.action_space.shape))
@@ -710,8 +539,7 @@ def test_crossbar_is_measured_from_the_carpet():
     assert not S.in_goal((x, 0.0, 0.02 + 0.16))
 
 
-@pytest.mark.parametrize("tier", TIERS)
-def test_observation_bounds_are_true(tier):
+def test_observation_bounds_are_true():
     """The Box declares a finite bound only where the simulator guarantees one (ticket 11).
 
     Robots cannot leave the 6.3 x 4.8 m wall box; sin/cos and has_ball are bounded by
@@ -724,7 +552,7 @@ def test_observation_bounds_are_true(tier):
     ball = ([-inf, -inf, 0.0, -inf, -inf, -inf], [inf] * 6)
     robot = ([-rx, -ry, -1, -1, -inf, -inf, -inf, 0], [rx, ry, 1, 1, inf, inf, inf, 1])
     for env_id, extra in (("StaticDefenders-v0", []), ("Dribbling-v0", [4 / 3])):
-        env = gym.make(env_id, tier=tier)
+        env = gym.make(env_id)
         n = len(env.unwrapped.robots)
         hi = ball[1] + robot[1] * n + extra
         lo = ball[0] + robot[0] * n + [-e for e in extra]
@@ -733,38 +561,35 @@ def test_observation_bounds_are_true(tier):
         env.close()
 
 
-def test_velocity_normalisers_are_the_tier0_servo_range():
-    """MAX_V and MAX_W are the tier-0 chassis servo ctrlrange (ticket 11), shared by both
-    tiers so one observation means one speed. Tier 1 stays under them on its own drive
-    (test_full_spin_stays_under_max_w). If the tier-0 servos are retuned, this fails
-    and the normalisers get revisited rather than drifting apart."""
+def test_velocity_normalisers_are_the_chassis_servo_range():
+    """MAX_V and MAX_W are the chassis servo ctrlrange (ticket 11). If the servos are
+    retuned, this fails and the normalisers get revisited rather than drifting apart."""
     from mjsoccer.base import MAX_V, MAX_W
 
-    _, robots, _ = S.build(1, 0, tier=0)
+    _, robots, _ = S.build(1, 0)
     np.testing.assert_array_equal(robots[0].drive_range[:, 1], (MAX_V, MAX_V, MAX_W))
     np.testing.assert_array_equal(robots[0].drive_range[:, 0], (-MAX_V, -MAX_V, -MAX_W))
 
 
-def test_tier0_has_the_tier1_envelope():
-    """Tier 0 keeps its ideal-kinematics mechanism but gets tier 1's per-axis envelope
-    (ticket 12), so a tier-0 command asks for what a tier-1 robot could do. Isotropic, the
-    smaller of tier 1's frontal and lateral figure, from tickets 01/04/05/19/20:
+def test_chassis_has_the_hardware_envelope():
+    """The chassis is ideal kinematics with the hardware-derived per-axis envelope (ticket
+    12, ADR 0001). Isotropic, the smaller of the frontal and lateral figure, from tickets
+    01/04/05/19/20:
 
-      v_max 3.30 m/s    frontal kinematic (lateral is 4.04); tier 1 reaches 3.29 / 4.02
-      a_max 1.30 m/s^2  lateral roller friction: the wheel forces that leave no moment about
+      v_max 3.30 m/s    frontal kinematic (lateral is 4.04)
+      a_max 1.30 m/s^2  lateral wheel friction: the wheel forces that leave no moment about
                         the CoM put the lighter rear wheels at their grip first (ticket 19,
                         exact by linear programme); frontal is 1.87-1.95
-      alpha 55.0 rad/s^2  roller friction about the CoM: mu*sum(N*d) / Izz = 0.5245 / 0.009545
+      alpha 55.0 rad/s^2  wheel friction about the CoM: mu*sum(N*d) / Izz = 0.5245 / 0.009545
       w_max 37.1 rad/s  a full spin turns about the CoM, 3.45 mm behind the wheel centre
                         (ticket 20): 95 rad/s * r_eff / 77.04 mm, the arm of the wheel nearest
-                        the CoM. Faster, every wheel brakes the spin; tier 1 measures 36.2
+                        the CoM. Faster, every wheel brakes the spin
 
-    Not matched, because they are what tier 1 is for: slip, traction, weight transfer,
-    and the coupling between axes (tier 1 at full forward speed has no wheel left to yaw).
+    Not modelled: slip, traction, weight transfer and the coupling between axes.
     """
     import mujoco
 
-    model, robots, ball = S.build(1, 0, tier=0)
+    model, robots, ball = S.build(1, 0)
     r = robots[0]
     dt = model.opt.timestep
     for axis, (a_max, v_max) in enumerate(((1.30, 3.30), (1.30, 3.30), (55.0, 37.1))):

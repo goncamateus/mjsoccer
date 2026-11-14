@@ -2,7 +2,7 @@
 
     uv run --group rl python examples/visualize_sweep.py runs/sweep/sac_20261018-231040
 
-Each <env>_t<tier>.zip gets a <env>_t<tier>.gif beside it: one deterministic episode seen
+Each <env>.zip gets a <env>.gif beside it: one deterministic episode seen
 from the whole-field `overview` camera. Renders offscreen (EGL), so it runs under screen.
 The algorithm comes from the folder name (sac_* / ppo_*), as sweep.sh names it.
 """
@@ -32,9 +32,9 @@ FPS = 20
 
 
 def render(zip_path: Path, algo) -> str:
-    env_id, tier = zip_path.stem.rsplit("_t", 1)
+    env_id = zip_path.stem
     # The rate the policy was trained at: both agents default to 40 Hz, rSoccer's 0.025 s step.
-    env = gym.make(env_id, tier=int(tier), control_hz=40)
+    env = gym.make(env_id, control_hz=40)
     base = env.unwrapped
     model = algo.load(zip_path, device="cpu")
     every = max(1, round(1.0 / base.dt / FPS))  # keeps playback at real time

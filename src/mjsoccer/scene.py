@@ -33,8 +33,8 @@ MODELS_DIR = Path(
     os.environ.get("MJSOCCER_MODELS", Path(__file__).resolve().parents[2] / "models")
 )
 
-SCENES = {0: "scene.xml", 1: "scene_rollers.xml"}
-ROBOTS = {0: "robot_kinematic.xml", 1: "robot_rollers.xml"}
+SCENE = "scene.xml"
+ROBOT = "robot_kinematic.xml"
 
 # The dribbler bar's speed at full command, rad/s, standing in for its design operating point. Not readable off the model: the
 # actuator's ctrlrange is deliberately ~5x this to leave room for the speed feedforward a
@@ -53,26 +53,24 @@ DRIBBLER_OMEGA = 314.0
 # Kicker and chipper take a *speed*, as the firmware does (ticket 09): a in (0, 1] asks for
 # KICK_SPEED_MAX * a, the §8.4.2 cap at a = 1 (ticket 02). The plunger is still a force
 # actuator against its return spring; KICK_TABLE_MS maps the asked-for speed back to a
-# one-step force on KICK_TABLE_N, per (tier, plunger), the way the firmware's own
+# one-step force on KICK_TABLE_N, per plunger, the way the firmware's own
 # calibration table maps speed to pulse width. Measured with a seated, settled ball, robot
 # and dribbler stopped, by .scratch/physics-fidelity/candidate-09/calibrate.py -- rerun it
 # whenever the plunger, the ball, the contact parameters or the timestep change.
 KICK_SPEED_MAX = 6.5
 KICK_TABLE_N = tuple(np.arange(0.0, 501.0, 25.0))  # the actuators' ctrlrange is 0..500
-# m/s at each force, (tier, plunger) -> a prefix of KICK_TABLE_N, cut at the first point
+# m/s at each force, per plunger (kicker, chipper) -> a prefix of KICK_TABLE_N, cut at the first point
 # past the cap: the full curves still saw a little above it. The cap takes ~285-365 N.
-KICK_TABLE_MS = {
-    (0, 0): (0.0, 0.4, 2.05, 2.96, 3.53, 3.93, 4.44, 4.79, 5.15, 5.62, 5.79, 6.12, 6.4, 6.66),
-    (0, 1): (0.0, 0.96, 1.89, 2.75, 3.47, 4.04, 4.52, 4.96, 5.38, 5.78, 6.06, 6.4, 6.67),
-    (1, 0): (0.0, 0.06, 1.96, 2.81, 3.38, 3.85, 4.35, 4.67, 5.04, 5.32, 5.7, 6.03, 6.31, 6.6),
-    (1, 1): (0.0, 0.92, 1.88, 2.67, 3.29, 3.84, 4.17, 4.62, 4.93, 5.22, 5.33, 5.54, 5.89, 6.0, 6.33, 6.6),
-}
+KICK_TABLE_MS = (
+    (0.0, 0.4, 2.05, 2.96, 3.53, 3.93, 4.44, 4.79, 5.15, 5.62, 5.79, 6.12, 6.4, 6.66),
+    (0.0, 0.96, 1.89, 2.75, 3.47, 4.04, 4.52, 4.96, 5.38, 5.78, 6.06, 6.4, 6.67),
+)
 # A 2 ms step could not resolve the plate hitting the ball: the plate closed ~9 mm per step,
 # so exit speed swung +-35 % with force (ticket 09), and 1 ms still saws. The control step a
 # plunger fires on is run at timestep / FIRING_SUBSTEPS, ~0.26 ms on the 1/960 s step (ticket
 # 13), which the table above was measured at. Delete this if the global step gets that small.
 FIRING_SUBSTEPS = 4
-assert all(np.all(np.diff(v) > 0) for v in KICK_TABLE_MS.values()), "np.interp needs it rising"
+assert all(np.all(np.diff(v) > 0) for v in KICK_TABLE_MS), "np.interp needs it rising"
 
 # RoboCup SSL Division A, from the rulebook. Asserted against the CAD in `_check_field`
 # rather than measured out of it: the mesh gives the *painted line* extents, and which
@@ -98,8 +96,7 @@ WALL_HALF_Y = 4.8
 class RobotIds:
     """Every model index one robot needs, resolved once at build time.
 
-    `drive` is 3 actuators on tier 0 (vel_x, vel_y, vel_yaw) and 4 on tier 1 (the wheel
-    velocity servos). That is the whole difference between the two action spaces.
+    `drive` is the chassis's 3 velocity servos: vel_x, vel_y, vel_yaw.
     """
 
     prefix: str
@@ -114,40 +111,26 @@ class RobotIds:
     dribbler_body: int
     qpos_adr: int
     qvel_adr: int
-    free: bool
-    z0: float  # the height the model places the chassis at
-    xy0: tuple[float, float]  # where the scene built the body; tier 0's slides start there
+    xy0: tuple[float, float]  # where the scene built the body; the slides start there
 
     def place(self, data: mujoco.MjData, x: float, y: float, theta: float) -> None:
         """Teleport the chassis. Assumes mj_resetData has just run, so everything else --
-        wheels, dribbler arm, kicker plungers -- is already at its rest pose."""
+        dribbler arm, kicker plungers -- is already at its rest pose."""
         a = self.qpos_adr
-        if self.free:
-            data.qpos[a : a + 3] = (x, y, self.z0)
-            data.qpos[a + 3 : a + 7] = (np.cos(theta / 2), 0.0, 0.0, np.sin(theta / 2))
-            data.qvel[self.qvel_adr : self.qvel_adr + 6] = 0.0
-        else:
-            # Slide joints are relative to the body's built position, not the origin.
-            data.qpos[a : a + 3] = (x - self.xy0[0], y - self.xy0[1], theta)
-            data.qvel[self.qvel_adr : self.qvel_adr + 3] = 0.0
+        # Slide joints are relative to the body's built position, not the origin.
+        data.qpos[a : a + 3] = (x - self.xy0[0], y - self.xy0[1], theta)
+        data.qvel[self.qvel_adr : self.qvel_adr + 3] = 0.0
 
     def pose(self, data: mujoco.MjData) -> tuple[float, float, float]:
-        """(x, y, yaw) in world coordinates, read off the compiled frame so it is
-        tier-agnostic -- tier 0 stores yaw in qpos, tier 1 in a quaternion."""
+        """(x, y, yaw) in world coordinates, read off the compiled frame."""
         R = data.xmat[self.body].reshape(3, 3)
         p = data.xpos[self.body]
         return float(p[0]), float(p[1]), float(np.arctan2(R[1, 0], R[0, 0]))
 
     def velocity(self, data: mujoco.MjData) -> tuple[float, float, float]:
-        """(vx, vy, omega), world frame.
-
-        A free joint stores linear velocity in the world frame and angular velocity in the
-        body frame. ponytail: the robot runs on its wheels, so body-frame wz is its world
-        yaw rate; that stops being true the moment one tips over.
-        """
+        """(vx, vy, omega), world frame: the chassis's world-axis slides and its yaw hinge."""
         a = self.qvel_adr
-        i = 5 if self.free else 2
-        return float(data.qvel[a]), float(data.qvel[a + 1]), float(data.qvel[a + i])
+        return float(data.qvel[a]), float(data.qvel[a + 1]), float(data.qvel[a + 2])
 
     def forward(self, data: mujoco.MjData) -> np.ndarray:
         """Unit +x of the robot -- the direction the dribbler and kicker face."""
@@ -178,17 +161,13 @@ class BallIds:
         return data.qvel[self.qvel_adr : self.qvel_adr + 3].copy()
 
 
-def _robot_ids(model: mujoco.MjModel, prefix: str, team: str, tier: int) -> RobotIds:
+def _robot_ids(model: mujoco.MjModel, prefix: str, team: str) -> RobotIds:
     def act(name: str) -> int:
         return mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, prefix + name)
 
     body = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, prefix + "robot")
-    drive = (
-        tuple(act(n) for n in ("vel_x", "vel_y", "vel_yaw"))
-        if tier == 0
-        else tuple(act(f"wheel{i}_vel") for i in (1, 2, 3, 4))
-    )
-    assert min(drive) >= 0, f"missing drive actuators for {prefix!r} on tier {tier}"
+    drive = tuple(act(n) for n in ("vel_x", "vel_y", "vel_yaw"))
+    assert min(drive) >= 0, f"missing drive actuators for {prefix!r}"
     jnt = model.body_jntadr[body]
     sensor = mujoco.mj_name2id(
         model, mujoco.mjtObj.mjOBJ_SENSOR, prefix + "dribbler_arm_pos"
@@ -208,15 +187,13 @@ def _robot_ids(model: mujoco.MjModel, prefix: str, team: str, tier: int) -> Robo
         ),
         qpos_adr=int(model.jnt_qposadr[jnt]),
         qvel_adr=int(model.jnt_dofadr[jnt]),
-        free=model.jnt_type[jnt] == mujoco.mjtJoint.mjJNT_FREE,
-        z0=float(model.body_pos[body][2]),
         xy0=(float(model.body_pos[body][0]), float(model.body_pos[body][1])),
     )
 
 
 @lru_cache(maxsize=8)
 def build(
-    n_blue: int, n_yellow: int, tier: int
+    n_blue: int, n_yellow: int
 ) -> tuple[mujoco.MjModel, tuple[RobotIds, ...], BallIds]:
     """Compile a field + n_blue + n_yellow robots + one ball.
 
@@ -224,12 +201,10 @@ def build(
     safe only while nothing mutates it -- each env owns its own MjData. The first caller
     that wants domain randomisation has to drop the cache and pay the ~0.2 s compile.
     """
-    if tier not in SCENES:
-        raise ValueError(f"tier must be 0 or 1, got {tier}")
     if n_blue < 1:
         raise ValueError("need at least one blue robot")
 
-    spec = mujoco.MjSpec.from_file(str(MODELS_DIR / SCENES[tier]))
+    spec = mujoco.MjSpec.from_file(str(MODELS_DIR / SCENE))
     # Copy the robot's ball contact pairs before deleting the body takes them with it. Only the
     # robot's: the ball's pairs with the carpet and the walls stay, once.
     robot_geoms = {g.name for g in spec.body("robot").find_all(mujoco.mjtObj.mjOBJ_GEOM)}
@@ -244,14 +219,14 @@ def build(
         for p in spec.pairs
         if p.geomname1 == "ball" and p.geomname2 in robot_geoms
     ]
-    assert ball_pairs, f"{SCENES[tier]} defines no ball contact pairs to replicate"
+    assert ball_pairs, f"{SCENE} defines no ball contact pairs to replicate"
     spec.delete(spec.body("robot"))
 
     teams = [("blue", f"b{i}_") for i in range(n_blue)] + [
         ("yellow", f"y{i}_") for i in range(n_yellow)
     ]
     for i, (_, prefix) in enumerate(teams):
-        child = mujoco.MjSpec.from_file(str(MODELS_DIR / ROBOTS[tier]))
+        child = mujoco.MjSpec.from_file(str(MODELS_DIR / ROBOT))
         frame = spec.worldbody.add_frame()
         # Spread the attach frames so nothing starts coincident; reset() overwrites these.
         frame.pos = [0.0, (i - (len(teams) - 1) / 2) * 0.5, 0.0]
@@ -265,7 +240,7 @@ def build(
             pair.friction, pair.solref, pair.solimp = friction, solref, solimp
 
     model = spec.compile()
-    robots = tuple(_robot_ids(model, prefix, team, tier) for team, prefix in teams)
+    robots = tuple(_robot_ids(model, prefix, team) for team, prefix in teams)
     body = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "ball")
     geom = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "ball")
     ball = BallIds(
