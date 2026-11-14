@@ -40,10 +40,14 @@ def wrap(env: Env, episode_length: int, action_repeat: int = 1,
          randomization_fn=None) -> Wrapper:
     """`brax.envs.wrappers.training.wrap` with this module's episode and auto-reset
     wrappers; the signature `ppo.train(wrap_env_fn=...)` calls. `action_repeat` must stay
-    1: the repeat is the env's `repeat_action`, which runs the physics as the CPU does."""
+    1: the repeat is the env's `repeat_action`, which runs the physics as the CPU does.
+
+    `randomization_fn` applies only to an env made with `randomize=`: `ppo.train` hands
+    the same one to the train and the eval env, and an eval env made without a sampler
+    stays nominal."""
     if action_repeat != 1:
         raise ValueError("action_repeat must be 1; pass repeat_action to mjsoccer.mjx.make")
-    if randomization_fn is None:
+    if randomization_fn is None or getattr(env, "randomize", None) is None:
         env = training.VmapWrapper(env)
     else:
         env = training.DomainRandomizationVmapWrapper(env, randomization_fn)

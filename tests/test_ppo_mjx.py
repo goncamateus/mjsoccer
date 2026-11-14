@@ -92,3 +92,24 @@ def test_play_runs_a_saved_checkpoint_on_the_cpu_backend(tmp_path):
     assert "000000001234" in out  # the latest step of the run directory was loaded
     assert "backend cpu" in out and "repeat_action 2" in out
     assert "episode 1:" in out
+
+
+def test_randomize_trains_under_dr_and_evals_nominal_unless_asked():
+    """`--randomize module:sampler` gives the train env the sampler (and Brax its
+    randomization_fn); the eval env is nominal unless `--eval-randomize`."""
+    pytest.importorskip("brax")
+    mod = _script()
+    with pytest.raises(SystemExit):
+        mod.parse_args(["--eval-randomize"])  # nothing to randomize with
+    sampler = "os.path:join"  # any callable: only the plumbing is checked here
+    args = mod.parse_args(["--env", "ContestedPossession-v0", "--randomize", sampler])
+    env, eval_env = mod.make_envs(args)
+    assert env.randomize is os.path.join and env.randomization_fn is not None
+    assert eval_env.randomize is None and eval_env.randomization_fn is None
+    args = mod.parse_args(["--env", "ContestedPossession-v0", "--randomize", sampler,
+                           "--eval-randomize"])
+    _, eval_env = mod.make_envs(args)
+    assert eval_env.randomize is os.path.join
+    args = mod.parse_args(["--env", "ContestedPossession-v0"])
+    env, eval_env = mod.make_envs(args)
+    assert env.randomize is None and eval_env.randomize is None

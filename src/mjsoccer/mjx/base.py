@@ -29,7 +29,8 @@ ends there (terminal) with reward and obs 0, and the auto-reset brings it back; 
 aborts inside the jit. `State.metrics` counts `diverged`, `overflow` and `reset_overlap`
 (0/1 per step); `check_failures` turns them into a host-side abort where one is wanted.
 
-Not yet: domain randomisation (ticket 14).
+Domain randomization: `randomize=sampler` gives each world slot its own model variant for
+the run, through `randomization_fn` (`mjsoccer.mjx.randomize`); None, the nominal model.
 """
 
 from __future__ import annotations
@@ -196,8 +197,7 @@ class MjxEnv(Env):
     def __init__(self, horizon_s: float = 30.0, repeat_action: int = 1,
                  graph_mode: str = "WARP", randomize=None, nworld: int = 1,
                  nacon_per_world: int | None = None) -> None:
-        if randomize is not None:
-            raise NotImplementedError("domain randomisation lands in ticket 14")
+        self.randomize = randomize
         if graph_mode not in GRAPH_MODES:
             raise ValueError(f"graph_mode={graph_mode!r}; expected one of {GRAPH_MODES}")
         cpu = self.cpu_cls(repeat_action=repeat_action, horizon_s=horizon_s)
@@ -233,6 +233,16 @@ class MjxEnv(Env):
         with jax.ensure_compile_time_eval():
             return mjx.put_model(self.mj_model, impl="warp",
                                  graph_mode=getattr(wt.GraphMode, self.graph_mode))
+
+    @property
+    def randomization_fn(self):
+        """Brax's `randomization_fn(sys, rng) -> (sys, in_axes)` for this env's sampler
+        (`mjsoccer.mjx.randomize`), or None when it was made without one."""
+        if self.randomize is None:
+            return None
+        from . import randomize
+
+        return functools.partial(randomize.randomization_fn, self.mj_model, self.randomize)
 
     def make_data(self) -> mjx.Data:
         return mjx.make_data(self.mj_model, impl="warp",

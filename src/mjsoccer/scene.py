@@ -222,8 +222,9 @@ def build(
     """Compile a field + n_blue + n_yellow robots + one ball.
 
     ponytail: the MjModel is cached and shared by every env of the same shape, which is
-    safe only while nothing mutates it -- each env owns its own MjData. The first caller
-    that wants domain randomisation has to drop the cache and pay the ~0.2 s compile.
+    safe only while nothing mutates it -- each env owns its own MjData. MJX domain
+    randomization (`mjsoccer.mjx.randomize`) edits it in place per variant and puts the
+    nominal back before it returns.
 
     `possession_sensors=False` exists only to prove the sensors leave the physics alone;
     RobotIds needs them, so such a model comes back with no robots or ball resolved.

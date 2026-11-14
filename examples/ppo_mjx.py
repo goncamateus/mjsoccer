@@ -19,6 +19,11 @@ decisions/s, the eval return, and the eval episodes' rate of the three failure c
 `--num-envs` defaults to 8 192 worlds with 2 robots and 2 048 with 7: the largest batch
 that ran 30 epochs with >= 2 GB of the GPU free (ticket 13). In `--graph-mode WARP` the end
 of each epoch drops Warp's captured graphs (they pile up otherwise).
+
+`--randomize module:sampler` trains under domain randomization: each world slot gets its
+own model variant for the run (`mjsoccer.mjx.randomize`), drawn from keys derived from
+`--seed`. Brax's eval runs on the nominal model unless `--eval-randomize`. The CPU backend
+(`--play`) is always nominal.
 """
 
 from __future__ import annotations
@@ -71,6 +76,11 @@ def parse_args(argv=None) -> argparse.Namespace:
     ap.add_argument("--timesteps", type=int, default=None,
                     help="decisions in all (default: one PPO iteration per epoch)")
     ap.add_argument("--num-eval-envs", type=int, default=128)
+    ap.add_argument("--randomize", default=None, metavar="MODULE:SAMPLER",
+                    help="domain randomization: a sampler(mj_model, rng) -> None, imported "
+                         "by name (mjsoccer.mjx.randomize); each world slot gets its variant")
+    ap.add_argument("--eval-randomize", action="store_true",
+                    help="evaluate under the same DR (default: the nominal model)")
     hp = ap.add_argument_group("PPO (brax ppo.train)")
     hp.add_argument("--learning-rate", type=float, default=3e-4)
     hp.add_argument("--entropy-cost", type=float, default=1e-2)
@@ -85,6 +95,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     hp.add_argument("--reward-scaling", type=float, default=1.0)
     hp.add_argument("--max-grad-norm", type=float, default=0.5)
     args = ap.parse_args(argv)
+    if args.eval_randomize and not args.randomize:
+        ap.error("--eval-randomize needs --randomize")
     if args.num_envs is None:
         args.num_envs = NUM_ENVS[_n_robots(args.env)]
     if args.batch_size is None:
@@ -152,26 +164,39 @@ def _drop_graphs() -> None:
     wp.synchronize()
 
 
+def make_envs(args):
+    """(train env, eval env). With `--randomize` the train env carries the sampler; the
+    eval env too only with `--eval-randomize`, else it is the nominal model."""
+    import pkgutil
+
+    import mjsoccer.mjx
+
+    sampler = pkgutil.resolve_name(args.randomize) if args.randomize else None
+
+    def make(n, randomize):
+        return mjsoccer.mjx.make(args.env, repeat_action=args.repeat_action,
+                                 graph_mode=args.graph_mode, nworld=n, randomize=randomize)
+
+    return (make(args.num_envs, sampler),
+            make(args.num_eval_envs, sampler if args.eval_randomize else None))
+
+
 def train(args) -> int:
     os.environ.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
     import jax
     from brax.training.agents.ppo import train as ppo
 
-    import mjsoccer.mjx
     from mjsoccer.mjx import wrappers
 
-    def make(n):
-        return mjsoccer.mjx.make(args.env, repeat_action=args.repeat_action,
-                                 graph_mode=args.graph_mode, nworld=n)
-
-    env, eval_env = make(args.num_envs), make(args.num_eval_envs)
+    env, eval_env = make_envs(args)
     run = Path(args.save).resolve()
     run.mkdir(parents=True, exist_ok=True)
     (run / "args.json").write_text(json.dumps(vars(args), indent=1))
     hp = ppo_kwargs(args)
     print(f"{args.env} on {jax.devices()[0]}: {args.num_envs} worlds, repeat_action "
           f"{args.repeat_action}, {args.graph_mode}, {hp['num_timesteps']:,} decisions in "
-          f"{args.epochs} epochs -> {run}", flush=True)
+          f"{args.epochs} epochs, DR {args.randomize or 'off'}"
+          f"{' (eval too)' if args.eval_randomize else ''} -> {run}", flush=True)
 
     t0 = time.perf_counter()
     last = [0, t0]
@@ -192,7 +217,7 @@ def train(args) -> int:
 
     ppo.train(env, eval_env=eval_env, wrap_env_fn=wrappers.wrap,
               episode_length=wrappers.episode_length(env), save_checkpoint_path=str(run),
-              progress_fn=progress, **hp)
+              progress_fn=progress, randomization_fn=env.randomization_fn, **hp)
     print(f"saved {latest_checkpoint(run)}")
     return 0
 
