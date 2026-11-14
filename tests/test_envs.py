@@ -337,7 +337,7 @@ def test_possession_reads_no_contact_list():
     exposes. Emptying data.contact under a seated ball must not change holds()."""
     env = gym.make("Dribbling-v0").unwrapped
     env.reset(seed=0)
-    hold = np.zeros(env.action_space.shape, dtype=np.float32)
+    hold = _hold(env)  # a zero action is a target pose: the centre spot, facing +x
     hold[-1] = 0.5
     for _ in range(5):
         env.step(hold)
