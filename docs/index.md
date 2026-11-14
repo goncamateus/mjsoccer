@@ -12,6 +12,7 @@ own MJCF and meshes in `models/`.
 
 ```bash
 uv sync
+uv sync --group gpu      # optional: the MJX-Warp backend, mjsoccer.mjx (needs a CUDA GPU to step)
 ```
 
 ## Quickstart
@@ -31,6 +32,9 @@ uv run python examples/random.py --env GoToBall-v0
 uv run python examples/random.py --list
 uv run python -m pytest tests -q
 uv run python -m pytest tests -m validation -q                  # acceptance criteria, ~2 min
+# with the gpu group the default run adds the MJX task-logic parity (JAX-CPU) and the Warp
+# smoke (skipped without CUDA); run it under a RAM cap:
+systemd-run --user --scope -p MemoryMax=10G uv run python -m pytest tests -q
 uv run python scripts/validation_sweep.py --out runs/validation --seeds 0-4  # the distributions behind them, CSV
 ```
 

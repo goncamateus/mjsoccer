@@ -854,5 +854,18 @@ def test_horizon_is_seconds_at_exactly_40_hz(env_id, steps):
     env.close()
 
 
+def test_import_stays_light():
+    """`import mjsoccer` (and making a task) never pulls in JAX or the MJX backend: the
+    base install is gymnasium + mujoco + numpy, and the GPU group is optional."""
+    import subprocess
+
+    code = (
+        "import sys, gymnasium as gym, mjsoccer; gym.make('ContestedPossession-v0'); "
+        "bad = [m for m in sys.modules if m == 'jax' or m.startswith(('jax.', 'mjsoccer.mjx'))]; "
+        "assert not bad, bad"
+    )
+    subprocess.run([sys.executable, "-c", code], check=True)
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-q"]))

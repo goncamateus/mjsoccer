@@ -28,6 +28,13 @@ rl = [
     "tqdm>=4.67",       # progress_bar=True in model.learn
     "rich>=14.0",       # same
 ]
+# The MJX-Warp backend (mjsoccer.mjx): uv sync --group gpu. Needs a CUDA GPU at run time.
+gpu = [
+    "mujoco-mjx[warp]==4.0.0",
+    "jax[cuda12]>=0.12.0.1",
+    # brax 0.14.2 on PyPI breaks on jax 0.12 (device_put_replicated); pinned until a release > 0.14.2.
+    "brax @ git+https://github.com/google/brax@c8605294264a7b7546268adbb4beabc9eb624000",
+]
 
 [tool.pytest.ini_options]
 # The acceptance-criteria scenarios (ticket 14) take minutes; run them with -m validation.
