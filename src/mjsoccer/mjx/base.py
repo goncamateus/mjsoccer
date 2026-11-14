@@ -4,24 +4,31 @@ A functional mirror of `mjsoccer.base.BaseEnv`. One `step` is one decision of
 `repeat_action` control steps, and each control step is three pieces, kept apart so
 tests/test_mjx_task_logic.py can put the CPU's own physics between them:
 
-    control(state, action)  the controller and the dribbler, written into `ctrl`
-    physics(data)           `decimation` mjx.step calls on MJX-Warp
+    control(state, action)  the controller, kicker, chipper and dribbler, into `ctrl`
+    physics(data, fire)     one control step of mjx.step calls on MJX-Warp (`timesteps`)
     settle(state)           possession, observation, reward, ending, from the stepped data
 
-Per-world state lives in `State.info["world"]`, a pytree: `grace` (n_robots,), `steps` (in
-control steps, as the CPU counts them), `drive_cmd` (the energy penalties' input), the
-world's RNG key, and the task's own entries. It is nested rather than spread over `info`
+Per-world state lives in `State.info["world"]`, a pytree: `grace` (n_robots,),
+`plunger_lock` (n_robots, 2) int32 and `fired` (n_robots,) bool (the kick's cooldown and
+this step's firing, `BaseEnv._plunger_lock`/`fired`), `steps` (in control steps, as the CPU
+counts them), `drive_cmd` (the energy penalties' input), the world's RNG key, and the
+task's own entries. It is nested rather than spread over `info`
 because Brax's `EpisodeWrapper` keeps its own `info["steps"]`; the env still owns the
 ending: `done` includes truncation at `max_steps`, flagged in `info["truncation"]`, so an
 `EpisodeWrapper(episode_length=max_steps / repeat_action)` only agrees with it.
+
+The firing step: a world whose plunger fired runs the CPU's firing schedule
+(FIRING_FINE_STEPS at dt / FIRING_SUBSTEPS, then the rest at dt), every other world runs
+`decimation` at dt and is frozen at timestep 0 for the remaining iterations. One loop of
+the same length for the whole batch, the timestep a per-world model field -- no
+`Data.where` per physics step (.scratch/gpu-port/issues/16-kick-in-batch.md).
 
 A world whose qpos/qvel stops being finite, or that sets any bit of Warp's overflow mask,
 ends there (terminal) with reward and obs 0, and the auto-reset brings it back; nothing
 aborts inside the jit. `State.metrics` counts `diverged`, `overflow` and `reset_overlap`
 (0/1 per step); `check_failures` turns them into a host-side abort where one is wanted.
 
-Not yet: the kick and chip (ticket 08: those action dims are ignored here), domain
-randomisation (ticket 14).
+Not yet: domain randomisation (ticket 14).
 """
 
 from __future__ import annotations
@@ -191,6 +198,7 @@ class MjxEnv(Env):
         self.decimation, self.dt = cpu.decimation, cpu.dt
         self.repeat_action, self.max_steps = cpu.repeat_action, cpu.max_steps
         self.grace_steps = cpu._grace_steps
+        self.kick_cooldown = cpu._kick_cooldown
         self.act_dim, self._obs_size = cpu.act_dim, cpu.observation_space.shape[0]
         cpu.close()
         self.graph_mode = graph_mode
@@ -222,10 +230,34 @@ class MjxEnv(Env):
         return mjx.make_data(self.mj_model, impl="warp",
                              naconmax=self.nworld * self.nacon_per_world, njmax=self.njmax)
 
-    def physics(self, data: mjx.Data, n: int | None = None) -> mjx.Data:
-        """`n` (default: one control step) physics steps."""
-        n = self.decimation if n is None else n
-        return jax.lax.fori_loop(0, n, lambda _, d: mjx.step(self.sys, d), data)
+    def timesteps(self, fire: jax.Array) -> jax.Array:
+        """One control step's physics schedule for a world, (L,) timesteps: if `fire`, the
+        CPU's firing step (`BaseEnv._control_step`), else `decimation` at dt padded with 0.
+        L is the same either way, so a batch runs one loop."""
+        n, dt = self.decimation, float(self.mj_model.opt.timestep)
+        fine = min(scene.FIRING_FINE_STEPS, n * scene.FIRING_SUBSTEPS)
+        firing = [dt / scene.FIRING_SUBSTEPS] * fine + [dt] * (n - fine // scene.FIRING_SUBSTEPS)
+        idle = [dt] * n
+        pad = max(len(firing), len(idle))
+        firing += [0.0] * (pad - len(firing))
+        idle += [0.0] * (pad - len(idle))
+        return jnp.where(fire, jnp.array(firing), jnp.array(idle))
+
+    def substep(self, data: mjx.Data, timestep: jax.Array) -> mjx.Data:
+        """One mjx.step at this world's `timestep`. Under vmap the timestep is a batched
+        model field (`in_axes` on `opt.timestep`); 0 leaves qpos/qvel as they are."""
+        ts = jnp.asarray(timestep, self.sys.opt.timestep.dtype)
+        return mjx.step(self.sys.replace(opt=self.sys.opt.replace(timestep=ts)), data)
+
+    def physics(self, data: mjx.Data, fire: jax.Array | None = None, *,
+                n: int | None = None) -> mjx.Data:
+        """One control step on the `timesteps(fire)` schedule; with `fire` None, `n`
+        (default `decimation`) plain steps at the model's dt."""
+        if fire is None:
+            n = self.decimation if n is None else n
+            return jax.lax.fori_loop(0, n, lambda _, d: mjx.step(self.sys, d), data)
+        ts = self.timesteps(fire)
+        return jax.lax.fori_loop(0, ts.shape[0], lambda i, d: self.substep(d, ts[i]), data)
 
     # --------------------------------------------------------------- brax API
 
@@ -243,7 +275,8 @@ class MjxEnv(Env):
 
         def control_step(s):
             s = self.control(s, action)
-            return self.settle(s.replace(pipeline_state=self.physics(s.pipeline_state)))
+            d = self.physics(s.pipeline_state, s.info["world"]["fired"].any())
+            return self.settle(s.replace(pipeline_state=d))
 
         s = control_step(state)
         if self.repeat_action == 1:
@@ -283,6 +316,8 @@ class MjxEnv(Env):
         """The first State, from a placed and settled world (`BaseEnv.reset`'s tail)."""
         world = dict(
             grace=jnp.zeros(len(self.robots), jnp.int32),
+            plunger_lock=jnp.zeros((len(self.robots), 2), jnp.int32),
+            fired=jnp.zeros(len(self.robots), bool),
             steps=jnp.zeros((), jnp.int32),
             drive_cmd=jnp.zeros((self.n_controlled, 3)),
             rng=rng,
@@ -295,10 +330,12 @@ class MjxEnv(Env):
 
     def control(self, state: State, action: jax.Array) -> State:
         """`BaseEnv._apply` + `_script`: the controlled robots' target poses through the
-        navigation controller, and their dribblers, into a zeroed `ctrl`."""
+        navigation controller, their kickers, chippers and dribblers, into a zeroed `ctrl`."""
         a = jnp.clip(action, -1.0, 1.0).reshape(self.n_controlled, self.act_dim)
         d = state.pipeline_state
         ctrl = jnp.zeros_like(d.ctrl)
+        lock = state.info["world"]["plunger_lock"]
+        fired = jnp.zeros(len(self.robots), bool)
         cmds = []
         for i in range(self.n_controlled):
             r = self.robots[i]
@@ -307,9 +344,20 @@ class MjxEnv(Env):
             # Body-frame command to the world-axis slides, as BaseEnv._drive_robot.
             v = d.xmat[r.body] @ jnp.stack([cmd[0], cmd[1], 0.0])
             ctrl = ctrl.at[jnp.array(r.drive)].set(jnp.stack([v[0], v[1], cmd[2]]))
+            # BaseEnv._actuate: a in (0, 1] on an unlocked plunger asks for that fraction of
+            # KICK_SPEED_MAX, mapped to a one-step force by the CPU's table; it locks.
+            for j, actuator in enumerate((r.kick, r.chip)):
+                go = (a[i, -3 + j] > 0.0) & (lock[i, j] == 0)
+                speeds = jnp.array(scene.KICK_TABLE_MS[j])
+                force = jnp.interp(scene.KICK_SPEED_MAX * a[i, -3 + j], speeds,
+                                   jnp.array(scene.KICK_TABLE_N[: len(speeds)]))
+                ctrl = ctrl.at[actuator].set(jnp.where(go, force, ctrl[actuator]))
+                lock = lock.at[i, j].set(jnp.where(go, self.kick_cooldown, lock[i, j]))
+                fired = fired.at[i].set(fired[i] | go)
             ctrl = ctrl.at[r.dribble].set(scene.DRIBBLER_OMEGA * jnp.maximum(a[i, -1], 0.0))
         ctrl = self.script(d, ctrl)
-        world = {**state.info["world"], "drive_cmd": jnp.stack(cmds)}
+        world = {**state.info["world"], "drive_cmd": jnp.stack(cmds),
+                 "plunger_lock": lock, "fired": fired}
         return state.replace(pipeline_state=d.replace(ctrl=ctrl),
                              info={**state.info, "world": world})
 
@@ -318,6 +366,7 @@ class MjxEnv(Env):
         d = state.pipeline_state
         w = dict(state.info["world"])
         w["steps"] = w["steps"] + 1
+        w["plunger_lock"] = jnp.maximum(w["plunger_lock"] - 1, 0)
         w["grace"] = self._possession(d, w["grace"])
         obs = self._obs(d, w)
         reward, terminated, w = self.reward_done(d, w)
@@ -406,7 +455,7 @@ class MjxEnv(Env):
         qvel = d.qvel.at[dv : dv + 6].set(0.0).at[dv : dv + 2].set(-f[:2] * speed)
         d = mjx.forward(self.sys, d.replace(qpos=qpos, qvel=qvel))
         d = d.replace(ctrl=d.ctrl.at[r.dribble].set(scene.DRIBBLER_OMEGA))
-        return self.physics(d, round(settle / self.mj_model.opt.timestep))
+        return self.physics(d, n=round(settle / self.mj_model.opt.timestep))
 
     # ------------------------------------------------------ subclass surface
 
