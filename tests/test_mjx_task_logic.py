@@ -43,7 +43,8 @@ TASKS = ["ContestedPossession-v0"]
 
 # Per task: JAX per-world state key -> the CPU env attribute it mirrors. Every task shares
 # the base entries; a task that adds state on one side must add it here too.
-BASE_STATE = {"grace": "_grace", "steps": "steps", "drive_cmd": "drive_cmd"}
+BASE_STATE = {"grace": "_grace", "steps": "steps", "drive_cmd": "drive_cmd",
+              "plunger_lock": "_plunger_lock", "fired": "fired"}
 TASK_STATE = {"ContestedPossession-v0": {"prev": "_prev", "prev_goal": "_prev_goal"}}
 
 TOL = dict(rtol=1e-5, atol=1e-5)
@@ -75,8 +76,9 @@ def _world_from_cpu(env_id, cpu):
 
 def _assert_world(env_id, world, cpu, when):
     for k, want in _world_from_cpu(env_id, cpu).items():
-        np.testing.assert_allclose(
-            np.asarray(world[k]), want, **TOL, err_msg=f"world[{k!r}] {when}"
+        np.testing.assert_allclose(  # as float: bool arrays have no subtraction
+            np.asarray(world[k], dtype=float), want.astype(float), **TOL,
+            err_msg=f"world[{k!r}] {when}",
         )
 
 
@@ -153,13 +155,13 @@ def test_initial_state_matches_cpu(env_id, seed):
 
 
 def _action(cpu, obs, rng, t):
-    """Random target poses and dribbler for a while, then the scripted chase (which ends
-    the episode by shoving the yellow robot or carrying the ball out). Kick and chip stay
-    at rest: the MJX kick is ticket 08."""
+    """Random target poses, kick, chip and dribbler for a while, then the scripted chase
+    (which ends the episode by shoving the yellow robot or carrying the ball out). Kick and
+    chip stay random throughout: about half the steps ask for one, so the cooldown both
+    blocks re-arming and runs out many times per rollout."""
     a = rng.uniform(-1, 1, cpu.action_space.shape).astype(np.float32)
     if t >= 15:
         a[:4] = mjsoccer.tasks.goto_ball_policy(obs)
-    a[4:6] = -np.abs(a[4:6])
     return a
 
 
@@ -175,8 +177,11 @@ def test_control_steps_match_cpu(env_id, seed):
     control, settle = jax.jit(env.control), jax.jit(env.settle)
     state = env.init_state(_put(cpu), jax.random.PRNGKey(seed))
     rng = np.random.default_rng(seed)
+    fires = blocked = 0
     for t in range(300):
-        world = {**state.info["world"], **_world_from_cpu(env_id, cpu)}
+        world = state.info["world"]
+        world = {**world, **{k: v.astype(world[k].dtype)
+                             for k, v in _world_from_cpu(env_id, cpu).items()}}
         state = state.replace(pipeline_state=_put(cpu), info={**state.info, "world": world})
         a = _action(cpu, obs, rng, t)
         state = control(state, a)
@@ -184,6 +189,8 @@ def test_control_steps_match_cpu(env_id, seed):
             a.reshape(cpu.n_controlled, -1).astype(np.float64), raw=False
         )
         when = f"seed {seed} step {t}"
+        fires += int(cpu.fired.any())
+        blocked += int(((a.reshape(cpu.n_controlled, -1)[:, 4:6] > 0) & ~cpu.fired[:, None]).any())
         np.testing.assert_allclose(np.asarray(state.pipeline_state.ctrl), cpu.data.ctrl,
                                    **TOL, err_msg=f"ctrl {when}")
         np.testing.assert_allclose(np.asarray(state.info["world"]["drive_cmd"]), cpu.drive_cmd,
@@ -197,6 +204,7 @@ def test_control_steps_match_cpu(env_id, seed):
         if terminated or truncated:
             break
     assert terminated or truncated, "the rollout should reach an ending"
+    assert fires > 0 and blocked > 0, f"kick path barely exercised: {fires} fired, {blocked} blocked"
 
 
 def test_controller_matches_cpu_over_random_states():
@@ -217,3 +225,25 @@ def test_controller_matches_cpu_over_random_states():
     want = np.array([navigation.go_to_point(*args) for args in
                      zip(pos, vel, angle, target, target_angle)])
     np.testing.assert_allclose(got, want, **TOL)
+
+
+@pytest.mark.parametrize("fire", [False, True])
+def test_control_step_timesteps(fire):
+    """The batch's one physics schedule for a control step (spec, Fase 3): a world that
+    fires runs FIRING_FINE_STEPS at dt / FIRING_SUBSTEPS then the rest at dt, as the CPU's
+    firing step; an idle one runs `decimation` at dt and is frozen at timestep 0 for the
+    rest. Both cover exactly one control step of simulated time."""
+    from mjsoccer import scene
+
+    cpu = gym.make("ContestedPossession-v0").unwrapped
+    env = mjsoccer.mjx.make("ContestedPossession-v0")
+    dt = cpu.model.opt.timestep
+    ts = np.asarray(env.timesteps(np.bool_(fire)))
+    # 40 Hz on the 1/960 s step: 24 at dt; firing, 32 at dt/4 + 16 at dt -> 48 iterations.
+    assert ts.shape == (48,)
+    if fire:
+        want = [dt / scene.FIRING_SUBSTEPS] * 32 + [dt] * 16
+    else:
+        want = [dt] * 24 + [0.0] * 24
+    np.testing.assert_allclose(ts, want, rtol=1e-12, atol=0)
+    np.testing.assert_allclose(ts.sum(), cpu.dt, rtol=1e-12)
