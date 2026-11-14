@@ -41,8 +41,12 @@ uv run python scripts/validation_sweep.py --out runs/validation --seeds 0-4  # t
 The `validation` suite is excluded from the default run (`pyproject.toml`). It is the
 regression check for the physics acceptance criteria: yaw p99 under `MAX_W` in every
 scripted scenario, in one random-action episode per env and in five `goto_ball_policy`
-episodes. `validation_sweep.py` runs the same scenarios over seeds 0-4 and writes
-per-episode, summary, contact-impulse and throughput CSVs; its docstring lists the scenarios.
+episodes; and the navigation controller's, from rest to target poses 0.5 / 2 / 6 m away
+turned 0 / 90 / 180 deg: final error under 1 cm and 2.5 deg, settled within 1.05x the
+analytic trapezoid (3.3 m/s, up at 1.30 m/s², down at 1.0), chatter at the target under
+0.05 m/s RMS over the last second, commanded omega never over `MAX_W`. `validation_sweep.py` runs the same scenarios over
+seeds 0-4 and writes per-episode, summary, navigation, contact-impulse and throughput CSVs;
+its docstring lists the scenarios.
 
 ## Environment index
 
