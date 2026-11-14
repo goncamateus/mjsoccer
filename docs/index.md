@@ -35,7 +35,7 @@ uv run python -m pytest tests -m validation -q                  # acceptance cri
 uv run python scripts/validation_sweep.py --out runs/validation --seeds 0-4  # the distributions behind them, CSV
 # With the gpu group (uv sync --group gpu) every layer adds MJX, skipped without CUDA; run
 # them under a RAM cap. The default run adds the task-logic parity (JAX-CPU) and the Warp
-# smoke; -m validation adds every criterion on MJX-Warp and the MJX x CPU parity (~4 min).
+# smoke; -m validation adds every criterion on MJX-Warp and the MJX x CPU parity (~13 min).
 systemd-run --user --scope -p MemoryMax=10G uv run python -m pytest tests -q
 systemd-run --user --scope -p MemoryMax=10G uv run python -m pytest tests -m validation -q
 systemd-run --user --scope -p MemoryMax=10G \
