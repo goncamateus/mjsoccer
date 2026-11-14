@@ -51,7 +51,20 @@ class BaseEnv(gym.Env):
         control_hz: int = 60,
         horizon_s: float = 30.0,
         render_mode: str | None = None,
+        viewer_gfx: str = "opengl_headless",
     ) -> None:
+        """`render_mode="human"` opens MuJoCo Studio; `viewer_gfx` picks how it draws.
+
+        - `"opengl_headless"` (default): a native window. Filament renders to a texture and
+          SDL blits it, the one native mode that runs under Wayland here.
+        - `"web"`: no window and no GPU on this host; it serves the scene on an HTTP port
+          (printed on launch) and the browser rasterises it, e.g. over `ssh -L`.
+          **Security:** the `web` server listens on *all* interfaces, with *no
+          authentication* -- anyone who can reach the port can watch and drive the viewer.
+          Use it only on a trusted network or behind a tunnel.
+        """
+        if viewer_gfx not in ("opengl_headless", "web"):
+            raise ValueError(f"viewer_gfx={viewer_gfx!r}; expected 'opengl_headless' or 'web'")
         self.model, self.robots, self.ball = scene.build(self.n_blue, self.n_yellow)
         self.data = mujoco.MjData(self.model)
 
@@ -92,6 +105,7 @@ class BaseEnv(gym.Env):
         self.render_mode = render_mode
         self._renderer = None
         self._viewer = None
+        self._viewer_gfx = viewer_gfx
         # Steps a robot must wait before a plunger can re-arm. Without it a held kick
         # action pins the plunger against its 30 mm stop and the ball is never released.
         # One column per plunger (0 = kicker, 1 = chipper): they are independent
@@ -336,35 +350,18 @@ class BaseEnv(gym.Env):
             self._renderer.update_scene(self.data, camera="overview")
             return self._renderer.render()
         if self.render_mode == "human":
-            import mujoco.viewer
-
+            # A closed window ends the viewer, not the episode: drop the handle and let
+            # this render() open a fresh one.
+            if self._viewer is not None and not self._viewer.is_running():
+                self._viewer = None
             if self._viewer is None:
-                self._viewer = mujoco.viewer.launch_passive(self.model, self.data)
-                # The viewer renders on its own thread, so its camera is behind a mutex.
-                with self._viewer.lock():
-                    self._frame_field(self._viewer.cam)
-            self._viewer.sync()
+                from . import viewer
+
+                self._viewer = viewer.launch(self._viewer_gfx)
+            # The env stays the owner of the state: the viewer is a spectator, so the
+            # (model, data) sync hands back -- the viewer's, after a UI edit -- is ignored.
+            self._viewer.sync(self.model, self.data)
         return None
-
-    def _frame_field(self, cam) -> None:
-        """Open the viewer on the whole field rather than on a patch of grass.
-
-        The viewer's default free camera is placed off the model's own extent statistic,
-        which the surrounding walls and the goal nets inflate well past the playing area --
-        it lands close in and pointed at the middle of the pitch, and the first thing anyone
-        does is drag it back out. Match the `overview` camera in the MJCF instead: south
-        side, both goals in frame, the field roughly filling the window. Distance is tied to
-        the field rather than a constant so it survives a differently sized pitch.
-
-        This is a *free* camera, deliberately -- pinning the viewer to the fixed `overview`
-        camera would take the mouse away. It only sets where the view starts.
-        """
-        cam.lookat[:] = (0.0, 0.0, 0.0)
-        cam.distance = 2.2 * scene.FIELD_HALF_X
-        cam.azimuth = (
-            90.0  # south of the field, so +x (the attacking goal) is on the right
-        )
-        cam.elevation = -35.0
 
     def close(self):
         if self._renderer is not None:
