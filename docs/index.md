@@ -57,7 +57,9 @@ threshold: yaw p99 under `MAX_W` in every scripted scenario, in the random-actio
 `goto_ball_policy` episodes; the chassis envelope through the raw velocity path (1.30 m/s²
 to 3.30 m/s on the slides, 55 rad/s² to 37.1 rad/s on the hinge, within 3 %); kick and chip
 exit speed by `KICK_TABLE_MS` to 0.1 m/s; ball COR 0.47-0.56 off carpet and wall at 1 and
-6.5 m/s, and its inertia; a seated ball through a 2 rad/s turn; and the navigation
+6.5 m/s, and its inertia; a seated ball through a 2 rad/s turn (74/120 on the CPU's exact
+trajectory; on both backends, the median over 64 copies with 1e-5 of qvel noise at least
+69/120 -- the turn is chaotic, and MJX-Warp is float32); and the navigation
 controller's, from rest to target poses 0.5 / 2 / 6 m away turned 0 / 90 / 180 deg: final
 error under 1 cm and 2.5 deg, settled within 1.05x the analytic trapezoid (3.3 m/s, up at
 1.30 m/s², down at 1.0), chatter at the target under 0.05 m/s RMS over the last second,

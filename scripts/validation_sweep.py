@@ -19,6 +19,7 @@ parity on the same scenarios; this script produces the distributions behind them
     kick          Dribbling        kick or chip at a = 0.5 / 1 off the seated ball, standing
     bounce        GoToBall         ball thrown at the floor / wall at 1 / 6.5 m/s, no gravity
     hold_turn     Dribbling        seated ball, raw 2 rad/s turn, bar at full speed, 3 s
+    hold_turn_noisy Dribbling      the same, copy k of 64 with 1e-5 of noise on qvel
     navigate      GoToBall         target pose 0.5/2/6 m ahead, turned 0/90/180 deg, 10 s
     random        all six ids      action_space.sample()
     competent     all six ids      goto_ball_policy
@@ -234,6 +235,23 @@ def hold_turn(env, w):
     return lambda obs, t: a
 
 
+# The turn is chaotic (gpu-port ticket 16): the exact 78 is one trajectory, and noise at
+# float32's scale spreads it to ~66-80. MJX-Warp is judged on the median over copies of the
+# state with this noise; the bar is the perturbed CPU's pooled median 72 less 5 % (medians
+# of 64 copies 71-73 over five noise draws on the CPU, 73.5 on MJX-Warp).
+HOLD_TURN_COPIES = 64
+HOLD_TURN_NOISE = 1e-5  # m/s, rad/s of Gaussian noise on every qvel entry
+HOLD_TURN_MEDIAN_MIN = 69 / 120
+
+
+def hold_turn_noisy(env, k):
+    """hold_turn at 2 rad/s, copy k: qvel perturbed by HOLD_TURN_NOISE * N(0, 1), drawn
+    from seed k, before the first step (the state both backends start from)."""
+    rng = np.random.default_rng(k)
+    env.data.qvel[:] += HOLD_TURN_NOISE * rng.standard_normal(env.data.qvel.shape)
+    return hold_turn(env, 2.0)
+
+
 # Ticket 05's navigation criteria, pinned to the CPU measurement plus margin
 # (.scratch/gpu-port-impl/issues/05-navigation-acceptance-criteria.md). Worst cell measured
 # on the grid in the comment; the ticket's starting point in brackets.
@@ -325,6 +343,8 @@ SCENARIOS = {
     "kick": (kick, [("Dribbling-v0", p) for p in KICK_GRID], 31, False, True),
     "bounce": (bounce, [("GoToBall-v0", p) for p in BOUNCE_GRID], 8, False, True),
     "hold_turn": (hold_turn, [("Dribbling-v0", 2.0)], 120, False, True),
+    "hold_turn_noisy": (hold_turn_noisy, [("Dribbling-v0", k) for k in range(HOLD_TURN_COPIES)],
+                        120, False, True),
     "navigate": (navigate, [("GoToBall-v0", p) for p in NAV_GRID], 400, False, False),
     "random": (random, [(e, None) for e in ALL], None, True, False),
     "competent": (competent, [(e, None) for e in ALL], None, True, False),

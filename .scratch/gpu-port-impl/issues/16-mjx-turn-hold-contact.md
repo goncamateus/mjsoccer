@@ -6,11 +6,11 @@ Spec: [port GPU](../../gpu-port/spec.md)
 
 **Blocked by:** 12 (Paridade MJX-Warp × CPU)
 
-**Status:** needs-decision (causa achada: giro caótico também na CPU, ver Comments; limiar a decidir)
+**Status:** done (opção 2 do usuário: 74 na trajetória exata da CPU; mediana de 64 cópias perturbadas ≥ 69 nos dois backends)
 
 - [x] Causa do não determinismo e da perda de posse identificada e registrada aqui
-- [ ] MJX passa o limiar da CPU (74) no `hold_turn`, ou o usuário aceita um limiar MJX com os números medidos
-- [ ] `xfail` do caso MJX removido; `uv run pytest -m validation` com o grupo `gpu` verde
+- [x] MJX passa o limiar da CPU (74) no `hold_turn`, ou o usuário aceita um limiar MJX com os números medidos
+- [x] `xfail` do caso MJX removido; `uv run pytest -m validation` com o grupo `gpu` verde (153 passed, 11.4 min)
 
 ## Comments
 
@@ -67,3 +67,21 @@ Spec: [port GPU](../../gpu-port/spec.md)
 - `xfail` do caso MJX mantido, motivo atualizado no `test_validation.py`.
 
 **Status → needs-decision.**
+
+### Decisão do usuário (2026-11-14): opção 2 — implementada
+
+- **CPU**: `test_seated_ball_survives_a_2_rad_s_turn` só na CPU, 74/120 na trajetória exata
+  (regressão bit a bit; 78 medido).
+- **Os dois backends**: cenário novo `hold_turn_noisy` no `validation_sweep.py` — o mesmo
+  giro, `HOLD_TURN_COPIES` = 64 cópias, a cópia k com `HOLD_TURN_NOISE` = 1e-5 · N(0, 1)
+  (seed k) somado a todo o `qvel` antes do primeiro passo; no MJX cada cópia é um mundo do
+  lote, com o estado da CPU. `test_seated_ball_turn_over_perturbed_copies[cpu|mjx]`: mediana
+  da posse ≥ `HOLD_TURN_MEDIAN_MIN` = **69/120**. Rodar também na CPU mantém o mesmo limiar
+  nos dois backends e mostra que o critério é satisfazível pela física de referência.
+- **Escolha do limiar** (CPU perturbada, medianas de 64 cópias em cinco sorteios de ruído:
+  72, 71, 72, 71, 73; agrupada ~72): 69 = 72 − 5 %, a mesma folga do 74 sobre o 78 exato.
+  Fica 2 abaixo da pior mediana de 64 da CPU (71) e 4.5-5 abaixo do MJX.
+- **Medido no cenário final**: CPU 64 cópias mediana 72 (64-80); MJX-Warp mediana 74
+  (64-83), e 73.5 numa medição anterior de 64 cópias. A CPU é determinística, então o caso
+  `cpu` dá sempre 72; o MJX oscila ~±1 em mediana de run para run, com ≥ 4 de folga.
+- `xfail` removido. `docs/index.md` atualizado.

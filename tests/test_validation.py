@@ -43,7 +43,8 @@ from mjsoccer.base import MAX_W
 SCRIPTS = Path(__file__).parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 from validation_sweep import (  # noqa: E402
-    BOUNCE_GRID, COR_RANGE, ENVELOPE, ENVELOPE_REL, HOLD_TURN_MIN, KICK_ABS, KICK_GRID,
+    BOUNCE_GRID, COR_RANGE, ENVELOPE, ENVELOPE_REL, HOLD_TURN_COPIES, HOLD_TURN_MEDIAN_MIN,
+    HOLD_TURN_MIN, KICK_ABS, KICK_GRID,
     NAV_CHATTER_RMS, NAV_POS_ERR, NAV_TIME_RATIO, NAV_YAW_ERR_DEG, NO_MJX, SCENARIOS,
     trapezoid_time,
 )
@@ -160,22 +161,29 @@ def test_ball_bounce(sweep, backend, param):
     assert row["ball_beta"] == pytest.approx(0.5, rel=1e-5), row
 
 
-@pytest.mark.parametrize("backend", ["cpu", pytest.param("mjx", marks=pytest.mark.xfail(
-    strict=False, reason="needs-decision (ticket 16): the turn is chaotic on both backends; "
-    "MJX-Warp holds 68-80/120 (median 73.5) from the same state, the CPU 66-78 (median 72) "
-    "under a 1e-5 qvel perturbation, against the 74 bar"))])
-def test_seated_ball_survives_a_2_rad_s_turn(sweep, backend):
-    """Possession: a seated ball through a 2 rad/s turn, bar at full speed.
+def test_seated_ball_survives_a_2_rad_s_turn(sweep):
+    """Possession: a seated ball through a 2 rad/s turn, bar at full speed -- the CPU's
+    exact trajectory, a bit-for-bit regression check (78/120, bar 5 % under).
 
-    The bar's stick-slip makes the hold count chaotic (ticket 16): the CPU's 78 is one
-    trajectory, bit-reproducible only because the CPU is deterministic -- 1e-5 of noise on
-    qvel, or rounding the state to float32 each substep (69), spreads it to 66-78, median 72.
-    MJX-Warp is float32 and not deterministic run to run, so each world draws from that
-    spread (68-80, median 73.5 over 64 copies, a shade above the CPU). No MJX-only solver
-    setting narrows it. The 74 bar is not loosened: xfail (non-strict) until the criterion is
-    decided."""
-    row = _row(sweep, backend, "hold_turn", "Dribbling-v0", 2.0)
+    CPU only (ticket 16, user's decision): the bar's stick-slip makes the hold count
+    chaotic, and the 78 is one trajectory that repeats only because the CPU is
+    deterministic. 1e-5 of noise on qvel, or rounding the state to float32 each substep
+    (69), spreads it. MJX-Warp is float32 and not deterministic run to run, so it is judged
+    on the spread instead: test_seated_ball_turn_over_perturbed_copies."""
+    row = _row(sweep, "cpu", "hold_turn", "Dribbling-v0", 2.0)
     assert row["held_frac"] >= HOLD_TURN_MIN, row
+
+
+@pytest.mark.parametrize("backend", BACKENDS)
+def test_seated_ball_turn_over_perturbed_copies(sweep, backend):
+    """The same turn from HOLD_TURN_COPIES copies of its state, each with 1e-5 m/s / rad/s
+    of Gaussian noise on qvel: the median hold at least HOLD_TURN_MEDIAN_MIN on both
+    backends. The bar comes from the perturbed CPU (ticket 16): medians of 64 copies 71-73
+    over five noise draws, MJX-Warp 73.5; 69/120 is 5 % under the CPU's pooled 72, as 74
+    is under the exact 78."""
+    held = [_row(sweep, backend, "hold_turn_noisy", "Dribbling-v0", k)["held_frac"]
+            for k in range(HOLD_TURN_COPIES)]
+    assert np.median(held) >= HOLD_TURN_MEDIAN_MIN, sorted(round(h * 120) for h in held)
 
 
 NAV = [p for _, p in SCENARIOS["navigate"][1]]
