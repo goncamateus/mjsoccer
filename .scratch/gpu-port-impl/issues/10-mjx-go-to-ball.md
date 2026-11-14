@@ -86,3 +86,6 @@ Spec: [port GPU](../../gpu-port/spec.md)
   grafos já a 8 192 (2 robôs) / 2 048 (7 robôs); com `XLA_PYTHON_CLIENT_PREALLOCATE=false` vai a
   4 096 / 4 096. Vários tamanhos no mesmo processo também acumulam memória (o 4 096 falha depois
   do 2 048): um processo por tamanho.
+- **Verificação** (depois de `git merge gpu-port-impl`, já em dia): `uv sync && uv run pytest`
+  95 passed, 2 skipped; `uv sync --group gpu` + `systemd-run --user --scope -p MemoryMax=10G uv
+  run pytest` 142 passed. Nenhum processo na GPU depois.
