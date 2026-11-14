@@ -9,8 +9,8 @@ CPU parity. Slow, so deselected by default:
 
 Every criterion runs on both backends with the same threshold (`backend` parameter); the
 MJX cases skip without the `gpu` group or a CUDA device. The scenarios live in
-scripts/validation_sweep.py. Each backend's whole sweep (`--seeds 0-4`) runs once per
-session, in a subprocess (the MJX one must not inherit the JAX-CPU of
+scripts/validation_sweep.py. Each backend's whole sweep (`--seeds 0-4` on the CPU, `0-49` on
+MJX) runs once per session, in a subprocess (the MJX one must not inherit the JAX-CPU of
 tests/test_mjx_task_logic.py, and gives the GPU back on exit), and the tests read its
 episodes.csv.
 
@@ -18,11 +18,11 @@ Parity (spec, Testing Decisions; .scratch/gpu-port/issues/09-acceptance-and-pari
   deterministic -- same initial qpos/qvel on both: |MJX - CPU| / CPU <= 2 % on the envelope,
                    the kick and the COR, <= 5 % on the arrival time; arrival error within
                    1 cm / 1 deg absolute;
-  seeded        -- `random` and `competent` on every env, seeds 0-4 on both (one episode /
-                   one world per seed), the MJX median of the return and of the possession
-                   rate inside the CPU's range (min-max; the planned [p25, p75] rejects
-                   identical distributions half the time, see `test_parity_seeded`). No
-                   seed-by-seed pairing, no distribution test.
+  seeded        -- `random` and `competent` on every env, seeds 0-4 on the CPU and 0-49
+                   on MJX (one episode / one world per seed), the CPU median of the return
+                   and of the possession rate inside the MJX range (min-max; the planned
+                   [p25, p75] rejects identical distributions half the time, see
+                   `test_parity_seeded`). No seed-by-seed pairing, no distribution test.
 """
 
 from __future__ import annotations
@@ -51,7 +51,11 @@ from validation_sweep import (  # noqa: E402
 pytestmark = pytest.mark.validation
 
 BACKENDS = ["cpu", "mjx"]
-SEEDS = range(5)
+SEEDS = range(5)  # the CPU's, and the per-seed criteria's on both backends
+# MJX's for the seeded parity only (extra worlds of the batch are cheap): the smallest count
+# that keeps the simulated false-failure rate under target, see
+# test_mjx_seed_count_holds_the_false_failure_rate.
+MJX_SEEDS = range(50)
 
 
 def _value(v: str):
@@ -73,9 +77,10 @@ def sweep(tmp_path_factory):
         if backend not in cache:
             out = tmp_path_factory.mktemp(f"sweep-{backend}")
             env = {k: v for k, v in os.environ.items() if k != "JAX_PLATFORMS"}
+            seeds = MJX_SEEDS if backend == "mjx" else SEEDS
             p = subprocess.run(
                 [sys.executable, str(SCRIPTS / "validation_sweep.py"), "--backend", backend,
-                 "--seeds", f"{SEEDS[0]}-{SEEDS[-1]}", "--out", str(out)],
+                 "--seeds", f"{seeds[0]}-{seeds[-1]}", "--out", str(out)],
                 env=env, capture_output=True, text=True,
             )
             if p.returncode == NO_MJX:
@@ -156,16 +161,19 @@ def test_ball_bounce(sweep, backend, param):
 
 
 @pytest.mark.parametrize("backend", ["cpu", pytest.param("mjx", marks=pytest.mark.xfail(
-    strict=False, reason="open (ticket 12): MJX-Warp holds 69-78/120 (median 73) from the "
-    "same state, run to run, against the CPU's 78 and the 74 threshold"))])
+    strict=False, reason="needs-decision (ticket 16): the turn is chaotic on both backends; "
+    "MJX-Warp holds 68-80/120 (median 73.5) from the same state, the CPU 66-78 (median 72) "
+    "under a 1e-5 qvel perturbation, against the 74 bar"))])
 def test_seated_ball_survives_a_2_rad_s_turn(sweep, backend):
     """Possession: a seated ball through a 2 rad/s turn, bar at full speed.
 
-    On MJX-Warp this does not hold to the CPU's threshold. Warp is not deterministic run to
-    run (float32, contact solving in parallel): 16 copies of the same initial state in one
-    batch kept the ball 69-78 of 120 steps, median 73, twice over; the CPU keeps 78 every
-    time and the bar is 74. Not loosened: xfail (non-strict) until someone decides whether
-    the MJX ball/bar contact is acceptable at 2 rad/s."""
+    The bar's stick-slip makes the hold count chaotic (ticket 16): the CPU's 78 is one
+    trajectory, bit-reproducible only because the CPU is deterministic -- 1e-5 of noise on
+    qvel, or rounding the state to float32 each substep (69), spreads it to 66-78, median 72.
+    MJX-Warp is float32 and not deterministic run to run, so each world draws from that
+    spread (68-80, median 73.5 over 64 copies, a shade above the CPU). No MJX-only solver
+    setting narrows it. The 74 bar is not loosened: xfail (non-strict) until the criterion is
+    decided."""
     row = _row(sweep, backend, "hold_turn", "Dribbling-v0", 2.0)
     assert row["held_frac"] >= HOLD_TURN_MIN, row
 
@@ -226,24 +234,52 @@ def test_parity_deterministic(sweep, scenario, env_id, param, column, kind, tol)
 
 SEEDED = [(s, e, c) for s in ("random", "competent") for e in mjsoccer.ENV_IDS
           for c in ("ret", "held_frac")]
+SEEDED_FAMILY_FALSE_FAIL = 0.02  # target: P(any of the SEEDED cells fails | equal distributions)
+
+
+def _seeded_parity_ok(cpu, mjx):
+    """The seeded parity rule, over the last axis: the CPU median inside MJX's [min, max]."""
+    med = np.median(cpu, axis=-1)
+    return (np.min(mjx, axis=-1) <= med) & (med <= np.max(mjx, axis=-1))
+
+
+def test_mjx_seed_count_holds_the_false_failure_rate():
+    """MJX_SEEDS is the smallest count in the grid whose simulated family-wise false-failure
+    rate (all SEEDED cells, independent, both backends drawing from one continuous
+    distribution) stays under SEEDED_FAMILY_FALSE_FAIL, and still catches a gross divergence:
+    a 3-sigma shift fails a cell most of the time. Ties only help (the range is inclusive),
+    so the continuous case is the worst one."""
+    rng = np.random.default_rng(0)
+    trials = 200_000
+
+    def family_fail(m, shift=0.0):
+        cpu = rng.standard_normal((trials, len(SEEDS)))
+        mjx = rng.standard_normal((trials, m)) + shift
+        cell = 1 - np.mean(_seeded_parity_ok(cpu, mjx))
+        return 1 - (1 - cell) ** len(SEEDED), cell
+
+    grid = (10, 20, 30, 40, 50, 60)
+    passing = [m for m in grid if family_fail(m)[0] <= SEEDED_FAMILY_FALSE_FAIL]
+    assert passing and len(MJX_SEEDS) == passing[0], (len(MJX_SEEDS), passing)
+    assert family_fail(len(MJX_SEEDS), shift=3.0)[1] > 0.8
 
 
 @pytest.mark.parametrize("scenario,env_id,column", SEEDED)
 def test_parity_seeded(sweep, scenario, env_id, column):
-    """Seeds 0-4 on each backend, one episode / one world apiece: the MJX median inside the
-    CPU's range (min to max).
+    """Seeds 0-4 on the CPU, MJX_SEEDS on MJX (one episode / one world apiece): the CPU
+    median inside the MJX range (min to max), see `_seeded_parity_ok`.
 
-    Revised after the first measurement (ticket 12), as the spec allows: the planned
-    interquartile range [p25, p75] rejects identical distributions half the time -- with
-    5 iid draws a side, the median of one lands in the other's [p25, p75] with probability
-    0.48 (simulated, numpy's interpolated percentiles), and measured it failed 5 of the 24
-    cells, all on `competent` (contact-chaotic episodes). The range passes 0.83 of the time
-    per cell under the same null, so this is a check for gross divergence, not a test of
-    equal distributions; with 5 seeds there is no power for one. Still not stable here:
-    MJX-Warp is not deterministic run to run, and `competent` StaticDefenders' return had an
-    MJX median of 0.5226 in one run and 0.5273 in the next against a CPU max of 0.5252."""
-    mjx = [_row(sweep, "mjx", scenario, env_id, None, s)[column] for s in SEEDS]
+    Revised twice (ticket 12), as the spec allows. The planned [p25, p75] with 5 seeds a
+    side rejects identical distributions half the time (failed 5 of 24 cells, all
+    `competent`). The MJX median inside the CPU's 5-seed range then still failed a fixed
+    fraction of cells under the null -- 0.17 per cell at 5 MJX seeds and never under 0.0625
+    however many (the true median itself falls outside 5 draws' range 2/32 of the time), and
+    it did fail (`competent` StaticDefenders' return, MJX-Warp being non-deterministic run to
+    run). So the roles swap: the 5 CPU seeds give the median, the many cheap MJX worlds the
+    range, and the false-failure rate falls with MJX_SEEDS. A check for gross divergence (a
+    3-sigma shift fails a cell > 0.8 of the time), not a test of equal distributions."""
+    mjx = [_row(sweep, "mjx", scenario, env_id, None, s)[column] for s in MJX_SEEDS]
     cpu = [_row(sweep, "cpu", scenario, env_id, None, s)[column] for s in SEEDS]
-    lo, hi = min(cpu), max(cpu)
-    med = np.median(mjx)
-    assert lo <= med <= hi, f"{column}: MJX median {med:.4g} {mjx} outside CPU [{lo:.4g}, {hi:.4g}] {cpu}"
+    assert _seeded_parity_ok(cpu, mjx), (
+        f"{column}: CPU median {np.median(cpu):.4g} {cpu} outside MJX "
+        f"[{min(mjx):.4g}, {max(mjx):.4g}] (median {np.median(mjx):.4g}, {len(mjx)} seeds)")
