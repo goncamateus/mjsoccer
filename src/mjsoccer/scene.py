@@ -229,6 +229,17 @@ def build(
     `possession_sensors=False` exists only to prove the sensors leave the physics alone;
     RobotIds needs them, so such a model comes back with no robots or ball resolved.
     """
+    model = build_spec(n_blue, n_yellow, possession_sensors).compile()
+    if not possession_sensors:
+        return model, (), None
+    teams = [("blue", f"b{i}_") for i in range(n_blue)] + [
+        ("yellow", f"y{i}_") for i in range(n_yellow)
+    ]
+    return _resolve(model, teams)
+
+
+def build_spec(n_blue: int, n_yellow: int, possession_sensors: bool = True) -> mujoco.MjSpec:
+    """`build`'s MjSpec, before compiling (the mjlab backend attaches it whole)."""
     if n_blue < 1:
         raise ValueError("need at least one blue robot")
 
@@ -278,9 +289,10 @@ def build(
                 intprm=[1 << int(mujoco.mjtConDataField.mjCONDATA_FOUND), 0, 1],
             )
 
-    model = spec.compile()
-    if not possession_sensors:
-        return model, (), None
+    return spec
+
+
+def _resolve(model, teams):
     robots = tuple(_robot_ids(model, prefix, team) for team, prefix in teams)
     body = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "ball")
     geom = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "ball")

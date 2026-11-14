@@ -1,0 +1,4 @@
+RESULT {"env": "ContestedPossession-v0", "chase": false, "nworld": 1024, "dps": 13503, "decisions_per_world": 440, "episode_ends": 6.0, "reset_overlap": 0.0, "reset_s": 3.2, "compile_s": 3.4, "overflow_worlds": 0, "overflow_or": 0, "ncollision_peak": 40960, "ncollision_peak_per_world": 40.0, "naconmax": 65536, "nefc_peak": 16, "njmax": 256}
+RESULT {"env": "ContestedPossession-v0", "chase": false, "nworld": 4096, "dps": 16550, "decisions_per_world": 200, "episode_ends": 0.0, "reset_overlap": 0.0, "reset_s": 4.5, "compile_s": 6.9, "overflow_worlds": 0, "overflow_or": 0, "ncollision_peak": 163840, "ncollision_peak_per_world": 40.0, "naconmax": 262144, "nefc_peak": 16, "njmax": 256}
+RuntimeError: Failed to allocate 379584512 bytes on device 'cuda:0'
+jax.errors.JaxRuntimeError: UNKNOWN: FFI callback error: RuntimeError: Failed to allocate 379584512 bytes on device 'cuda:0' [executable_name='jit_run']

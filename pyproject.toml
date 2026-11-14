@@ -9,7 +9,7 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "gymnasium>=1.0",
-    "mujoco==4.0.0",
+    "mujoco==4.0.1",
     "numpy>=2.0",
 ]
 
@@ -30,11 +30,25 @@ rl = [
 ]
 # The MJX-Warp backend (mjsoccer.mjx): uv sync --group gpu. Needs a CUDA GPU at run time.
 gpu = [
-    "mujoco-mjx[warp]==4.0.0",
+    "mujoco-mjx[warp]==4.0.1",
     "jax[cuda12]>=0.12.0.1",
     # brax 0.14.2 on PyPI breaks on jax 0.12 (device_put_replicated); pinned until a release > 0.14.2.
     "brax @ git+https://github.com/google/brax@c8605294264a7b7546268adbb4beabc9eb624000",
 ]
+
+# PROTOTYPE (branch prototype/mjlab): the mjlab backend. torch cu130 (driver >= 580).
+mjlab = [
+    "mjlab @ git+https://github.com/mujocolab/mjlab@6ab9846ea068714678fd0e9f791f898c6b697b20",
+    "torch>=2.14.0",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu130", group = "mjlab" }
 
 [tool.pytest.ini_options]
 # The acceptance-criteria scenarios (ticket 14) take minutes; run them with -m validation.
