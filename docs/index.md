@@ -38,6 +38,15 @@ systemd-run --user --scope -p MemoryMax=10G uv run python -m pytest tests -q
 uv run python scripts/validation_sweep.py --out runs/validation --seeds 0-4  # the distributions behind them, CSV
 ```
 
+PPO on the GPU (Brax `ppo.train` over `mjsoccer.mjx`, one process per run; checkpoints in
+`runs/ppo_mjx_<env>/`, see the script's docstring for the flags):
+
+```bash
+systemd-run --user --scope -p MemoryMax=10G uv run --group gpu examples/ppo_mjx.py --env GoToBall-v0
+uv run --group gpu examples/ppo_mjx.py --eval runs/ppo_mjx_GoToBall-v0   # MJX, aborts on a failed world
+uv run --group gpu examples/ppo_mjx.py --play runs/ppo_mjx_GoToBall-v0   # CPU backend, Studio viewer
+```
+
 The `validation` suite is excluded from the default run (`pyproject.toml`). It is the
 regression check for the physics acceptance criteria: yaw p99 under `MAX_W` in every
 scripted scenario, in one random-action episode per env and in five `goto_ball_policy`

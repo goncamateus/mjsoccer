@@ -1,0 +1,32 @@
+=== ContestedPossession-v0 num_envs=8192 epochs=3 2026-11-14T02:22:02-03:00 other_gpu_procs=1
+ContestedPossession-v0 on cuda:0: 8192 worlds, repeat_action 1, WARP, 1,966,080 decisions in 3 epochs -> /home/mateus/doc/ssl-rl/.claude/worktrees/agent-ac177e3169072f226/runs/probe_ContestedPossession-v0_8192
+step           0  dps     nan (train     nan)  eval return   -0.031 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 5976 MB, free 5501 MB  t     66s
+step     655,360  dps    4990 (train    8710)  eval return   -0.071 len 1037.2  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6060 MB, free 5365 MB  t    197s
+step   1,310,720  dps    5111 (train    9090)  eval return   -0.140 len  624.9  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6174 MB, free 5249 MB  t    326s
+step   1,966,080  dps    5537 (train   10222)  eval return   -0.262 len  532.4  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 6174 MB, free 5187 MB  t    444s
+saved /home/mateus/doc/ssl-rl/.claude/worktrees/agent-ac177e3169072f226/runs/probe_ContestedPossession-v0_8192/000001966080
+exit 0 2026-11-14T02:29:30-03:00
+=== ContestedPossession-v0 num_envs=4096 epochs=3 2026-11-14T02:29:30-03:00 other_gpu_procs=1
+ContestedPossession-v0 on cuda:0: 4096 worlds, repeat_action 1, WARP, 983,040 decisions in 3 epochs -> /home/mateus/doc/ssl-rl/.claude/worktrees/agent-ac177e3169072f226/runs/probe_ContestedPossession-v0_4096
+step           0  dps     nan (train     nan)  eval return   -0.031 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 3192 MB, free 8179 MB  t     63s
+step     327,680  dps    4988 (train   10900)  eval return   -0.045 len  921.8  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 3274 MB, free 8725 MB  t    129s
+step     655,360  dps    4544 (train   11180)  eval return   -0.040 len 1113.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 3356 MB, free 8212 MB  t    201s
+step     983,040  dps    3580 (train   10612)  eval return   -0.087 len  838.3  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 3358 MB, free 8090 MB  t    293s
+saved /home/mateus/doc/ssl-rl/.claude/worktrees/agent-ac177e3169072f226/runs/probe_ContestedPossession-v0_4096/000000983040
+exit 0 2026-11-14T02:34:28-03:00
+=== GoToBall-v0 num_envs=2048 epochs=3 2026-11-14T02:34:28-03:00 other_gpu_procs=1
+GoToBall-v0 on cuda:0: 2048 worlds, repeat_action 1, WARP, 491,520 decisions in 3 epochs -> /home/mateus/doc/ssl-rl/.claude/worktrees/agent-ac177e3169072f226/runs/probe_GoToBall-v0_2048
+step           0  dps     nan (train     nan)  eval return    0.000 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 4776 MB, free 6630 MB  t    164s
+step     163,840  dps     551 (train    1207)  eval return    0.016 len 1190.3  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 4962 MB, free 6411 MB  t    462s
+step     327,680  dps     711 (train    1409)  eval return    0.008 len 1193.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 5150 MB, free 6862 MB  t    692s
+step     491,520  dps     973 (train    2176)  eval return    0.031 len 1167.6  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 5156 MB, free 6595 MB  t    860s
+saved /home/mateus/doc/ssl-rl/.claude/worktrees/agent-ac177e3169072f226/runs/probe_GoToBall-v0_2048/000000491520
+exit 0 2026-11-14T02:48:54-03:00
+=== GoToBall-v0 num_envs=4096 epochs=3 2026-11-14T02:48:54-03:00 other_gpu_procs=0
+GoToBall-v0 on cuda:0: 4096 worlds, repeat_action 1, WARP, 983,040 decisions in 3 epochs -> /home/mateus/doc/ssl-rl/.claude/worktrees/agent-ac177e3169072f226/runs/probe_GoToBall-v0_4096
+step           0  dps     nan (train     nan)  eval return    0.000 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 9288 MB, free 2567 MB  t    111s
+step     327,680  dps     879 (train    1504)  eval return    0.023 len 1183.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 9478 MB, free 1943 MB  t    484s
+step     655,360  dps     787 (train    1268)  eval return    0.008 len 1193.1  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 9666 MB, free 1719 MB  t    900s
+step     983,040  dps    1314 (train    2099)  eval return    0.023 len 1175.3  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  gpu 9668 MB, free 2346 MB  t   1149s
+saved /home/mateus/doc/ssl-rl/.claude/worktrees/agent-ac177e3169072f226/runs/probe_GoToBall-v0_4096/000000983040
+exit 0 2026-11-14T03:08:08-03:00

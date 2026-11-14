@@ -4,6 +4,9 @@
     state = jax.jit(jax.vmap(env.reset))(jax.random.split(key, 1024))
     state = jax.jit(jax.vmap(env.step))(state, actions)
 
+For training, wrap with `mjsoccer.mjx.wrappers.wrap`, not Brax's `training.wrap` (which
+neither resets the per-world state nor keeps the env's truncation); examples/ppo_mjx.py.
+
 A second implementation of the CPU tasks (`mjsoccer.tasks`) over MJX-Warp, on the exact base
 model; the CPU backend stays the physics oracle (ADR 0002). Every constant and task config is
 read off the CPU side, and tests/test_mjx_task_logic.py holds the two together state by
