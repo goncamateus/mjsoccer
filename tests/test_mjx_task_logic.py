@@ -40,7 +40,7 @@ import mjsoccer.mjx  # noqa: E402
 
 SEEDS = range(5)
 TASKS = ["ContestedPossession-v0", "GoToBall-v0", "GoToBallShoot-v0",
-         "StaticDefenders-v0"]
+         "StaticDefenders-v0", "Dribbling-v0"]
 
 # Per task: JAX per-world state key -> the CPU env attribute it mirrors. Every task shares
 # the base entries; a task that adds state on one side must add it here too.
@@ -49,7 +49,8 @@ BASE_STATE = {"grace": "_grace", "steps": "steps", "drive_cmd": "drive_cmd",
 TASK_STATE = {"ContestedPossession-v0": {"prev": "_prev", "prev_goal": "_prev_goal"},
               "GoToBall-v0": {},
               "GoToBallShoot-v0": {"prev": "_prev", "prev_goal": "_prev_goal"},
-              "StaticDefenders-v0": {"prev": "_prev", "prev_goal": "_prev_goal"}}
+              "StaticDefenders-v0": {"prev": "_prev", "prev_goal": "_prev_goal"},
+              "Dribbling-v0": {"count": "_count", "last_ball": "_last_ball"}}
 
 TOL = dict(rtol=1e-5, atol=1e-5)
 
@@ -303,6 +304,54 @@ def test_control_steps_match_cpu(env_id, seed):
             break
     assert terminated or truncated, "the rollout should reach an ending"
     assert fires > 0 and blocked > 0, f"kick path barely exercised: {fires} fired, {blocked} blocked"
+
+
+def _ball_walk(env_id, cpu, env, path, robot_xy=None):
+    """Teleport the ball (and robot 0) along `path` and compare each step's reward, ending
+    and task state with the CPU's `_reward_done` on the same world. Yields (reward, done,
+    count) as the CPU had them."""
+    a = np.zeros(cpu.action_space.shape)
+    reward_done = jax.jit(env.reward_done)
+    for i, (bx, by) in enumerate(path):
+        if robot_xy is not None:
+            cpu.robots[0].place(cpu.data, *robot_xy[i], np.pi)
+        cpu.ball.place(cpu.data, bx, by)
+        mujoco.mj_forward(cpu.model, cpu.data)
+        w = {k: jax.numpy.asarray(v) for k, v in _world_from_cpu(env_id, cpu).items()}
+        r, done, w = reward_done(_put(cpu), w)
+        want_r, want_done, _ = cpu._reward_done(a)
+        when = f"point {i} ({bx:.2f}, {by:.2f})"
+        np.testing.assert_allclose(float(r), want_r, **TOL, err_msg=when)
+        assert bool(done) == want_done, when
+        _assert_world(env_id, w, cpu, when)
+        yield want_r, want_done, cpu._count
+        if want_done:
+            cpu._reset_task()
+
+
+def test_dribbling_checkpoints_match_cpu():
+    """The zigzag, which a random rollout never gets far into: all seven checkpoints, a
+    backwards crossing of the last gap, then random ball and robot positions around the
+    nodes, each against the CPU's own `_reward_done`."""
+    env_id = "Dribbling-v0"
+    cpu = gym.make(env_id).unwrapped
+    cpu.reset(seed=0)
+    env = mjsoccer.mjx.make(env_id)
+    zigzag = [(-0.75, 0.1), (-0.75, -0.1), (-1.25, 0.1), (-1.75, 0.1), (-1.75, -0.1),
+              (-2.5, -0.1), (-2.5, 0.1), (-1.75, -0.1), (-2.5, 0.1), (-1.75, -0.1)]
+    out = list(_ball_walk(env_id, cpu, env, zigzag))
+    assert [c for _, _, c in out] == [0, 1, 2, 2, 3, 3, 4, 5, 6, 7]
+    assert out[-1][1] and not any(d for _, d, _ in out[:-1])
+    backwards = [(-0.75, 0.1), (-0.75, -0.1), (-1.25, 0.1), (-1.25, -0.1), (-1.75, 0.1)]
+    out = list(_ball_walk(env_id, cpu, env, backwards))
+    assert [d for _, d, _ in out] == [False] * 4 + [True] and out[-1][2] == 2
+    rng = np.random.default_rng(0)
+    n = 600
+    path = np.stack([rng.uniform(-3.2, 0.2, n), rng.uniform(-0.3, 0.3, n)], 1)
+    robot = np.where(rng.random((n, 1)) < 0.05,
+                     np.stack([rng.uniform(-4.5, 1.5, n), rng.uniform(-1.5, 1.5, n)], 1), 0.0)
+    counts = [c for _, _, c in _ball_walk(env_id, cpu, env, path, robot)]
+    assert max(counts) >= 3
 
 
 def test_controller_matches_cpu_over_random_states():

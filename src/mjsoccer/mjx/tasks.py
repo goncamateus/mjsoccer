@@ -158,6 +158,49 @@ class StaticDefendersEnv(_ShootTask):
         return d, overlap | bad
 
 
+class DribblingEnv(_BallTask):
+    """`tasks.DribblingEnv`: the zigzag through four yellow robots on -x, the ball seated on
+    the blue robot, `count` checkpoints passed."""
+
+    cpu_cls = cpu.DribblingEnv
+
+    def place(self, d, u):
+        d = self.place_robot(d, self.robots[0], 0.0, 0.0, jnp.pi)
+        for r, x in zip(self.robots[self.n_blue :], self.cpu_cls.nodes):
+            d = self.place_robot(d, r, x, 0.0, jnp.pi)
+        return d, jnp.array(False)
+
+    def reset_physics(self, d):
+        return self.seat_ball(d, self.robots[0])
+
+    def init_task(self, d):
+        return {"count": jnp.zeros((), jnp.int32), "last_ball": self.ball_xy(d)}
+
+    def task_obs(self, d, w):
+        return ((w["count"] / 6) * 2 - 1)[None].astype(d.qpos.dtype)
+
+    def reward_done(self, d, w):
+        n0, n1, n2, n3 = self.cpu_cls.nodes
+        m = self.cpu_cls.margin
+        rx, ry = self.xy(d, 0)
+        bx, by = self.ball_xy(d)
+        ly, c = w["last_ball"][1], w["count"]
+        down, up = (ly >= 0) & (0 > by), (ly < 0) & (0 <= by)
+        out = (rx < n3 - m) | (rx > m) | (jnp.abs(ry) > m)
+        even = (c >= 2) & (c % 2 == 0)
+        in_last = (n3 < bx) & (bx < n2)
+        passed = ~out & (
+            ((c == 0) & (n1 < bx) & (bx < n0) & down)
+            | ((c == 1) & (n2 < bx) & (bx < n1) & up)
+            | (even & in_last & down)
+            | ((c >= 3) & (c % 2 == 1) & (n3 - m < bx) & (bx < n3) & up)
+        )
+        c = c + passed
+        backwards = ~out & even & in_last & ~down & up
+        done = self.yellow_moved(d, 0.05) | out | backwards | (passed & even & (c == 7))
+        return passed.astype(jnp.float32), done, {**w, "count": c, "last_ball": jnp.stack([bx, by])}
+
+
 class GoToBallEnv(_BallTask):
     """`tasks.GoToBallEnv`: within 0.2 m of the ball, through six parked yellow robots."""
 
