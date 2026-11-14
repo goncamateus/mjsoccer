@@ -124,16 +124,20 @@ class BaseEnv(gym.Env):
         self._script()
         n, dt = self.decimation, self.model.opt.timestep
         if (self._plunger_lock == self._kick_cooldown).any():  # a plunger fired this step
+            # K fine steps at dt / FIRING_SUBSTEPS, then the rest of the control step at dt.
+            fine = min(scene.FIRING_FINE_STEPS, n * scene.FIRING_SUBSTEPS)
+            n -= fine // scene.FIRING_SUBSTEPS
             # ponytail: mutates the shared, cached MjModel for the length of this loop. Safe
             # while envs sharing it step one at a time (Sync/Async vector envs both do);
             # threads would need their own model.
-            n *= scene.FIRING_SUBSTEPS
             self.model.opt.timestep = dt / scene.FIRING_SUBSTEPS
-        try:
-            for _ in range(n):
-                mujoco.mj_step(self.model, self.data)
-        finally:  # never leave the cached model at dt / FIRING_SUBSTEPS for every other env
-            self.model.opt.timestep = dt
+            try:
+                for _ in range(fine):
+                    mujoco.mj_step(self.model, self.data)
+            finally:  # never leave the cached model at dt / FIRING_SUBSTEPS for every other env
+                self.model.opt.timestep = dt
+        for _ in range(n):
+            mujoco.mj_step(self.model, self.data)
         self.steps += 1
         np.maximum(self._plunger_lock - 1, 0, out=self._plunger_lock)
 

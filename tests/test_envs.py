@@ -421,15 +421,18 @@ def test_dribbler_neutral_is_off(a, omega):
 
 
 @pytest.mark.parametrize("plunger", (0, 1), ids=("kick", "chip"))
-@pytest.mark.parametrize("a", (0.5, 1.0))
-def test_kick_exit_speed(plunger, a):
+@pytest.mark.parametrize("a", (0.25, 0.5, 0.75, 1.0))
+@pytest.mark.parametrize("control_hz,tol", [(40, 0.1), (60, 0.3)])
+def test_kick_exit_speed(plunger, a, control_hz, tol):
     """Ticket 09: a in (0, 1] asks for 6.5 * a m/s, the §8.4.2 cap at a = 1.
 
     Seated and settled ball, robot standing, dribbler off -- the conditions the table is
-    calibrated in. Peak 3-D ball speed over half a second. The stock 2 ms step left this at 7.06 m/s
-    and wandered +-35 % with force, which is what the 6.5 bound catches.
+    calibrated in. Peak 3-D ball speed over 31 control steps. The stock 2 ms step left this at
+    7.06 m/s and wandered +-35 % with force, which is what the 6.5 bound catches. The table is
+    measured at 40 Hz (GPU port, Fase 0), so it holds tight there; 60 Hz only shares the
+    first 8.3 ms of fine steps and gets the looser ticket-09 bound.
     """
-    env = gym.make("Dribbling-v0").unwrapped
+    env = gym.make("Dribbling-v0", control_hz=control_hz).unwrapped
     env.reset(seed=0)
     action = np.zeros(env.action_space.shape, dtype=np.float32)
     for _ in range(30):  # let the seated ball settle, as calibrate.py does
@@ -441,7 +444,30 @@ def test_kick_exit_speed(plunger, a):
         action[env.drive_dim + plunger] = 0.0
         best = max(best, float(np.linalg.norm(env.ball.vel(env.data))))
     env.close()
-    assert best == pytest.approx(S.KICK_SPEED_MAX * a, abs=0.3)
+    assert best == pytest.approx(S.KICK_SPEED_MAX * a, abs=tol)
+
+
+def test_firing_step_is_48_iterations_over_one_control_step(monkeypatch):
+    """K = 32 (GPU port, Fase 0): the step a plunger fires on runs 32 physics steps at
+    dt / 4 and then 16 at dt -- 48 iterations instead of 96 -- and still lasts the 25 ms
+    of a 40 Hz control step, so the clock never drifts."""
+    env = gym.make("Dribbling-v0", control_hz=40).unwrapped
+    env.reset(seed=0)
+    action = np.zeros(env.action_space.shape, dtype=np.float32)
+    env.step(action)
+    steps = []
+    real_step = mujoco.mj_step
+    monkeypatch.setattr(
+        mujoco, "mj_step", lambda m, d: (steps.append(m.opt.timestep), real_step(m, d))
+    )
+    t0 = env.data.time
+    action[env.drive_dim] = 1.0
+    env.step(action)
+    dt = env.model.opt.timestep
+    env.close()
+    assert env.data.time - t0 == pytest.approx(0.025, abs=1e-12)
+    assert steps == [dt / 4] * 32 + [dt] * 16
+    assert dt == pytest.approx(1 / 960)  # the model is handed back at its own step
 
 
 @pytest.mark.parametrize("a", (-1.0, -0.3, 0.0))

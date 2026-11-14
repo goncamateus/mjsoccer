@@ -121,13 +121,16 @@ would.
 at `a = 1`. That is what SSL firmware takes, a speed, not a trigger. The plunger is still a
 force actuator against its return spring: a per-plunger table
 (`scene.KICK_TABLE_MS`) turns the asked-for speed into a one-step force, the way the
-firmware's calibration table turns it into a pulse width. The cap takes ~285-365 N. Speeds
+firmware's calibration table turns it into a pulse width, measured at 40 Hz on mujoco 4.0. The cap takes ~295-315 N. Speeds
 are relative to a standing robot with the ball settled in the mouth (within ±4 % across
 seatings); a moving robot adds its own speed, as a real one does. The control step a
-plunger fires on runs at a quarter of the timestep (`scene.FIRING_SUBSTEPS`, ~0.26 ms): at
-2 ms the plate closed ~9 mm per step and the exit speed swung ±35 % with force, and 1 ms still
-saws. That costs extra throughput under random actions, which fire at every re-arm, and
-nothing for a policy that kicks rarely. Each shot is followed by a 250 ms lockout on that plunger, a deliberate
+plunger fires on opens with 32 physics steps at a quarter of the timestep
+(`scene.FIRING_FINE_STEPS` at `scene.FIRING_SUBSTEPS`, ~0.26 ms each, 8.3 ms that cover the
+stroke and the hit) and runs the rest at the timestep: at 2 ms the plate closed ~9 mm per step
+and the exit speed swung ±35 % with force, 1 ms still saws, and 32 is the smallest count whose
+curve is monotone for both plungers. At 40 Hz that is 48 iterations instead of 24, which costs
+throughput under random actions, which fire at every re-arm, and nothing for a policy that
+kicks rarely. Each shot is followed by a 250 ms lockout on that plunger, a deliberate
 approximation (no capacitor recharge time is known). Held continuously the plunger pins against its 30 mm stop and never releases the
 ball, so the lockout is what makes the mechanism usable at all. The two locks are
 independent — a kick must not be able to block a chip. At the default control rate the

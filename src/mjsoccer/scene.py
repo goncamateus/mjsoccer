@@ -60,16 +60,22 @@ DRIBBLER_OMEGA = 314.0
 KICK_SPEED_MAX = 6.5
 KICK_TABLE_N = tuple(np.arange(0.0, 501.0, 25.0))  # the actuators' ctrlrange is 0..500
 # m/s at each force, per plunger (kicker, chipper) -> a prefix of KICK_TABLE_N, cut at the first point
-# past the cap: the full curves still saw a little above it. The cap takes ~285-365 N.
+# past the cap: the full curves still saw a little above it. The cap takes ~295-315 N.
+# mujoco 4.0 float64, 40 Hz, FIRING_FINE_STEPS = 32 (GPU port, Fase 0).
 KICK_TABLE_MS = (
-    (0.0, 0.4, 2.05, 2.96, 3.53, 3.93, 4.44, 4.79, 5.15, 5.62, 5.79, 6.12, 6.4, 6.66),
-    (0.0, 0.96, 1.89, 2.75, 3.47, 4.04, 4.52, 4.96, 5.38, 5.78, 6.06, 6.4, 6.67),
+    (0.0, 0.649, 2.066, 3.046, 3.622, 4.244, 4.428, 4.741, 5.087, 5.53, 5.672, 5.964, 6.385, 6.597),
+    (0.0, 0.952, 1.908, 2.809, 3.496, 4.089, 4.49, 4.879, 5.263, 5.544, 5.936, 6.288, 6.551),
 )
 # A 2 ms step could not resolve the plate hitting the ball: the plate closed ~9 mm per step,
 # so exit speed swung +-35 % with force (ticket 09), and 1 ms still saws. The control step a
-# plunger fires on is run at timestep / FIRING_SUBSTEPS, ~0.26 ms on the 1/960 s step (ticket
-# 13), which the table above was measured at. Delete this if the global step gets that small.
+# plunger fires on opens with FIRING_FINE_STEPS physics steps at timestep / FIRING_SUBSTEPS
+# (~0.26 ms on the 1/960 s step), 8.3 ms that cover the plate's stroke and the hit, and runs
+# the rest of the control step at timestep. 32 is the smallest count whose exit-speed curve
+# is monotone for both plungers (.scratch/gpu-port/research/15-kick-on-warp.md); the whole
+# 25 ms step at dt / 4 cost 96 iterations for no better curve. The table above was measured
+# with exactly this scheme -- recalibrate if either number changes.
 FIRING_SUBSTEPS = 4
+FIRING_FINE_STEPS = 32
 assert all(np.all(np.diff(v) > 0) for v in KICK_TABLE_MS), "np.interp needs it rising"
 
 # RoboCup SSL Division A, from the rulebook. Asserted against the CAD in `_check_field`
