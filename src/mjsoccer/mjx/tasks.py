@@ -1,15 +1,17 @@
 """The tasks on MJX, one class per CPU class in `mjsoccer.tasks`, of the same name.
 
 Config (`energy_steps`, `collision_speed`, `n_yellow`, ...) is read off the CPU class;
-the logic is written twice and held together by tests/test_mjx_task_logic.py. Ported so
-far: ContestedPossession and GoToBall (ticket 11 adds the rest).
+the logic is written twice and held together by tests/test_mjx_task_logic.py. All six
+are ported. Scripted robots are as on the CPU: yellow ones get `ctrl = 0`, PassEndurance's
+receiver only its dribbler and its passer only the spin of its drive.
 
 Placement: the CPU's `_scatter` resamples a robot's (x, y) until it is `min_dist` clear of
 everything placed, with no cap. Here each robot gets SCATTER_CANDIDATES (x, y) draws and
 takes the first clear one (`first_free`), which is the CPU's answer on the same draws.
 With 7 robots and a ball on the Div A field one draw is rejected ~1 % of the time, so all
 eight are rejected ~1e-16 of the time; then the roomiest is kept and the world's first
-state says `reset_overlap`.
+state says `reset_overlap`. The other redraw loops (GoToBallShoot's robot, StaticDefenders'
+ball, PassEndurance's receiver) take the first free candidate the same way (`first_where`).
 """
 
 from __future__ import annotations
@@ -22,6 +24,9 @@ from .base import MjxEnv, first_free
 
 HALF_X, HALF_Y = S.FIELD_HALF_X, S.FIELD_HALF_Y
 SCATTER_CANDIDATES = 8
+# PassEndurance's receiver x is redrawn while within 1 m of the ball's on a 3 m range: up
+# to 2/3 of draws rejected, so (2/3)^64 ~ 5e-12 of worlds run out.
+PASS_CANDIDATES = 64
 
 
 def first_where(cand, free, roomy):
@@ -199,6 +204,54 @@ class DribblingEnv(_BallTask):
         backwards = ~out & even & in_last & ~down & up
         done = self.yellow_moved(d, 0.05) | out | backwards | (passed & even & (c == 7))
         return passed.astype(jnp.float32), done, {**w, "count": c, "last_ball": jnp.stack([bx, by])}
+
+
+class PassEnduranceEnv(_BallTask):
+    """`tasks.PassEnduranceEnv`: a passer that can only turn, the ball seated on it, a
+    team-mate receiver whose dribbler is always on."""
+
+    cpu_cls = cpu.PassEnduranceEnv
+    n_uniform = 2 + PASS_CANDIDATES
+
+    def place(self, d, u):
+        b = -1.5 + 3.0 * u[:2]
+        f = jnp.where(b[1] > 0, 1.0, -1.0)
+        sx, sy = b[0], b[1] + 0.115 * f
+        d = self.place_robot(d, self.robots[0], sx, sy, -f * jnp.pi / 2)
+        cand = -1.5 + 3.0 * u[2:]
+        gap = jnp.abs(cand - b[0])
+        rx, overlap = first_where(cand, gap >= 1, gap)
+        ry = -b[1]
+        d = self.place_robot(d, self.robots[1], rx, ry, jnp.arctan2(ry - sy, rx - sx) + jnp.pi)
+        return d, overlap
+
+    def reset_physics(self, d):
+        return self.seat_ball(d, self.robots[0])
+
+    def to_receiver(self, d):
+        return jnp.linalg.norm(self.ball_xy(d) - self.xy(d, 1))
+
+    def init_task(self, d):
+        return {"stopped": jnp.zeros((), jnp.int32), "prev": self.to_receiver(d)}
+
+    def shape_drive(self, cmd):
+        return jnp.stack([0.0, 0.0, cmd[2]])
+
+    def script(self, d, ctrl):
+        return ctrl.at[self.robots[1].dribble].set(S.DRIBBLER_OMEGA)
+
+    def reward_done(self, d, w):
+        dist = self.to_receiver(d)
+        received = w["grace"][1] > 0
+        reward = jnp.where(received, 1.0, jnp.clip(w["prev"] - dist, -1, 1) / cpu.BALL_GRAD_SCALE)
+        # `_wrong_ball`: whole centimetres, truncated as numpy's int cast does.
+        ball, shoot, recv = ((p * 100).astype(jnp.int32)
+                             for p in (self.ball_xy(d), self.xy(d, 0), self.xy(d, 1)))
+        inside = ((jnp.minimum(recv, shoot) <= ball) & (ball <= jnp.maximum(recv, shoot))).all()
+        stopped = jnp.where(jnp.abs(w["prev"] - dist) < 0.01, w["stopped"] + 1, 0)
+        wrong = (stopped > self.cpu_cls.stopped_limit) | ~inside
+        reward = jnp.where(wrong, reward - 1.0, reward)
+        return reward, received | wrong, {**w, "prev": dist, "stopped": stopped}
 
 
 class GoToBallEnv(_BallTask):
