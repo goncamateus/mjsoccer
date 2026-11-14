@@ -91,4 +91,4 @@ Spec: [port GPU](../../gpu-port/spec.md)
 - **Verificação**: `git merge gpu-port-impl` em dia. Com o grupo `gpu`: `uv run pytest`
   216 passed; `-m validation` 149 passed, 1 xfailed (`hold_turn[mjx]`, 73/120 nesse run),
   1 failed (`test_parity_seeded[competent-StaticDefenders-v0-ret]`), 12.7 min. Sem o grupo:
-  ver o relatório do merge. Nenhum processo na GPU depois.
+  `uv run pytest` 95 passed, 2 skipped; `-m validation` 41 passed, 112 skipped (MJX), 47 s. Nenhum processo na GPU depois.
