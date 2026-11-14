@@ -19,6 +19,9 @@ decisions/s, the eval return, and the eval episodes' rate of the three failure c
 `--num-envs` defaults to 8 192 worlds with 2 robots and 2 048 with 7: the largest batch
 that ran 30 epochs with >= 2 GB of the GPU free (ticket 13). In `--graph-mode WARP` the end
 of each epoch drops Warp's captured graphs (they pile up otherwise).
+
+`--obs-noise` and `--action-latency` (ticket 15, both off by default) apply to training and
+to Brax's built-in eval; `--eval` and `--play` run without them.
 """
 
 from __future__ import annotations
@@ -67,6 +70,10 @@ def parse_args(argv=None) -> argparse.Namespace:
     ap.add_argument("--num-envs", type=int, default=None,
                     help="worlds per batch (default by robot count: %s)" % NUM_ENVS)
     ap.add_argument("--graph-mode", choices=GRAPH_MODES, default="WARP")
+    ap.add_argument("--obs-noise", type=float, default=0.0,
+                    help="std of Gaussian noise on the (normalised) obs, train and eval; 0 off")
+    ap.add_argument("--action-latency", type=int, default=0,
+                    help="delay each action by this many control steps; 0 off")
     ap.add_argument("--epochs", type=int, default=30, help="training epochs, an eval after each")
     ap.add_argument("--timesteps", type=int, default=None,
                     help="decisions in all (default: one PPO iteration per epoch)")
@@ -157,12 +164,15 @@ def train(args) -> int:
     import jax
     from brax.training.agents.ppo import train as ppo
 
+    import functools
+
     import mjsoccer.mjx
     from mjsoccer.mjx import wrappers
 
     def make(n):
         return mjsoccer.mjx.make(args.env, repeat_action=args.repeat_action,
-                                 graph_mode=args.graph_mode, nworld=n)
+                                 graph_mode=args.graph_mode, nworld=n,
+                                 action_latency=args.action_latency)
 
     env, eval_env = make(args.num_envs), make(args.num_eval_envs)
     run = Path(args.save).resolve()
@@ -190,7 +200,8 @@ def train(args) -> int:
               f" len {m.get('eval/avg_episode_length', float('nan')):6.1f}  {rates}"
               f"  gpu {mine} MB, free {free} MB  t {now - t0:6.0f}s", flush=True)
 
-    ppo.train(env, eval_env=eval_env, wrap_env_fn=wrappers.wrap,
+    wrap = functools.partial(wrappers.wrap, obs_noise=args.obs_noise)
+    ppo.train(env, eval_env=eval_env, wrap_env_fn=wrap,
               episode_length=wrappers.episode_length(env), save_checkpoint_path=str(run),
               progress_fn=progress, **hp)
     print(f"saved {latest_checkpoint(run)}")

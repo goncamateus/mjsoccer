@@ -29,6 +29,11 @@ ends there (terminal) with reward and obs 0, and the auto-reset brings it back; 
 aborts inside the jit. `State.metrics` counts `diverged`, `overflow` and `reset_overlap`
 (0/1 per step); `check_failures` turns them into a host-side abort where one is wanted.
 
+`action_latency` N (default 0, off) delays each action by N control steps through
+`world["action_queue"]`, so the auto-reset puts the queue back with the rest of the world;
+observation noise is a training wrapper (`wrappers.wrap(obs_noise=)`). Neither is in the
+task-logic parity.
+
 Not yet: domain randomisation (ticket 14).
 """
 
@@ -195,7 +200,7 @@ class MjxEnv(Env):
 
     def __init__(self, horizon_s: float = 30.0, repeat_action: int = 1,
                  graph_mode: str = "WARP", randomize=None, nworld: int = 1,
-                 nacon_per_world: int | None = None) -> None:
+                 nacon_per_world: int | None = None, action_latency: int = 0) -> None:
         if randomize is not None:
             raise NotImplementedError("domain randomisation lands in ticket 14")
         if graph_mode not in GRAPH_MODES:
@@ -209,6 +214,9 @@ class MjxEnv(Env):
         self.kick_cooldown = cpu._kick_cooldown
         self.act_dim, self._obs_size = cpu.act_dim, cpu.observation_space.shape[0]
         cpu.close()
+        if action_latency < 0:
+            raise ValueError(f"action_latency={action_latency}; expected >= 0")
+        self.action_latency = int(action_latency)
         self.graph_mode = graph_mode
         self.nworld = int(nworld)
         n = len(self.robots)
@@ -282,7 +290,7 @@ class MjxEnv(Env):
         episode ends. `raw` (static): `step_raw`."""
 
         def control_step(s):
-            s = self.control(s, action, raw)
+            s = self.control(*self._delay(s, action, raw), raw)
             d = self.physics(s.pipeline_state, s.info["world"]["fired"].any())
             return self.settle(s.replace(pipeline_state=d))
 
@@ -317,6 +325,28 @@ class MjxEnv(Env):
 
         s, total = jax.lax.fori_loop(1, self.repeat_action, body, (s, s.reward))
         return self._first_decision(state, s.replace(reward=total))
+
+    def _delay(self, state: State, action: jax.Array, raw: bool) -> tuple[State, jax.Array]:
+        """Action latency: with `action_latency` N > 0 the action applied on this control
+        step is the one given N control steps ago, and this one joins the end of
+        `world["action_queue"]` (N, action_size). `raw` actions skip the queue."""
+        if not self.action_latency or raw:
+            return state, action
+        q = state.info["world"]["action_queue"]
+        world = {**state.info["world"], "action_queue": jnp.concatenate([q[1:], action[None]])}
+        return state.replace(info={**state.info, "world": world}), q[0]
+
+    def _hold_action(self, d: mjx.Data) -> jax.Array:
+        """The action that holds every controlled robot at its pose, plungers and
+        dribblers off: what the latency queue starts with, before any action arrives."""
+        a = []
+        for r in self.robots[: self.n_controlled]:
+            p, R = d.xpos[r.body], d.xmat[r.body]
+            th = jnp.arctan2(R[1, 0], R[0, 0])
+            pose = jnp.stack([p[0] / scene.FIELD_HALF_X, p[1] / scene.FIELD_HALF_Y,
+                              jnp.sin(th), jnp.cos(th)])
+            a.append(jnp.concatenate([pose, -jnp.ones(self.act_dim - 4, pose.dtype)]))
+        return jnp.concatenate(a).astype(jnp.float32)
 
     @staticmethod
     def _first_decision(before: State, after: State) -> State:
@@ -361,6 +391,8 @@ class MjxEnv(Env):
             **self.init_task(data),
         )
         world["grace"] = self._possession(data, world["grace"])
+        if self.action_latency:
+            world["action_queue"] = jnp.tile(self._hold_action(data), (self.action_latency, 1))
         zero = jnp.zeros(())
         return State(data, self._obs(data, world), zero, zero,
                      self._metrics(reset_overlap=overlap),
