@@ -215,6 +215,13 @@ def _robot_ids(model: mujoco.MjModel, prefix: str, team: str) -> RobotIds:
     )
 
 
+def _teams(n_blue: int, n_yellow: int) -> list[tuple[str, str]]:
+    """(team, prefix) per robot: the prefixes `build_spec` attaches and `build` resolves."""
+    return [("blue", f"b{i}_") for i in range(n_blue)] + [
+        ("yellow", f"y{i}_") for i in range(n_yellow)
+    ]
+
+
 @lru_cache(maxsize=8)
 def build(
     n_blue: int, n_yellow: int, possession_sensors: bool = True
@@ -229,6 +236,26 @@ def build(
     `possession_sensors=False` exists only to prove the sensors leave the physics alone;
     RobotIds needs them, so such a model comes back with no robots or ball resolved.
     """
+    model = build_spec(n_blue, n_yellow, possession_sensors).compile()
+    if not possession_sensors:
+        return model, (), None
+    teams = _teams(n_blue, n_yellow)
+    robots = tuple(_robot_ids(model, prefix, team) for team, prefix in teams)
+    body = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "ball")
+    geom = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "ball")
+    ball = BallIds(
+        body=body,
+        geom=geom,
+        qpos_adr=int(model.jnt_qposadr[model.body_jntadr[body]]),
+        qvel_adr=int(model.jnt_dofadr[model.body_jntadr[body]]),
+        radius=float(model.geom_size[geom][0]),
+    )
+    _check_field(model)
+    return model, robots, ball
+
+
+def build_spec(n_blue: int, n_yellow: int, possession_sensors: bool = True) -> mujoco.MjSpec:
+    """`build`'s MjSpec, before compiling (the mjlab backend attaches it whole). Fresh per call."""
     if n_blue < 1:
         raise ValueError("need at least one blue robot")
 
@@ -250,9 +277,7 @@ def build(
     assert ball_pairs, f"{SCENE} defines no ball contact pairs to replicate"
     spec.delete(spec.body("robot"))
 
-    teams = [("blue", f"b{i}_") for i in range(n_blue)] + [
-        ("yellow", f"y{i}_") for i in range(n_yellow)
-    ]
+    teams = _teams(n_blue, n_yellow)
     for i, (_, prefix) in enumerate(teams):
         child = mujoco.MjSpec.from_file(str(MODELS_DIR / ROBOT))
         frame = spec.worldbody.add_frame()
@@ -278,21 +303,7 @@ def build(
                 intprm=[1 << int(mujoco.mjtConDataField.mjCONDATA_FOUND), 0, 1],
             )
 
-    model = spec.compile()
-    if not possession_sensors:
-        return model, (), None
-    robots = tuple(_robot_ids(model, prefix, team) for team, prefix in teams)
-    body = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "ball")
-    geom = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "ball")
-    ball = BallIds(
-        body=body,
-        geom=geom,
-        qpos_adr=int(model.jnt_qposadr[model.body_jntadr[body]]),
-        qvel_adr=int(model.jnt_dofadr[model.body_jntadr[body]]),
-        radius=float(model.geom_size[geom][0]),
-    )
-    _check_field(model)
-    return model, robots, ball
+    return spec
 
 
 def _check_field(model: mujoco.MjModel) -> None:

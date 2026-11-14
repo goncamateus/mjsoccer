@@ -60,6 +60,16 @@ def test_steps_finite(env_id):
     env.close()
 
 
+def test_build_spec_compiles_to_build():
+    """`build_spec` is `build` before compiling: same model, a fresh spec every call."""
+    model, _, _ = S.build(2, 1)
+    spec = S.build_spec(2, 1)
+    assert spec is not S.build_spec(2, 1)
+    other = spec.compile()
+    for field in ("body_pos", "geom_size", "pair_friction", "actuator_gainprm", "sensor_type"):
+        np.testing.assert_array_equal(getattr(other, field), getattr(model, field), field)
+
+
 def test_ball_pairs_replicated():
     """Every robot must keep its own explicit ball contact pairs.
 

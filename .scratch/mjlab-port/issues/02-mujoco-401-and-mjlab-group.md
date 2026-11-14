@@ -6,11 +6,11 @@ Spec: [backend mjlab](../spec.md) — Fase 0, Dependências
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `mujoco`, `mujoco-mjx[warp]` em 4.0.1 (`mujoco-warp` 4.0.1, `warp-lang` 1.18.0)
-- [ ] Grupo `mjlab` resolve no mesmo `uv lock` que o `gpu`, sem `conflicts`; torch e JAX importam no mesmo processo
-- [ ] Construir o spec e compilar são passos separados; CPU e MJX inalterados
-- [ ] Suíte padrão verde, inclusive os testes do grupo `rl` com o torch novo
-- [ ] `-m validation` verde, inclusive paridade CPU↔MJX determinística, com seed e `hold_turn`, na 4.0.1
-- [ ] Se algum critério cair: parar e reportar antes de seguir
+- [x] `mujoco`, `mujoco-mjx[warp]` em 4.0.1 (`mujoco-warp` 4.0.1, `warp-lang` 1.18.0)
+- [x] Grupo `mjlab` resolve no mesmo `uv lock` que o `gpu`, sem `conflicts`; torch e JAX importam no mesmo processo
+- [x] Construir o spec e compilar são passos separados; CPU e MJX inalterados
+- [x] Suíte padrão verde, inclusive os testes do grupo `rl` com o torch novo
+- [x] `-m validation` verde, inclusive paridade CPU↔MJX determinística, com seed e `hold_turn`, na 4.0.1
+- [x] Se algum critério cair: parar e reportar antes de seguir
