@@ -6,7 +6,7 @@ Spec: [port GPU](../../gpu-port/spec.md)
 
 **Blocked by:** 05 (Critérios de aceitação do controlador de navegação), 11 (As quatro tasks restantes no MJX)
 
-**Status:** done (2 caixas abertas: posse no giro de 2 rad/s no MJX e `test_parity_seeded` instável — ver Comments)
+**Status:** needs-decision (2 caixas abertas: posse no giro de 2 rad/s no MJX e `test_parity_seeded` instável — ver Comments)
 
 - [x] `validation_sweep.py --backend mjx --seeds 0-4` roda e grava CSVs com coluna `backend`
 - [ ] Todos os critérios passam no MJX com os limiares da CPU — **todos menos o giro de 2 rad/s com a bola (ver Comments)**
