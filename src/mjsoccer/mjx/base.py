@@ -207,7 +207,7 @@ class MjxEnv(Env):
         ts = jnp.asarray(timestep, self.sys.opt.timestep.dtype)
         return mjx.step(self.sys.replace(opt=self.sys.opt.replace(timestep=ts)), data)
 
-    def physics(self, data: mjx.Data, fire: jax.Array | None = None,
+    def physics(self, data: mjx.Data, fire: jax.Array | None = None, *,
                 n: int | None = None) -> mjx.Data:
         """One control step on the `timesteps(fire)` schedule; with `fire` None, `n`
         (default `decimation`) plain steps at the model's dt."""
@@ -397,7 +397,7 @@ class MjxEnv(Env):
         qvel = d.qvel.at[dv : dv + 6].set(0.0).at[dv : dv + 2].set(-f[:2] * speed)
         d = mjx.forward(self.sys, d.replace(qpos=qpos, qvel=qvel))
         d = d.replace(ctrl=d.ctrl.at[r.dribble].set(scene.DRIBBLER_OMEGA))
-        return self.physics(d, round(settle / self.mj_model.opt.timestep))
+        return self.physics(d, n=round(settle / self.mj_model.opt.timestep))
 
     # ------------------------------------------------------ subclass surface
 
