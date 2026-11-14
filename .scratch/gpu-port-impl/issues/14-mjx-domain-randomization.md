@@ -61,4 +61,4 @@ Spec: [port GPU](../../gpu-port/spec.md)
     plana da época 2.
   - GoToBall, 2 048 mundos, DR: 3 épocas, GPU 5 176 MB plana da época 2 (nominal no 13: 5 156),
     ~1.1-1.7 k decisões/s com a GPU dividida com outro agente.
-- **Verificação**: ver o report do merge (`uv run pytest` com e sem `--group gpu`).
+- **Verificação** (`gpu-port-impl` já contido, merge sem mudanças): `uv sync --group gpu` + `systemd-run ... uv run pytest` 241 passed; `uv sync && uv run pytest` 98 passed, 5 skipped. Nenhum processo meu na GPU; nada de `runs/` no git.
