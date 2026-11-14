@@ -23,6 +23,16 @@ from mjsoccer.tasks import goto_ball_policy
 ENV_IDS = list(mjsoccer.ENV_IDS)
 
 
+def _hold(env, i=0):
+    """The action that keeps robot `i` on its current pose: no drive, no kick, bar off.
+    A zero action is a target pose too -- the centre spot facing +x."""
+    u = env.unwrapped
+    x, y, th = u.robots[i].pose(u.data)
+    a = np.zeros(u.action_space.shape, dtype=np.float32)
+    a[:4] = (x / S.FIELD_HALF_X, y / S.FIELD_HALF_Y, np.sin(th), np.cos(th))
+    return a
+
+
 @pytest.mark.parametrize("env_id", ENV_IDS)
 def test_gym_api(env_id):
     """Gymnasium's own conformance checker: spaces, seeding, reset/step contracts."""
@@ -197,7 +207,7 @@ def test_seated_ball_is_possessed(env_id, index, min_held):
 
     Measured over 8 seeds on the 1/960 s step with the calibrated ball bounce (ticket 21),
     holds() steps out of 120 idle ones: ContestedPossession 120, Dribbling 117, every seed
-    alike. The bar sits 5 % under the worst seed -- a ball that is actually dropped scores
+    alike; at 40 Hz with the navigation controller holding the reset pose, Dribbling 119. The bar sits 5 % under the worst seed -- a ball that is actually dropped scores
     near zero, so the margin is for seed noise only. On the old 2 ms step ContestedPossession scattered
     69-95 and looked chaotic; ticket 13 found it was the step under-resolving the
     ball/dribbler contact (120 at 0.5 ms, 87 at 2 ms, 0 at 4).
@@ -213,9 +223,9 @@ def test_seated_ball_is_possessed(env_id, index, min_held):
         assert 0.07 < local[0] < 0.12, f"seed {seed}: ball at x={local[0]:.3f} in robot frame"
         assert abs(local[1]) < 0.03, f"seed {seed}: ball off-centre by {local[1]:.3f} m"
 
-        # No drive, bar at half speed. a = 0.5 is 157 rad/s, the old affine map's neutral, so
-        # the numbers above survive ticket 08 making a = 0 mean off.
-        hold = np.zeros(env.action_space.shape, dtype=np.float32)
+        # Holding the pose, bar at half speed. a = 0.5 is 157 rad/s, the old affine map's
+        # neutral, so the numbers above survive ticket 08 making a = 0 mean off.
+        hold = _hold(env, index)
         hold[-1] = 0.5
         held = sum(int(env.holds(index)) for _ in range(120) if env.step(hold) or True)
         assert held >= min_held, f"seed {seed}: carried only {held}/120 idle steps"
@@ -228,8 +238,10 @@ def test_seated_ball_survives_a_2_rad_s_turn():
     Ticket 22: with the old ball<->bar solref "0.004 0.5" -- ~10x stiffer than the PU 65A
     sleeve and underdamped -- the bar hammered the ball (normal force p10/p90 0.44/11 N, in
     contact on 83 % of substeps) and a 2 rad/s turn kept it 13-14 of 120 steps. The PU 65A
-    solref "0.008 1" keeps it 81, worst of seeds 0-2; the bar sits 5 % under that. 3 rad/s
-    still drops it -- an open fidelity gap, not a target.
+    solref "0.008 1" keeps it 81, worst of seeds 0-2, at 60 Hz. At the fixed 40 Hz (ticket
+    04: 120 control steps are now 3 s) it keeps 78 on every seed; the bar sits 5 % under. 3 rad/s
+    still drops it -- an open fidelity gap, not a target. Raw velocity path: a constant spin
+    is an envelope command, not a target pose.
     """
     from mjsoccer.base import MAX_W
 
@@ -238,9 +250,9 @@ def test_seated_ball_survives_a_2_rad_s_turn():
         env.reset(seed=seed)
         held = 0
         for _ in range(120):
-            env.step(np.array([0.0, 0.0, 2.0 / MAX_W, 0.0, 0.0, 1.0], dtype=np.float32))
+            env.step_raw(np.array([0.0, 0.0, 2.0 / MAX_W, 0.0, 0.0, 1.0]))
             held += env.holds(0)
-        assert held >= 77, f"seed {seed}: held {held}/120 steps of a 2 rad/s turn"
+        assert held >= 74, f"seed {seed}: held {held}/120 steps of a 2 rad/s turn"
     env.close()
 
 
@@ -253,7 +265,8 @@ def test_goto_ball_is_solvable():
 
     It fails by shoving the ball out of the field, and which seeds do that is chaotic in
     the contact: 53/60 seeds both at 2 ms and at 1/960 s (ticket 13), so 18/20 sat on a
-    lucky window and the bar is 16.
+    lucky window and the bar is 16. Through the navigation controller (ticket 04, target =
+    ball, heading = robot->ball) it reaches 20/20.
     """
     env = gym.make("GoToBall-v0")
     wins, returns = 0, []
@@ -262,7 +275,7 @@ def test_goto_ball_is_solvable():
         total = 0.0
         while True:
             action = np.zeros(env.action_space.shape, dtype=np.float32)
-            action[:3] = goto_ball_policy(obs)
+            action[:4] = goto_ball_policy(obs)
             obs, reward, terminated, truncated, info = env.step(action)
             total += reward
             if terminated or truncated:
@@ -346,8 +359,9 @@ def test_pass_endurance_ends_a_ball_left_sitting():
     """A ball whose distance to the receiver stays put for 21 steps is a wrong ball, -1."""
     env = gym.make("PassEndurance-v0")
     env.reset(seed=0)
+    hold = _hold(env)
     for n in range(1, 100):
-        _, reward, terminated, _, _ = env.step(np.zeros(env.action_space.shape, np.float32))
+        _, reward, terminated, _, _ = env.step(hold)
         if terminated:
             break
     assert n == 21 and reward == pytest.approx(-1.0, abs=0.01), (n, reward)
@@ -422,38 +436,40 @@ def test_dribbler_neutral_is_off(a, omega):
 
 @pytest.mark.parametrize("plunger", (0, 1), ids=("kick", "chip"))
 @pytest.mark.parametrize("a", (0.25, 0.5, 0.75, 1.0))
-@pytest.mark.parametrize("control_hz,tol", [(40, 0.1), (60, 0.3)])
-def test_kick_exit_speed(plunger, a, control_hz, tol):
+def test_kick_exit_speed(plunger, a):
     """Ticket 09: a in (0, 1] asks for 6.5 * a m/s, the §8.4.2 cap at a = 1.
 
     Seated and settled ball, robot standing, dribbler off -- the conditions the table is
     calibrated in. Peak 3-D ball speed over 31 control steps. The stock 2 ms step left this at
     7.06 m/s and wandered +-35 % with force, which is what the 6.5 bound catches. The table is
-    measured at 40 Hz (GPU port, Fase 0), so it holds tight there; 60 Hz only shares the
-    first 8.3 ms of fine steps and gets the looser ticket-09 bound.
+    measured at 40 Hz (GPU port, Fase 0), so it holds to 0.1 m/s.
+
+    Through the raw velocity path, servos held at zero: "standing" is the calibration
+    condition. Held by the navigation controller instead, its +-0.1 m/s chatter at the
+    target (no position deadband) jiggles the chassis at ~5 cm/s and a = 1 leaves at 6.37.
     """
-    env = gym.make("Dribbling-v0", control_hz=control_hz).unwrapped
+    env = gym.make("Dribbling-v0").unwrapped
     env.reset(seed=0)
-    action = np.zeros(env.action_space.shape, dtype=np.float32)
+    action = np.zeros(6)  # (vx, vy, omega, kick, chip, dribble)
     for _ in range(30):  # let the seated ball settle, as calibrate.py does
-        env.step(action)
-    action[env.drive_dim + plunger] = a
+        env.step_raw(action)
+    action[3 + plunger] = a
     best = 0.0
     for _ in range(31):
-        env.step(action)
-        action[env.drive_dim + plunger] = 0.0
+        env.step_raw(action)
+        action[3 + plunger] = 0.0
         best = max(best, float(np.linalg.norm(env.ball.vel(env.data))))
     env.close()
-    assert best == pytest.approx(S.KICK_SPEED_MAX * a, abs=tol)
+    assert best == pytest.approx(S.KICK_SPEED_MAX * a, abs=0.1)
 
 
 def test_firing_step_is_48_iterations_over_one_control_step(monkeypatch):
     """K = 32 (GPU port, Fase 0): the step a plunger fires on runs 32 physics steps at
     dt / 4 and then 16 at dt -- 48 iterations instead of 96 -- and still lasts the 25 ms
     of a 40 Hz control step, so the clock never drifts."""
-    env = gym.make("Dribbling-v0", control_hz=40).unwrapped
+    env = gym.make("Dribbling-v0").unwrapped
     env.reset(seed=0)
-    action = np.zeros(env.action_space.shape, dtype=np.float32)
+    action = _hold(env)
     env.step(action)
     steps = []
     real_step = mujoco.mj_step
@@ -476,7 +492,7 @@ def test_kick_neutral_never_fires(a):
     neither plunger leaves its seat and the ball stays in the mouth."""
     env = gym.make("Dribbling-v0").unwrapped
     env.reset(seed=0)
-    action = np.zeros(env.action_space.shape, dtype=np.float32)
+    action = _hold(env)
     action[env.drive_dim : env.drive_dim + 2] = a
     action[-1] = 0.5  # dribble, or the seated ball drifts out with no kick at all (08)
     for _ in range(30):
@@ -537,10 +553,90 @@ def test_no_buried_collision_hulls():
 
 @pytest.mark.parametrize("env_id", ENV_IDS)
 def test_action_space_is_uniform(env_id):
-    """Every robot exposes drive + kick + chip + dribble, so an action head transfers."""
+    """Every robot takes a target pose + kick + chip + dribble, so an action head transfers:
+    (x, y, sin, cos, kick, chip, dribble)."""
     env = gym.make(env_id)
-    assert env.action_space.shape == (6,)
+    assert env.action_space.shape == (7,)
     env.close()
+
+
+def _pose_action(x, y, theta):
+    a = np.zeros(7, dtype=np.float32)
+    a[:4] = (x / S.FIELD_HALF_X, y / S.FIELD_HALF_Y, np.sin(theta), np.cos(theta))
+    return a
+
+
+def test_controller_takes_the_robot_to_the_target_pose():
+    """x, y scale by the half field and the heading is atan2(sin, cos); the navigation
+    controller gets there and stays, inside the +-0.1 m/s chatter it has at the target."""
+    env = gym.make("GoToBallShoot-v0").unwrapped
+    env.reset(seed=0)
+    _put(env, 0, -1.0, -1.0, 0.0)
+    a = _pose_action(1.5, 0.5, 2.0)
+    for _ in range(200):  # 5 s
+        env.step(a)
+    x, y, th = env.robots[0].pose(env.data)
+    env.close()
+    assert np.hypot(x - 1.5, y - 0.5) < 0.05, (x, y)
+    assert abs(np.angle(np.exp(1j * (th - 2.0)))) < np.deg2rad(3.0), th
+
+
+def test_pass_endurance_passer_only_turns():
+    """x, y of the action are ignored: the passer turns to the heading and stays put."""
+    env = gym.make("PassEndurance-v0").unwrapped
+    env.reset(seed=0)
+    x0, y0, th0 = env.robots[0].pose(env.data)
+    a = _pose_action(-3.0, 3.0, th0 + 1.0)
+    for _ in range(80):  # omega = 2 * error: the error decays as exp(-2 t)
+        env.step(a)
+    x, y, th = env.robots[0].pose(env.data)
+    env.close()
+    assert np.hypot(x - x0, y - y0) < 0.01
+    assert abs(np.angle(np.exp(1j * (th - th0 - 1.0)))) < np.deg2rad(3.0)
+
+
+def test_control_step_is_25_ms():
+    env = gym.make("GoToBall-v0").unwrapped
+    assert env.decimation == 24 and env.dt == pytest.approx(0.025, rel=1e-12)
+    env.close()
+
+
+def test_control_hz_is_gone():
+    with pytest.raises(TypeError):
+        gym.make("GoToBall-v0", control_hz=60)
+
+
+def test_repeat_action_holds_a_decision_for_n_control_steps():
+    """One decision with repeat_action=3 is three control steps of the controller: the
+    same state as three steps of the same action, and the shaping rewards summed."""
+    one = gym.make("GoToBallShoot-v0").unwrapped
+    three = gym.make("GoToBallShoot-v0", repeat_action=3).unwrapped
+    a = _pose_action(2.0, 1.0, 1.0)
+    one.reset(seed=3)
+    three.reset(seed=3)
+    total = sum(one.step(a)[1] for _ in range(3))
+    obs, reward, *_ = three.step(a)
+    np.testing.assert_array_equal(one.data.qpos, three.data.qpos)
+    np.testing.assert_array_equal(obs, one._obs())
+    assert reward == pytest.approx(total, rel=1e-12)
+    assert (one.steps, three.steps) == (3, 3)
+    assert three.metadata["render_fps"] == 13  # decisions per second, rounded
+    one.close()
+    three.close()
+
+
+def test_raw_velocity_path_bypasses_the_controller():
+    """The envelope tests drive (vx, vy, omega) straight into the servos, body frame,
+    scaled by ctrlrange -- outside the action space."""
+    from mjsoccer.base import MAX_V, MAX_W
+
+    env = gym.make("GoToBallShoot-v0").unwrapped
+    env.reset(seed=0)
+    _put(env, 0, 0.0, 0.0, np.pi / 2)
+    env.step_raw(np.array([0.5, 0.0, 0.25, 0.0, 0.0, 0.0]))
+    ctrl = env.data.ctrl[list(env.robots[0].drive)]
+    env.close()
+    np.testing.assert_allclose(ctrl, (0.0, 0.5 * MAX_V, 0.25 * MAX_W), atol=1e-9)
 
 
 def test_ball_height_is_above_the_carpet():
@@ -637,27 +733,19 @@ def test_chassis_has_the_hardware_envelope():
 
 # Seconds are the contract (ticket 13): horizons, the kick lock and the possession grace
 # are declared in seconds and converted. These literals are what that conversion gives at
-# the default 60 Hz, so a change of dt or control rate fails here instead of silently
-# changing every episode length and every reward's rate per second.
+# the fixed 40 Hz control step, so a change of dt or control rate fails here instead of
+# silently changing every episode length and every reward's rate per second.
 @pytest.mark.parametrize(
     "env_id,steps",
-    [("GoToBall-v0", 1800), ("GoToBallShoot-v0", 3600), ("Dribbling-v0", 7200),
-     ("StaticDefenders-v0", 1500), ("ContestedPossession-v0", 1800), ("PassEndurance-v0", 1800)],
+    [("GoToBall-v0", 1200), ("GoToBallShoot-v0", 2400), ("Dribbling-v0", 4800),
+     ("StaticDefenders-v0", 1000), ("ContestedPossession-v0", 1200), ("PassEndurance-v0", 1200)],
 )
-def test_horizon_is_seconds_at_exactly_60_hz(env_id, steps):
+def test_horizon_is_seconds_at_exactly_40_hz(env_id, steps):
     env = gym.make(env_id).unwrapped
-    assert env.dt == pytest.approx(1 / 60, rel=1e-12)
+    assert env.dt == pytest.approx(1 / 40, rel=1e-12)
     assert env.max_steps == steps
-    assert env.metadata["render_fps"] == 60
+    assert env.metadata["render_fps"] == 40
     env.close()
-
-
-def test_unreachable_control_rate_raises():
-    """The control rate is exact or refused, never rounded to a neighbour (ticket 13): 50 Hz
-    is 19.2 physics steps of 1/960 s."""
-    with pytest.raises(ValueError, match="control_hz"):
-        gym.make("GoToBall-v0", control_hz=50)
-    assert gym.make("GoToBall-v0", control_hz=120).unwrapped.decimation == 8
 
 
 if __name__ == "__main__":

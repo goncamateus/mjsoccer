@@ -16,7 +16,7 @@ uv sync
 import gymnasium as gym
 import mjsoccer                                  # registers the ids
 
-env = gym.make("GoToBall-v0")                    # action (6,)
+env = gym.make("GoToBall-v0")                    # action (7,)
 obs, info = env.reset(seed=0)
 obs, reward, terminated, truncated, info = env.step(env.action_space.sample())
 ```
@@ -25,15 +25,17 @@ obs, reward, terminated, truncated, info = env.step(env.action_space.sample())
 
 | id | robots | obs | action | horizon | ends on |
 |---|---|---|---|---|---|
-| [`GoToBall-v0`](docs/environments/go_to_ball.md) | 1 blue | 14 | 6 | 20 s | at the ball, pointing at it |
-| [`GoToBallShoot-v0`](docs/environments/go_to_ball_shoot.md) | 1 blue | 14 | 6 | 30 s | ball in the +x goal |
-| [`Dribbling-v0`](docs/environments/dribbling.md) | 1 blue | 16 | 6 | 40 s | 4 waypoints carried, or ball lost for 2 s |
-| [`StaticDefenders-v0`](docs/environments/static_defenders.md) | 1 blue + 6 yellow | 62 | 6 | 30 s | ball in the +x goal |
-| [`ContestedPossession-v0`](docs/environments/contested_possession.md) | 1 blue + 1 yellow | 22 | 6 | 20 s | blue holds the ball 0.5 s |
-| [`PassEndurance-v0`](docs/environments/pass_endurance.md) | 2 blue (1 controlled) | 22 | 6 | 20 s | team-mate receives the pass |
+| [`GoToBall-v0`](docs/environments/go_to_ball.md) | 1 blue | 14 | 7 | 20 s | at the ball, pointing at it |
+| [`GoToBallShoot-v0`](docs/environments/go_to_ball_shoot.md) | 1 blue | 14 | 7 | 30 s | ball in the +x goal |
+| [`Dribbling-v0`](docs/environments/dribbling.md) | 1 blue | 16 | 7 | 40 s | 4 waypoints carried, or ball lost for 2 s |
+| [`StaticDefenders-v0`](docs/environments/static_defenders.md) | 1 blue + 6 yellow | 62 | 7 | 30 s | ball in the +x goal |
+| [`ContestedPossession-v0`](docs/environments/contested_possession.md) | 1 blue + 1 yellow | 22 | 7 | 20 s | blue holds the ball 0.5 s |
+| [`PassEndurance-v0`](docs/environments/pass_endurance.md) | 2 blue (1 controlled) | 22 | 7 | 20 s | team-mate receives the pass |
 
-Every environment exposes the same per-robot action — drive, kick, chip, dribble — whether
-or not its reward uses it, so one action head transfers across all six.
+Every environment exposes the same per-robot action — a target pose `(x, y, sin θ, cos θ)`
+plus kick, chip, dribble — whether or not its reward uses it, so one action head transfers
+across all six. The navigation controller (Planning-the-path-with-rl's `go_to_point_new`)
+turns the pose into a chassis velocity every 25 ms control step.
 
 ## Physics
 

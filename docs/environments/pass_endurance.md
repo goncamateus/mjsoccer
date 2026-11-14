@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Action Space | `Box(-1.0, 1.0, (6,), float32)` |
+| Action Space | `Box(-1.0, 1.0, (7,), float32)` |
 | Observation Space | `Box((22,), float32)`, bounded per row below |
 | import | `gym.make("PassEndurance-v0")` |
 
@@ -20,20 +20,23 @@ The action space is still the shared one; the env reduces the passer's drive to 
 
 ## Action Space
 
-The action is a `Box(-1, 1, (6,), float32)` and drives the passer
+The action is a `Box(-1, 1, (7,), float32)` and drives the passer
 only. The team-mate is scripted and never appears in the action, which is why the action is
-6 wide even though the model contains two robots.
+7 wide even though the model contains two robots.
 
 | Num | Action | Min | Max | Unit |
 |---|---|---|---|---|
-| 0 | body-frame forward velocity (`vel_x`) | -3.3 | 3.3 | m/s |
-| 1 | body-frame lateral velocity (`vel_y`) | -3.3 | 3.3 | m/s |
-| 2 | yaw rate (`vel_yaw`) | -37.1 | 37.1 | rad/s |
-| 3 | kicker plunger force (`kicker_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
-| 4 | chipper plunger force (`chipper_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
-| 5 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
+| 0 | target x | -6.0 | 6.0 | m, `a * 6.0` (`FIELD_HALF_X`) |
+| 1 | target y | -4.5 | 4.5 | m, `a * 4.5` (`FIELD_HALF_Y`) |
+| 2 | sin of the target heading | -1 | 1 | heading `atan2(a_2, a_3)` |
+| 3 | cos of the target heading | -1 | 1 | |
+| 4 | kicker plunger force (`kicker_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
+| 5 | chipper plunger force (`chipper_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
+| 6 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
 
-The kicker — row 3 — is the natural control for this task, and it
+The passer cannot translate: the navigation controller runs whole and then its `vx, vy` go
+to 0, so rows 0 and 1 are ignored and only the heading (rows 2-3) turns it.
+The kicker — row 4 — is the natural control for this task, and it
 asks for a speed: `a in (0, 1]` sends the ball out at `6.5 * a` m/s, so pass strength is
 the action, and `a <= 0` does not kick. Each shot locks that plunger out for 250 ms. The chipper is the alternative over an obstacle, though there
 are no obstacles here. See [the action space contract](../index.md#action-space).
@@ -106,14 +109,13 @@ over `[-1.5, 1.5]` redrawn until it is at least 1 m from the ball's `x`, facing 
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**30 s**, rSoccer's: **1200 steps** at the 40 Hz (0.025 s) the agents act at, rSoccer's step,
-and 1800 at the default `control_hz=60`.
+**30 s**, rSoccer's: **1200 control steps** at the fixed 40 Hz (0.025 s), rSoccer's step.
 
 ## Arguments
 
 | parameter | type | default | description |
 |---|---|---|---|
-| `control_hz` | `int` | `60` | control rate, exact: it must divide the 960 Hz physics rate (30, 60, 120, ...), or the env raises `ValueError` |
+| `repeat_action` | `int` | `1` | control steps (25 ms each, fixed 40 Hz) one decision is held for |
 | `horizon_s` | `float` | `30.0` | truncation horizon, in seconds |
 | `render_mode` | `str \| None` | `None` | `"human"` or `"rgb_array"` |
 
@@ -121,7 +123,7 @@ and 1800 at the default `control_hz=60`.
 import gymnasium as gym
 import mjsoccer
 
-env = gym.make("PassEndurance-v0", control_hz=60, horizon_s=30.0, render_mode="rgb_array")
+env = gym.make("PassEndurance-v0", horizon_s=30.0, render_mode="rgb_array")
 ```
 
 `n_blue` (2) is a class attribute on `PassEnduranceEnv`, not a `gym.make` keyword — it

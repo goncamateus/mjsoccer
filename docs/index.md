@@ -44,12 +44,12 @@ per-episode, summary, contact-impulse and throughput CSVs; its docstring lists t
 
 | id | robots | obs dim | action dim | horizon (s) | terminates on |
 |---|---|---|---|---|---|
-| [`GoToBall-v0`](environments/go_to_ball.md) | 1 blue + 6 yellow | 62 | 6 | 30 | within 0.2 m of the ball (+1) |
-| [`GoToBallShoot-v0`](environments/go_to_ball_shoot.md) | 1 blue | 14 | 6 | 60 | goal (+5); robot or ball leaves the attacking half, robot in the penalty area |
-| [`Dribbling-v0`](environments/dribbling.md) | 1 blue + 4 yellow | 47 | 6 | 120 | 7 zigzag checkpoints (+1 each); robot off the course, a yellow robot moved |
-| [`StaticDefenders-v0`](environments/static_defenders.md) | 1 blue + 6 yellow | 62 | 6 | 25 | as GoToBallShoot |
-| [`ContestedPossession-v0`](environments/contested_possession.md) | 1 blue + 1 yellow | 22 | 6 | 30 | as GoToBallShoot, or the yellow robot shoved over 0.1 m/s |
-| [`PassEndurance-v0`](environments/pass_endurance.md) | 2 blue (1 controlled) | 22 | 6 | 30 | team-mate receives the pass (+1); wrong ball (-1) |
+| [`GoToBall-v0`](environments/go_to_ball.md) | 1 blue + 6 yellow | 62 | 7 | 30 | within 0.2 m of the ball (+1) |
+| [`GoToBallShoot-v0`](environments/go_to_ball_shoot.md) | 1 blue | 14 | 7 | 60 | goal (+5); robot or ball leaves the attacking half, robot in the penalty area |
+| [`Dribbling-v0`](environments/dribbling.md) | 1 blue + 4 yellow | 47 | 7 | 120 | 7 zigzag checkpoints (+1 each); robot off the course, a yellow robot moved |
+| [`StaticDefenders-v0`](environments/static_defenders.md) | 1 blue + 6 yellow | 62 | 7 | 25 | as GoToBallShoot |
+| [`ContestedPossession-v0`](environments/contested_possession.md) | 1 blue + 1 yellow | 22 | 7 | 30 | as GoToBallShoot, or the yellow robot shoved over 0.1 m/s |
+| [`PassEndurance-v0`](environments/pass_endurance.md) | 2 blue (1 controlled) | 22 | 7 | 30 | team-mate receives the pass (+1); wrong ball (-1) |
 
 Rewards, endings and reset layouts are robocin/rSoccer's, ported task by task on our Div A
 field (each env page says what could not be literal). Every environment truncates at its
@@ -65,28 +65,48 @@ never appear in the action; they are driven inside the task's `_script`.
 The per-robot slice is identical in every environment:
 
 ```
-vx, vy, omega         body-frame velocity vector V   (3)
+x, y, sin θ, cos θ    target pose                    (4)
 kick, chip, dribble                                  (3)
 ```
 
-so `act_dim` is 6 for all six environments, with `kick`, `chip` and `dribble` at indices 3,
-4 and 5. Every robot always exposes
+so `act_dim` is 7 for all six environments, with `kick`, `chip` and `dribble` at indices 4,
+5 and 6. Every robot always exposes
 every control it physically has. A task that does not care about one simply does not reward
 it, which is what keeps a single action head transferable across the suite.
 
-| control | actuator | ctrlrange | commanded |
-|---|---|---|---|
-| `vx` | `vel_x` | -3.3 .. 3.3 m/s, ±3.51 N | `a * 3.3` |
-| `vy` | `vel_y` | -3.3 .. 3.3 m/s, ±3.51 N | `a * 3.3` |
-| `omega` | `vel_yaw` | -37.1 .. 37.1 rad/s, ±0.526 N·m | `a * 37.1` |
-| `kick` | `kicker_force` | 0 .. 500 N | pulse for `6.5 * a` m/s if `a > 0` |
-| `chip` | `chipper_force` | 0 .. 500 N | pulse for `6.5 * a` m/s if `a > 0` |
-| `dribble` | `dribbler_vel` | -1500 .. 1500 rad/s | `314 * max(a, 0)` |
+| control | commanded |
+|---|---|
+| `x`, `y` | target position `(6.0 a_x, 4.5 a_y)` m, target velocity 0 |
+| `sin θ`, `cos θ` | target heading `atan2(a_sin, a_cos)` |
+| `kick` | `kicker_force` (0 .. 500 N): pulse for `6.5 * a` m/s if `a > 0` |
+| `chip` | `chipper_force` (0 .. 500 N): pulse for `6.5 * a` m/s if `a > 0` |
+| `dribble` | `dribbler_vel` (-1500 .. 1500 rad/s): `314 * max(a, 0)` |
 
-Everything is in `[-1, 1]` and scaled by the actuator's own `ctrlrange`, so the bounds come
-from the model rather than from a constant in the Python. The drive scale is
-`max(hi, -lo)` over the actuator's range, which is symmetric, so a zero action is a zero
-command rather than the midpoint of the range.
+A zero action is a target pose too: the centre spot, facing +x.
+
+**Navigation controller.** Every control step, `navigation.go_to_point` -- the
+`go_to_point_new` of Planning-the-path-with-rl (commit `2287531`), ported as a pure
+function -- turns the target pose into a body-frame `vx, vy, omega` from the robot's own
+joint state (`qpos`/`qvel` of `robot_x/y/yaw`, not the observation). Its quirks are kept
+verbatim: it adds `MAX_DV = 0.1` m/s per step to the *measured* velocity (the servo, at
+1.30 m/s², is what really limits acceleration), plans braking at 1 m/s², has no position
+deadband (±0.1 m/s chatter at the target), a 2.5° heading deadzone and `omega = 2 Δθ` with
+no limit of its own. `max_velocity` is the 3.3 m/s envelope, per axis in the frame rotated
+onto the robot→target line. Only the controlled robots go through it; scripted ones are
+driven in `_script`. In PassEndurance the controller runs whole and then `vx, vy` go to 0:
+the passer only turns, and `x, y` of the action mean nothing.
+
+The chassis servos it drives:
+
+| servo | actuator | ctrlrange |
+|---|---|---|
+| `vx` | `vel_x` | -3.3 .. 3.3 m/s, ±3.51 N |
+| `vy` | `vel_y` | -3.3 .. 3.3 m/s, ±3.51 N |
+| `omega` | `vel_yaw` | -37.1 .. 37.1 rad/s, ±0.526 N·m |
+
+`BaseEnv.step_raw` is an internal path outside the action space, for the envelope tests:
+its slice is `(vx, vy, omega, kick, chip, dribble)`, the drive scaled by `ctrlrange` and
+written straight to the servos.
 
 **Hardware wheel geometry.** The chassis has no wheels to command, but its envelope is
 derived from the real robot's four omni-wheels, mounted at `a_i = 60, 135, 225, 300` deg from
@@ -111,7 +131,7 @@ drive** on a ~60 mm wheel — the CAD's hubs are `Direct_Transmission_*`, and rS
 | speed | **3.30** m/s | **4.04** m/s | **37.1** rad/s | wheel speed through the matrix; yaw about the CoM, 3.45 mm behind the wheel centre (35.9 about the centre) |
 
 **Body frame.** SSL firmware is commanded in the *body* frame, but the chassis joints are
-*world*-axis slides, so `base._drive_robot` rotates the `vx, vy, omega` command through the
+*world*-axis slides, so `base._drive_robot` rotates the controller's `vx, vy, omega` command through the
 chassis orientation before writing it. A diagonal command can therefore ask for
 `3.3 * sqrt(2)` on one world axis; MuJoCo clamps it to `ctrlrange`, exactly as a real servo
 would.
@@ -396,23 +416,23 @@ twitching at random. `pillow` is a dev-only dependency and nothing in `mjsoccer`
 
 ## Timing
 
-The physics step is 1/960 s (~1.04 ms) and the default `control_hz=60` is exact:
-`decimation = 16`, `dt = 1/60` s. A `control_hz` that is not a whole number of physics steps
-(anything that does not divide 960 Hz: 50, 62.5, ...) raises `ValueError` instead of being
-rounded to a neighbour. Every step count quoted in these docs is at 60 Hz:
-`max_steps = round(horizon_s / dt)`.
+The physics step is 1/960 s (~1.04 ms) and the control step is a fixed 25 ms (40 Hz,
+`decimation = 24`, `dt = 0.025` s), rSoccer's step and the rate the navigation controller
+was written for. Every step count quoted in these docs is in control steps:
+`max_steps = round(horizon_s / dt)`. A policy decides every `repeat_action` control steps
+(kwarg, default 1); one `step` call is one decision, its rewards summed over the control
+steps and cut short when the episode ends.
 
-**What the two rates mean.** The control step is the *policy's* decision rate, the ~60 Hz at
-which SSL vision feeds the AI. The 16 physics steps inside it stand for the firmware and the
-integration: the chassis velocity servos act on every one of them. So `control_hz`
-is a fidelity setting (how often the policy decides), and the timestep is a resolution
-setting.
+**What the rates mean.** The control step is the controller's and the firmware's tick; the
+decision (`repeat_action` control steps) is the policy's rate. The 24 physics steps inside a
+control step stand for the integration: the chassis velocity servos act on every one of
+them. So `repeat_action` is a policy setting, and the timestep is a resolution setting.
 
 **Seconds are the contract.** Horizons, the 250 ms plunger lock and the 50 ms possession
-grace are declared in seconds and converted, so episodes last the same physical time at any
-rate. Per-step rewards are rSoccer's, per control step, and match it exactly at 40 Hz. Horizons are rSoccer's (robocin/rSoccer), and the
-example agents act every 0.025 s (`control_hz=40`, decimation 24) as rSoccer does. `test_horizon_is_seconds_at_exactly_60_hz` pins
-each env's step count, so a change of rate is never silent.
+grace are declared in seconds and converted. Per-step rewards are rSoccer's, per control
+step, and match it at 40 Hz. Horizons are rSoccer's (robocin/rSoccer).
+`test_horizon_is_seconds_at_exactly_40_hz` pins each env's step count, so a change of rate
+is never silent.
 
 **Why 1/960 s.** The contact time constants are 4-6 ms (`solref`), and 2 ms resolved them in
 two steps. Measured against a 0.25 ms reference, 2 ms carried 11-24 % errors in possession

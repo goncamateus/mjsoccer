@@ -44,10 +44,10 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--env", default="GoToBall-v0")
     ap.add_argument(
-        "--control-hz",
+        "--repeat-action",
         type=int,
-        default=40,
-        help="policy rate, Hz; 40 acts every 0.025 s as rSoccer does",
+        default=1,
+        help="control steps (25 ms each) per decision; 1 acts every 0.025 s as rSoccer does",
     )
     ap.add_argument(
         "--gradient-steps",
@@ -76,7 +76,7 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     if args.play:
-        env = gym.make(args.env, control_hz=args.control_hz, render_mode="human")
+        env = gym.make(args.env, repeat_action=args.repeat_action, render_mode="human")
         model = SAC.load(args.play)
         obs, _ = env.reset(seed=args.seed)
         while True:
@@ -93,7 +93,7 @@ def main(argv=None) -> int:
         args.env,
         n_envs=args.n_envs,
         seed=args.seed,
-        env_kwargs={"control_hz": args.control_hz},
+        env_kwargs={"repeat_action": args.repeat_action},
     )
     model = SAC(
         "MlpPolicy",

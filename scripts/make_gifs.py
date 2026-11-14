@@ -75,19 +75,20 @@ def _demo_action(env, obs: np.ndarray, target, kick: bool) -> np.ndarray:
     a = np.zeros(env.action_space.shape, dtype=np.float32)
     a[-1] = 1.0  # dribbler on; a spinning bar is what holds the ball on the way in
     if target is None:
-        a[:3] = goto_ball_policy(obs)
+        a[:4] = goto_ball_policy(obs)
         return a
 
     ball = env.ball.pos(env.data)[:2]
     x, y, th = env.robots[0].pose(env.data)
     to_target = target - ball
     behind = ball - to_target / max(float(np.linalg.norm(to_target)), 1e-9) * 0.09
-    err = behind - np.array([x, y])
-    c, s = np.cos(th), np.sin(th)
-    # Actions are body-frame (see base._drive_robot), so rotate the world error into it.
-    a[0], a[1] = np.clip(2.0 * np.array([c * err[0] + s * err[1], -s * err[0] + c * err[1]]), -1, 1)
-    face = (np.arctan2(target[1] - y, target[0] - x) - th + np.pi) % (2 * np.pi) - np.pi
-    a[2] = float(np.clip(1.5 * face, -1.0, 1.0))
+    heading = np.arctan2(target[1] - y, target[0] - x)
+    # A target pose (see base): the navigation controller does the driving.
+    a[:4] = np.clip(
+        (behind[0] / S.FIELD_HALF_X, behind[1] / S.FIELD_HALF_Y, np.sin(heading), np.cos(heading)),
+        -1.0, 1.0,
+    )
+    face = (heading - th + np.pi) % (2 * np.pi) - np.pi
     # Fire only with the ball actually in the mouth and squarely lined up. Kicking on
     # proximity alone punts whatever the robot happens to be facing, and a clip of a robot
     # booting the ball off the pitch documents the task worse than one that never shoots.
@@ -221,8 +222,8 @@ def main(argv=None) -> int:
         scale = args.wide_scale if env_id in WIDE else 1.0
         renderer = mujoco.Renderer(env.model, round(args.height * scale), round(args.width * scale))
         try:
-            control_hz = env.metadata.get("render_fps") or round(1.0 / env.dt)
-            every = max(1, round(control_hz / args.fps))  # keeps playback at real time
+            decision_hz = env.metadata.get("render_fps") or round(1.0 / env.dt)
+            every = max(1, round(decision_hz / args.fps))  # keeps playback at real time
             frames = _grab_frames(
                 env,
                 renderer,

@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Action Space | `Box(-1.0, 1.0, (6,), float32)` |
+| Action Space | `Box(-1.0, 1.0, (7,), float32)` |
 | Observation Space | `Box((47,), float32)`, bounded per row below |
 | import | `gym.make("Dribbling-v0")` |
 
@@ -21,24 +21,25 @@ weaving makes the robot turn with the ball.
 
 ## Action Space
 
-The action is a `Box(-1, 1, (6,), float32)`. Every element is
-normalised and scaled internally by the actuator's own `ctrlrange`, so the physical bounds
-below come from the model, not from a constant in the environment.
+The action is a `Box(-1, 1, (7,), float32)`. Every element is
+normalised: the target pose is scaled by the half field, and kick, chip and dribble by
+their actuators' own `ctrlrange`.
 
 | Num | Action | Min | Max | Unit |
 |---|---|---|---|---|
-| 0 | body-frame forward velocity (`vel_x`) | -3.3 | 3.3 | m/s |
-| 1 | body-frame lateral velocity (`vel_y`) | -3.3 | 3.3 | m/s |
-| 2 | yaw rate (`vel_yaw`) | -37.1 | 37.1 | rad/s |
-| 3 | kicker plunger force (`kicker_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
-| 4 | chipper plunger force (`chipper_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
-| 5 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
+| 0 | target x | -6.0 | 6.0 | m, `a * 6.0` (`FIELD_HALF_X`) |
+| 1 | target y | -4.5 | 4.5 | m, `a * 4.5` (`FIELD_HALF_Y`) |
+| 2 | sin of the target heading | -1 | 1 | heading `atan2(a_2, a_3)` |
+| 3 | cos of the target heading | -1 | 1 | |
+| 4 | kicker plunger force (`kicker_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
+| 5 | chipper plunger force (`chipper_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
+| 6 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
 
-Row 5 is the one the task actually turns on:
+Row 6 is the one the task actually turns on:
 `a <= 0` is a stopped bar, which drops the ball, and `(0, 1]` maps to `(0, 314] rad/s` -- so a
 zero action does not hold it. The bar is never driven backwards — a reversed bar throws the ball out of
-the mouth. Rows 0-2 are a *body-frame* velocity that is rotated into the world-axis chassis slides
-before being written. See [the action space contract](../index.md#action-space) for the
+the mouth. Rows 0-3 are a target pose (target velocity 0) that the navigation controller turns into a body-frame velocity every 25 ms control step
+(see the index). See [the action space contract](../index.md#action-space) for the
 rest.
 
 ## Observation Space
@@ -83,14 +84,13 @@ rSoccer's layout. The robot is at `(0, 0)` facing -x; the four yellow robots at
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**120 s**, rSoccer's: **4800 steps** at the 40 Hz (0.025 s) the agents act at, rSoccer's step,
-and 7200 at the default `control_hz=60`.
+**120 s**, rSoccer's: **4800 control steps** at the fixed 40 Hz (0.025 s), rSoccer's step.
 
 ## Arguments
 
 | parameter | type | default | description |
 |---|---|---|---|
-| `control_hz` | `int` | `60` | control rate, exact: it must divide the 960 Hz physics rate (30, 60, 120, ...), or the env raises `ValueError` |
+| `repeat_action` | `int` | `1` | control steps (25 ms each, fixed 40 Hz) one decision is held for |
 | `horizon_s` | `float` | `120.0` | truncation horizon, in seconds |
 | `render_mode` | `str \| None` | `None` | `"human"` or `"rgb_array"` |
 
@@ -98,7 +98,7 @@ and 7200 at the default `control_hz=60`.
 import gymnasium as gym
 import mjsoccer
 
-env = gym.make("Dribbling-v0", control_hz=60, horizon_s=120.0, render_mode="rgb_array")
+env = gym.make("Dribbling-v0", horizon_s=120.0, render_mode="rgb_array")
 ```
 
 ## Info dictionary

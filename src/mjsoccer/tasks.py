@@ -4,16 +4,16 @@ Each one supplies a reset layout, whatever the scripted robots do, and a reward.
 episode endings and reset layouts are rSoccer's (ssl_go_to_ball, ssl_go_to_ball_shoot and
 ssl_hw_challenge/*), on our field: the formulas read the field's own dimensions, so they
 stretch to the Div A carpet the scene builds. What stays ours is the physics, the control
-rate and the action space -- every env exposes the same per-robot action, drive, kick,
+rate and the action space -- every env exposes the same per-robot action, target pose, kick,
 chip, dribble, whether or not its reward cares, so one action head transfers across all six.
 
     id                       robots           action
-    GoToBall-v0              1 blue + 6 yel   6
-    GoToBallShoot-v0         1 blue           6
-    Dribbling-v0             1 blue + 4 yel   6
-    StaticDefenders-v0       1 blue + 6 yel   6
-    ContestedPossession-v0   1 blue + 1 yel   6
-    PassEndurance-v0         2 blue           6
+    GoToBall-v0              1 blue + 6 yel   7
+    GoToBallShoot-v0         1 blue           7
+    Dribbling-v0             1 blue + 4 yel   7
+    StaticDefenders-v0       1 blue + 6 yel   7
+    ContestedPossession-v0   1 blue + 1 yel   7
+    PassEndurance-v0         2 blue           7
 """
 
 from __future__ import annotations
@@ -123,9 +123,10 @@ class _ShootTask(_BallTask):
         self._prev, self._prev_goal = self._to_ball(), self._goal_dist()
 
     def _energy(self, action: np.ndarray) -> float:
-        # ponytail: the commanded drive, as a fraction of its range, stands in for rSoccer's
-        # measured |wheel speed| / 160 rad/s; the chassis commands (vx, vy, w), not wheels.
-        return float(np.abs(action[: self.drive_dim]).mean()) / self.energy_steps
+        # ponytail: the navigation controller's command, as a fraction of the servo range,
+        # stands in for rSoccer's measured |wheel speed| / 160 rad/s; the chassis commands
+        # (vx, vy, w), not wheels.
+        return float(np.abs(self.drive_cmd[0]).mean()) / self.energy_steps
 
     def _reward_done(self, action):
         (rx, ry), (bx, by) = self._xy(0), self._ball_xy()
@@ -304,10 +305,10 @@ class PassEnduranceEnv(_BallTask):
     def _to_receiver(self) -> float:
         return float(np.linalg.norm(self._ball_xy() - self._xy(1)))
 
-    def _drive_robot(self, index: int, a: np.ndarray) -> None:
-        a = a.copy()
-        a[:2] = 0.0  # (vx, vy, w): keep the spin
-        super()._drive_robot(index, a)
+    def _shape_drive(self, cmd: np.ndarray) -> np.ndarray:
+        # The controller runs whole, then (vx, vy) go to 0: only the spin is left, so the
+        # action's x, y mean nothing here. Only robot 0 is controlled.
+        return np.array((0.0, 0.0, cmd[2]))
 
     def _script(self) -> None:
         self.data.ctrl[self.robots[1].dribble] = S.DRIBBLER_OMEGA
@@ -338,27 +339,20 @@ class PassEnduranceEnv(_BallTask):
 # ------------------------------------------------------------------ scripted policy
 
 
-def goto_ball_policy(obs: np.ndarray, kp: float = 2.0, kw: float = 1.21) -> np.ndarray:
-    """A P-controller that drives robot 0 at the ball: the (vx, vy, omega) drive dims.
+def goto_ball_policy(obs: np.ndarray) -> np.ndarray:
+    """Robot 0's target pose for driving at the ball: (x, y, sin, cos) action dims.
 
-    This exists so the smoke test can answer the one question random actions cannot: is
-    the reward collectable at all? A task nobody can solve looks identical to a working
+    Target = the ball, heading = the robot->ball angle; the navigation controller does the
+    rest. This exists so the smoke test can answer the one question random actions cannot:
+    is the reward collectable at all? A task nobody can solve looks identical to a working
     one until you try to train it.
     """
     ball = np.array([obs[0] * S.FIELD_HALF_X, obs[1] * S.FIELD_HALF_Y])
     pos = np.array([obs[6] * S.FIELD_HALF_X, obs[7] * S.FIELD_HALF_Y])
-    sin, cos = float(obs[8]), float(obs[9])
-    delta = ball - pos
-    # Actions are body-frame (see base._drive_robot), so rotate the world error into it.
-    local = np.array(
-        [cos * delta[0] + sin * delta[1], -sin * delta[0] + cos * delta[1]]
-    )
-    heading = float(np.arctan2(local[1], local[0]))
-    # kw is in action units, so it scales with the yaw ctrlrange: 1.21 of 37.1 rad/s is the
-    # 45 rad/s per rad that 1.5 of 30 was before tickets 13 and 12 raised the ceiling.
-    return np.clip([kp * local[0], kp * local[1], kw * heading], -1.0, 1.0).astype(
-        np.float32
-    )
+    heading = float(np.arctan2(*(ball - pos)[::-1]))
+    return np.array(
+        [obs[0], obs[1], np.sin(heading), np.cos(heading)], dtype=np.float32
+    ).clip(-1.0, 1.0)
 
 
 def main(argv=None) -> int:
@@ -388,7 +382,7 @@ def main(argv=None) -> int:
         total, steps = 0.0, 0
         while True:
             action = np.zeros(env.action_space.shape, dtype=np.float32)
-            action[:3] = goto_ball_policy(obs)
+            action[:4] = goto_ball_policy(obs)
             action[-1] = 1.0  # dribbler on; kick and chip stay at rest
             obs, reward, terminated, truncated, info = env.step(action)
             total += reward

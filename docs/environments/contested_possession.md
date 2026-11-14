@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Action Space | `Box(-1.0, 1.0, (6,), float32)` |
+| Action Space | `Box(-1.0, 1.0, (7,), float32)` |
 | Observation Space | `Box((22,), float32)`, bounded per row below |
 | import | `gym.make("ContestedPossession-v0")` |
 
@@ -21,23 +21,24 @@ in its mouth without being held.
 
 ## Action Space
 
-The action is a `Box(-1, 1, (6,), float32)` and drives the blue robot
-only; the yellow robot is scripted and never appears in it. Every element is normalised and
-scaled internally by the actuator's own `ctrlrange`.
+The action is a `Box(-1, 1, (7,), float32)` and drives the blue robot
+only; the yellow robot is scripted and never appears in it. Every element is normalised:
+the target pose by the half field, kick, chip and dribble by their actuators' `ctrlrange`.
 
 | Num | Action | Min | Max | Unit |
 |---|---|---|---|---|
-| 0 | body-frame forward velocity (`vel_x`) | -3.3 | 3.3 | m/s |
-| 1 | body-frame lateral velocity (`vel_y`) | -3.3 | 3.3 | m/s |
-| 2 | yaw rate (`vel_yaw`) | -37.1 | 37.1 | rad/s |
-| 3 | kicker plunger force (`kicker_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
-| 4 | chipper plunger force (`chipper_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
-| 5 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
+| 0 | target x | -6.0 | 6.0 | m, `a * 6.0` (`FIELD_HALF_X`) |
+| 1 | target y | -4.5 | 4.5 | m, `a * 4.5` (`FIELD_HALF_Y`) |
+| 2 | sin of the target heading | -1 | 1 | heading `atan2(a_2, a_3)` |
+| 3 | cos of the target heading | -1 | 1 | |
+| 4 | kicker plunger force (`kicker_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
+| 5 | chipper plunger force (`chipper_force`) | 0 | 500 | N, a one-step pulse for `6.5 * a` m/s when a > 0 |
+| 6 | dribbler bar speed (`dribbler_vel`) | 0 | 314 | rad/s |
 
-Firing the kicker or the chipper — rows 3 and 4 — is
+Firing the kicker or the chipper — rows 4 and 5 — is
 available but self-defeating here: a ball punched away from the contest cannot be held for
-half a second, and the plunger then locks out for 250 ms. Rows 0-2 are a *body-frame* velocity that is rotated into
-the world-axis chassis slides before being written. See
+half a second, and the plunger then locks out for 250 ms. Rows 0-3 are a target pose (target velocity 0) that the navigation controller turns
+into a body-frame velocity every 25 ms control step (see the index). See
 [the action space contract](../index.md#action-space).
 
 A robot that is not even driving keeps a ball on 114-118 of 120 idle steps. See
@@ -93,8 +94,8 @@ identical one in `ssl_hw_challenge`). Per step, unless the step ends the episode
 
 On an ending step the only reward is the goal: `+5.0` for a ball past `x = 6.0` inside the
 mouth, `0` for anything else. There are no penalties. The scales are rSoccer's formulas on our
-field. rSoccer's energy is `sum |wheel speed| / (4 * 160 rad/s * 1200)`; here the commanded drive,
-as a fraction of its range, stands in for the wheel speed (the chassis commands `(vx, vy, w)`, not
+field. rSoccer's energy is `sum |wheel speed| / (4 * 160 rad/s * 1200)`; here the navigation controller's
+command, as a fraction of the servo range, stands in for the wheel speed (the chassis commands `(vx, vy, w)`, not
 wheels), so a saturated drive costs `1 / 1200` a step as there.
 
 The collision step still pays the shaping, as in rSoccer, where the collision check does not
@@ -129,14 +130,13 @@ Checked in rSoccer's order, the first that holds ends the episode:
 ### Truncation
 
 `steps >= max_steps`, where `max_steps = round(horizon_s / dt)`. The default horizon is
-**30 s**, rSoccer's: **1200 steps** at the 40 Hz (0.025 s) the agents act at, rSoccer's step,
-and 1800 at the default `control_hz=60`.
+**30 s**, rSoccer's: **1200 control steps** at the fixed 40 Hz (0.025 s), rSoccer's step.
 
 ## Arguments
 
 | parameter | type | default | description |
 |---|---|---|---|
-| `control_hz` | `int` | `60` | control rate, exact: it must divide the 960 Hz physics rate (30, 60, 120, ...), or the env raises `ValueError` |
+| `repeat_action` | `int` | `1` | control steps (25 ms each, fixed 40 Hz) one decision is held for |
 | `horizon_s` | `float` | `30.0` | truncation horizon, in seconds |
 | `render_mode` | `str \| None` | `None` | `"human"` or `"rgb_array"` |
 
@@ -144,7 +144,7 @@ and 1800 at the default `control_hz=60`.
 import gymnasium as gym
 import mjsoccer
 
-env = gym.make("ContestedPossession-v0", control_hz=60, horizon_s=30.0, render_mode="rgb_array")
+env = gym.make("ContestedPossession-v0", horizon_s=30.0, render_mode="rgb_array")
 ```
 
 `hold_seconds` (2.0) and `n_yellow` (1) are class attributes on `ContestedPossessionEnv`,

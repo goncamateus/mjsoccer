@@ -8,11 +8,13 @@ scenarios; this script produces the distributions behind them.
     uv run python scripts/validation_sweep.py --scenario spin --out runs/v
 
     scenario      env              parameter
-    spin          GoToBall         yaw action k in 0.2..1.0, 5 s
-    kick_recoil   Dribbling        full kick from 0/2/4 m/s of chassis speed
+    spin          GoToBall         raw yaw command k in 0.2..1.0, 7.5 s
+    kick_recoil   Dribbling        full kick from 0/2/4 m/s of chassis speed, raw drive
     random        all six ids      action_space.sample()
     competent     all six ids      goto_ball_policy
 
+`spin` and `kick_recoil` are envelope tests: they go through the env's raw velocity path
+(`step_raw`, body-frame (vx, vy, omega) scaled by ctrlrange), not the navigation controller.
 Only `random` and `competent` depend on the seed. The scripted scenarios write the whole
 initial state over the reset, so they run once per parameter rather than once per seed.
 The kick-recoil speed is written into qvel, so the robot starts moving rather than
@@ -53,6 +55,11 @@ def _action(env) -> np.ndarray:
     return np.zeros(env.action_space.shape, dtype=np.float32)
 
 
+def _raw(env) -> np.ndarray:
+    """(vx, vy, omega, kick, chip, dribble) for `step_raw`."""
+    return np.zeros(6)
+
+
 def _far_ball(env) -> None:
     env.ball.place(env.data, 4.0, -3.0)
 
@@ -69,7 +76,7 @@ def launch(env, i: int, speed: float) -> np.ndarray:
 def spin(env, k):
     env.robots[0].place(env.data, 0.0, 0.0, 0.0)
     _far_ball(env)
-    a = _action(env)
+    a = _raw(env)
     a[2] = k
     return lambda obs, t: a
 
@@ -79,13 +86,13 @@ def kick_recoil(env, v):
     r.place(env.data, -4.0, 0.0, 0.0)  # 4 m/s for a second needs the room
     mujoco.mj_forward(env.model, env.data)
     env.seat_ball(r)
-    a = _action(env)
+    a = _raw(env)
     a[:3] = launch(env, 0, v)
     env.data.qvel[env.ball.qvel_adr] = v  # carried along
 
     def policy(obs, t):
         b = a.copy()
-        b[env.drive_dim] = 1.0 if t == 0 else 0.0
+        b[3] = 1.0 if t == 0 else 0.0  # kick
         return b
 
     return policy
@@ -98,19 +105,20 @@ def random(env, _):
 def competent(env, _):
     def policy(obs, t):
         a = _action(env)
-        a[:3] = goto_ball_policy(obs)
+        a[:4] = goto_ball_policy(obs)
         return a
 
     return policy
 
 
 ALL = list(mjsoccer.ENV_IDS)
-# name -> (set-up, [(env, param)], control steps or None for the whole episode, seeded)
+# name -> (set-up, [(env, param)], control steps or None for the whole episode, seeded,
+#          raw velocity path)
 SCENARIOS = {
-    "spin": (spin, [("GoToBall-v0", k) for k in (0.2, 0.4, 0.6, 0.8, 1.0)], 300, False),
-    "kick_recoil": (kick_recoil, [("Dribbling-v0", v) for v in (0, 2, 4)], 60, False),
-    "random": (random, [(e, None) for e in ALL], None, True),
-    "competent": (competent, [(e, None) for e in ALL], None, True),
+    "spin": (spin, [("GoToBall-v0", k) for k in (0.2, 0.4, 0.6, 0.8, 1.0)], 300, False, True),
+    "kick_recoil": (kick_recoil, [("Dribbling-v0", v) for v in (0, 2, 4)], 60, False, True),
+    "random": (random, [(e, None) for e in ALL], None, True, False),
+    "competent": (competent, [(e, None) for e in ALL], None, True, False),
 }
 
 
@@ -155,7 +163,7 @@ def _hooked(m, d, *args):
 def episode(scenario: str, env_id: str, param, seed: int) -> dict:
     """Run one episode and return its row plus the per-step arrays the summary pools."""
     global _ctx
-    setup, _, max_steps, _ = SCENARIOS[scenario]
+    setup, _, max_steps, _, raw = SCENARIOS[scenario]
     env = gym.make(env_id).unwrapped
     m = env.model
     root = m.body_rootid
@@ -163,6 +171,7 @@ def episode(scenario: str, env_id: str, param, seed: int) -> dict:
     obs, _ = env.reset(seed=seed)
     env.action_space.seed(seed)
     policy = setup(env, param)
+    step = env.step_raw if raw else env.step
     _ctx = (_classify(m), root, mine)
     r = env.robots[0]
     yaws, held, impulses, total, info = [], [], collections.defaultdict(list), 0.0, {}
@@ -173,7 +182,7 @@ def episode(scenario: str, env_id: str, param, seed: int) -> dict:
     try:
         while not (terminated or truncated) and (max_steps is None or steps < max_steps):
             _impulse.clear()
-            obs, reward, terminated, truncated, info = env.step(policy(obs, steps))
+            obs, reward, terminated, truncated, info = step(policy(obs, steps))
             steps += 1
             total += reward
             yaws.append(abs(r.velocity(env.data)[2]))

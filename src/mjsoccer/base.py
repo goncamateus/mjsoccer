@@ -10,14 +10,20 @@ robots get a slice; scripted ones are driven inside `_script`.
 
 Per-robot slice, in order:
 
-    vx, vy, omega, kick, chip, dribble
+    x, y, sin(theta), cos(theta), kick, chip, dribble
 
-so `act_dim` is 6, the same for every task. Every robot always
-exposes every control it physically has; a task that does not care about one simply does
-not reward it, which keeps a single action head transferable across all the envs.
+so `act_dim` is 7, the same for every task. The first four are a target pose: x, y scaled
+by the half field (6.0 x 4.5 m), heading atan2(sin, cos), target velocity always 0. The
+navigation controller (`navigation.go_to_point`) turns it into a body-frame velocity every
+control step, from the robot's own joint state. Every robot always exposes every control
+it physically has; a task that does not care about one simply does not reward it, which
+keeps a single action head transferable across all the envs.
 
-All in [-1, 1] and scaled by the actuator's own ctrlrange, so the bounds come from the
-model rather than from a constant here.
+The control step is a fixed 25 ms (40 Hz, 24 physics steps). A decision -- one `step` --
+holds its action for `repeat_action` control steps.
+
+`step_raw` is an internal path outside the action space for the envelope tests: the drive
+is (vx, vy, omega) in [-1, 1], body frame, scaled by the servos' own ctrlrange.
 """
 
 from __future__ import annotations
@@ -28,10 +34,12 @@ import numpy as np
 from gymnasium import spaces
 
 from . import scene
+from .navigation import go_to_point
 
 MAX_V = 3.3  # m/s -- the chassis servo ctrlrange (ticket 12), used to normalise observations
 MAX_W = 37.1  # rad/s, likewise: the yaw ceiling of a spin about the CoM (ticket 12)
 MAX_BALL_V = 8.0  # m/s -- kicks cap at 6.5 (scene.KICK_SPEED_MAX) off a standing robot, ~8.5 moving
+CONTROL_DT = 0.025  # s: the navigation controller runs at a fixed 40 Hz
 POSSESSION_GRACE = 0.05  # s of no ball/dribbler contact before the ball counts as lost
 
 
@@ -48,27 +56,27 @@ class BaseEnv(gym.Env):
 
     def __init__(
         self,
-        control_hz: int = 60,
+        repeat_action: int = 1,
         horizon_s: float = 30.0,
         render_mode: str | None = None,
     ) -> None:
         self.model, self.robots, self.ball = scene.build(self.n_blue, self.n_yellow)
         self.data = mujoco.MjData(self.model)
 
-        # Exact or refused (ticket 13): rounding turned a requested 60 Hz into 62.5 and
-        # silently changed every horizon, lock and grace measured in steps.
-        steps = 1.0 / (control_hz * self.model.opt.timestep)
+        # Exact (ticket 13): every horizon, lock and grace is counted in control steps.
+        steps = CONTROL_DT / self.model.opt.timestep
         self.decimation = round(steps)
-        if self.decimation < 1 or abs(steps - self.decimation) > 1e-6:
-            raise ValueError(
-                f"control_hz={control_hz} is {steps:.3f} physics steps of "
-                f"{self.model.opt.timestep:.6g} s; it must divide {1 / self.model.opt.timestep:.6g} Hz"
-            )
-        self.dt = self.decimation * self.model.opt.timestep
-        self.metadata = dict(self.metadata, render_fps=round(1.0 / self.dt))
-        self.max_steps = max(1, round(horizon_s / self.dt))
+        assert abs(steps - self.decimation) < 1e-6, steps
+        self.dt = self.decimation * self.model.opt.timestep  # one control step
+        if repeat_action < 1:
+            raise ValueError(f"repeat_action={repeat_action} must be >= 1")
+        self.repeat_action = int(repeat_action)
+        self.metadata = dict(
+            self.metadata, render_fps=round(1.0 / (self.dt * self.repeat_action))
+        )
+        self.max_steps = max(1, round(horizon_s / self.dt))  # in control steps
 
-        self.drive_dim = 3  # vx, vy, omega
+        self.drive_dim = 4  # x, y, sin, cos: the target pose
         self.act_dim = self.drive_dim + 3  # kick, chip, dribble
         self.action_space = spaces.Box(
             -1.0, 1.0, (self.n_controlled * self.act_dim,), dtype=np.float32
@@ -101,6 +109,9 @@ class BaseEnv(gym.Env):
         self._grace = np.zeros(len(self.robots), dtype=int)
         self.fired = np.zeros(len(self.robots), dtype=bool)  # a plunger fired this step
         self._grace_steps = max(1, round(POSSESSION_GRACE / self.dt))
+        # The drive each controlled robot was commanded on the last control step, body
+        # frame, as a fraction of its ctrlrange: what the energy penalties charge for.
+        self.drive_cmd = np.zeros((self.n_controlled, 3))
         self.steps = 0
 
     # ---------------------------------------------------------------- gym API
@@ -110,6 +121,7 @@ class BaseEnv(gym.Env):
         mujoco.mj_resetData(self.model, self.data)
         self._plunger_lock[:] = 0
         self._grace[:] = 0
+        self.drive_cmd[:] = 0.0
         self.steps = 0
         self._place()
         mujoco.mj_forward(self.model, self.data)
@@ -117,10 +129,33 @@ class BaseEnv(gym.Env):
         return self._obs(), {}
 
     def step(self, action):
+        """One decision: `repeat_action` control steps of the same action, rewards summed,
+        cut short when the episode ends."""
+        return self._decide(action, raw=False)
+
+    def step_raw(self, action):
+        """Internal, for the envelope tests: like `step`, but each robot's slice is
+        (vx, vy, omega, kick, chip, dribble) and the drive goes straight to the servos."""
+        return self._decide(action, raw=True)
+
+    def _decide(self, action, raw: bool):
+        dim = 3 + 3 if raw else self.act_dim
         action = np.clip(np.asarray(action, dtype=np.float64), -1.0, 1.0)
+        action = action.reshape(self.n_controlled, dim)
+        total = 0.0
+        for _ in range(self.repeat_action):
+            obs, reward, terminated, truncated, info = self._control_step(action, raw)
+            total += reward
+            if terminated or truncated:
+                break
+        if self.render_mode == "human":
+            self.render()
+        return obs, total, terminated, truncated, info
+
+    def _control_step(self, action: np.ndarray, raw: bool):
         self.data.ctrl[:] = 0.0
         self.fired[:] = False
-        self._apply(action.reshape(self.n_controlled, self.act_dim))
+        self._apply(action, raw)
         self._script()
         n, dt = self.decimation, self.model.opt.timestep
         if (self._plunger_lock == self._kick_cooldown).any():  # a plunger fired this step
@@ -142,7 +177,7 @@ class BaseEnv(gym.Env):
         np.maximum(self._plunger_lock - 1, 0, out=self._plunger_lock)
 
         obs = self._obs()
-        reward, terminated, info = self._reward_done(action)
+        reward, terminated, info = self._reward_done(action.ravel())
         truncated = self.steps >= self.max_steps
         if (
             not np.isfinite(self.data.qpos).all()
@@ -150,37 +185,56 @@ class BaseEnv(gym.Env):
         ):
             # Loudly, rather than training a policy on NaN observations.
             raise RuntimeError(f"simulation diverged at step {self.steps}")
-        if self.render_mode == "human":
-            self.render()
         return obs, float(reward), bool(terminated), bool(truncated), info
 
     # -------------------------------------------------------- action plumbing
 
-    def _apply(self, action: np.ndarray) -> None:
+    def _apply(self, action: np.ndarray, raw: bool = False) -> None:
         for i in range(self.n_controlled):
-            self._drive_robot(i, action[i])
+            if raw:
+                cmd = action[i, :3] * self.robots[i].drive_range[:, 1]
+            else:
+                cmd = self._navigate(i, action[i, :4])
+            self._drive_robot(i, self._shape_drive(np.asarray(cmd, dtype=np.float64)))
+            self._actuate(i, action[i, -3:])
 
-    def _drive_robot(self, index: int, a: np.ndarray) -> None:
+    def _navigate(self, index: int, pose: np.ndarray) -> tuple[float, float, float]:
+        """The navigation controller on robot `index`'s own joint state (not the
+        observation): world-frame position, velocity and yaw off the chassis slides and
+        hinge, out comes a body-frame (vx, vy, omega)."""
         r = self.robots[index]
-        lo, hi = r.drive_range[:, 0], r.drive_range[:, 1]
-        # Symmetric ranges, so a single scale keeps 0 -> 0 rather than -> midpoint.
-        cmd = a[: self.drive_dim] * np.maximum(hi, -lo)
-        # The chassis joints are *world*-axis slides, but the action means a body-frame
+        q = self.data.qpos[r.qpos_adr : r.qpos_adr + 3]
+        v = self.data.qvel[r.qvel_adr : r.qvel_adr + 2]
+        pos = (q[0] + r.xy0[0], q[1] + r.xy0[1])
+        target = (pose[0] * scene.FIELD_HALF_X, pose[1] * scene.FIELD_HALF_Y)
+        return go_to_point(pos, v, float(q[2]), target, float(np.arctan2(pose[2], pose[3])))
+
+    def _shape_drive(self, cmd: np.ndarray) -> np.ndarray:
+        """A task's last word on a robot's body-frame (vx, vy, omega)."""
+        return cmd
+
+    def _drive_robot(self, index: int, cmd: np.ndarray) -> None:
+        """Body-frame (vx, vy, omega), in m/s and rad/s, into robot `index`'s servos."""
+        r = self.robots[index]
+        self.drive_cmd[index] = np.clip(cmd / r.drive_range[:, 1], -1.0, 1.0)
+        # The chassis joints are *world*-axis slides, but the command is a body-frame
         # velocity -- that is how SSL firmware is commanded, so rotate it here. A diagonal
-        # command can ask for 4*sqrt(2) on one world axis; MuJoCo clamps it to ctrlrange,
-        # same as a real servo would.
+        # command can ask for 3.3*sqrt(2) on one world axis; MuJoCo clamps it to
+        # ctrlrange per axis, same as a real servo would.
         v = self.data.xmat[r.body].reshape(3, 3) @ (cmd[0], cmd[1], 0.0)
-        cmd = (v[0], v[1], cmd[2])
-        self.data.ctrl[list(r.drive)] = cmd
-        k = self.drive_dim
+        self.data.ctrl[list(r.drive)] = (v[0], v[1], cmd[2])
+
+    def _actuate(self, index: int, a: np.ndarray) -> None:
+        """Kick, chip, dribble for robot `index`, each in [-1, 1]."""
+        r = self.robots[index]
         # Kicker and chipper are the same mechanism twice over: a force actuator against a
         # return spring. Each gets its own lock so a kick cannot block a chip. Half range
         # like the dribbler: a <= 0 never fires, (0, 1] asks for (0, KICK_SPEED_MAX] m/s.
         for j, actuator in enumerate((r.kick, r.chip)):
-            if a[k + j] > 0.0 and self._plunger_lock[index, j] == 0:
+            if a[j] > 0.0 and self._plunger_lock[index, j] == 0:
                 speeds = scene.KICK_TABLE_MS[j]
                 self.data.ctrl[actuator] = np.interp(
-                    scene.KICK_SPEED_MAX * float(a[k + j]),
+                    scene.KICK_SPEED_MAX * float(a[j]),
                     speeds,
                     scene.KICK_TABLE_N[: len(speeds)],
                 )
@@ -190,7 +244,7 @@ class BaseEnv(gym.Env):
         # sampled action does not dribble. Still a speed, not a switch, because that is what
         # the firmware takes. Never negative: a bar driven backwards throws the ball out of
         # the mouth.
-        self.data.ctrl[r.dribble] = scene.DRIBBLER_OMEGA * max(float(a[k + 2]), 0.0)
+        self.data.ctrl[r.dribble] = scene.DRIBBLER_OMEGA * max(float(a[2]), 0.0)
 
     # ------------------------------------------------------------ observation
 

@@ -71,7 +71,7 @@ class Actor(nn.Module):
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--env", default="GoToBall-v0")
-    ap.add_argument("--control-hz", type=int, default=40, help="40 acts every 0.025 s, as rSoccer")
+    ap.add_argument("--repeat-action", type=int, default=1, help="control steps (25 ms each) per decision; 1 acts every 0.025 s as rSoccer does")
     ap.add_argument("--n-envs", type=int, default=16)
     ap.add_argument("--total-steps", type=int, default=150_000, help="vector steps")
     ap.add_argument("--learning-starts", type=int, default=5_000, help="vector steps of random actions")
@@ -94,7 +94,7 @@ def main(argv=None) -> int:
     dev = torch.device(args.device)
 
     def make():
-        e = gym.make(args.env, control_hz=args.control_hz)
+        e = gym.make(args.env, repeat_action=args.repeat_action)
         return gym.wrappers.RecordEpisodeStatistics(e)
 
     envs = SyncVectorEnv([make for _ in range(args.n_envs)], autoreset_mode=AutoresetMode.SAME_STEP)

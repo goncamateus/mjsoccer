@@ -33,8 +33,8 @@ FPS = 20
 
 def render(zip_path: Path, algo) -> str:
     env_id = zip_path.stem
-    # The rate the policy was trained at: both agents default to 40 Hz, rSoccer's 0.025 s step.
-    env = gym.make(env_id, control_hz=40)
+    # Both agents default to repeat_action=1: a decision every 0.025 s, rSoccer's step.
+    env = gym.make(env_id)
     base = env.unwrapped
     model = algo.load(zip_path, device="cpu")
     every = max(1, round(1.0 / base.dt / FPS))  # keeps playback at real time
