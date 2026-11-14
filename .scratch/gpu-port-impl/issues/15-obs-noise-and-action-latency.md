@@ -34,8 +34,10 @@ Spec: [port GPU](../../gpu-port/spec.md)
   embutido do Brax; `--eval`/`--play` rodam sem eles.
 - **Achado**: o MJX-Warp não é reprodutível bit a bit: dois rollouts idênticos diferem ~5e-7 já no
   reset (o `seat_ball`) e ~1e-4 em 5 decisões (atomics). Os testes de "idêntico" usam
-  `atol = 2e-3` (o ruído testado tem std 0.05); o "desligado" também compara a pilha de wrappers
-  e as chaves de `info`/`info["world"]`, que são exatas.
+  `atol = 2e-3` (o ruído testado tem std 0.05); o "desligado" usa 1e-2 com a ação "segurar" (com
+  repeat 2 e ações aleatórias o jitter passou 2e-3 em 2 de 6 rodadas) e compara a pilha de wrappers
+  e as chaves de `info`/`info["world"]`, que são exatas. O arquivo não importa o `jax` na coleta
+  (`find_spec`), senão o parity, coletado depois, cairia na GPU (o achado do 13).
 - **Testes** (`tests/test_mjx_noise_latency.py`, subprocesso na GPU, 6): desligado = antes
   (repeat 1/2); kick pedido na decisão 0 dispara no passo de controle N (lock lido decisão a
   decisão, repeat 1/2, N = 3) e o robô fica parado até lá; buffer restaurado pelo auto-reset;
@@ -44,3 +46,6 @@ Spec: [port GPU](../../gpu-port/spec.md)
 - **Treino**: `ppo_mjx.py --env ContestedPossession-v0 --num-envs 256 --num-eval-envs 16
   --epochs 1 --obs-noise 0.02 --action-latency 2` rodou limpo (20 480 decisões, contadores 0,
   748 MB de GPU; a GPU dividida com outros dois processos).
+- **Verificação** (`git merge gpu-port-impl`: já em dia): `--group gpu` 240 passed + 1 falha do
+  `test_viewer` web que passa sozinho (porta disputada com outro worktree, imagino); sem o grupo 99
+  passed, 4 skipped. Nenhum processo meu na GPU.
