@@ -213,10 +213,11 @@ class BaseEnv(gym.Env):
         return bool(self._grace[i] > 0)
 
     def _update_possession(self) -> None:
-        """One pass over the contact list marks every dribbler currently on the ball.
+        """Marks every dribbler currently on the ball, read off the ball x dribbler
+        `contact` sensors (scene.DRIBBLER_GEOMS) -- the same definition MJX reads.
 
-        Cheaper than asking per robot, and contact is the criterion the mjssl retention
-        benchmarks score against -- not the arm sensor, which reads the wrong sign here.
+        Contact is the criterion the mjssl retention benchmarks score against -- not the
+        arm sensor, which reads the wrong sign here.
 
         A spinning bar does not touch the ball every step: it sticks, slips and re-grips,
         and a held ball reads as contact on roughly half of them. So a robot keeps
@@ -224,15 +225,7 @@ class BaseEnv(gym.Env):
         sweeps require the bar to be clear for a continuous 50 ms before calling the ball
         lost. Without it any "hold the ball for N seconds" termination is unreachable.
         """
-        touching = np.zeros(len(self.robots), dtype=bool)
-        by_body = {r.dribbler_body: i for i, r in enumerate(self.robots)}
-        for k in range(self.data.ncon):
-            c = self.data.contact[k]
-            b1 = int(self.model.geom_bodyid[c.geom1])
-            b2 = int(self.model.geom_bodyid[c.geom2])
-            other = b2 if b1 == self.ball.body else b1 if b2 == self.ball.body else -1
-            if other in by_body:
-                touching[by_body[other]] = True
+        touching = np.array([r.touches_ball(self.data) for r in self.robots], dtype=bool)
         self._grace = np.where(
             touching, self._grace_steps, np.maximum(self._grace - 1, 0)
         )
