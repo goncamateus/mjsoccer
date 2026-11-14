@@ -1,4 +1,4 @@
-"""Warp smoke: each ported task on MJX-Warp makes, resets and takes ~10 steps under `vmap`.
+"""Warp smoke: each of the six tasks on MJX-Warp makes, resets, steps ~10 times in `vmap`.
 
 Not a physics check (the parity against the CPU is statistical, `-m validation`): this only
 proves the JAX env runs end to end on the GPU -- placement, the seat_ball loop, the
@@ -27,7 +27,9 @@ pytest.importorskip("jax")
 pytest.importorskip("mujoco.mjx")
 pytest.importorskip("brax")
 
-TASKS = ["ContestedPossession-v0", "GoToBall-v0"]
+# Every id; the failure-path tests below use the first, the 2-robot ContestedPossession.
+TASKS = ["ContestedPossession-v0", "GoToBall-v0", "GoToBallShoot-v0", "StaticDefenders-v0",
+         "Dribbling-v0", "PassEndurance-v0"]
 NWORLD = 4
 SKIP = 77  # the child's exit code for "no CUDA device"
 
@@ -56,8 +58,11 @@ def test_warp_smoke(env_id, repeat_action):
     if env_id == "ContestedPossession-v0":
         # The seat_ball loop really ran on Warp: the yellow robot holds the ball at reset,
         # in every world, as it does on the CPU for every seed.
-        assert all(out["yellow_holds_at_reset"]), out
-    if env_id == "GoToBall-v0":
+        assert all(out["robot1_holds_at_reset"]), out
+    if env_id in ("Dribbling-v0", "PassEndurance-v0"):
+        # Seated on the blue robot (the passer) the same way.
+        assert all(out["robot0_holds_at_reset"]), out
+    if env_id in ("GoToBall-v0", "StaticDefenders-v0"):
         # The scatter: seven robots and the ball, pairwise at least 0.2 m apart.
         assert min(out["min_spacing_at_reset"]) >= 0.2 - 1e-5, out
     # A decision is repeat_action control steps, cut short only by an ending.
@@ -180,6 +185,15 @@ def kick(env_id: str) -> None:
     )))
 
 
+@pytest.mark.parametrize("env_id", ["PassEndurance-v0"])
+def test_warp_pass_endurance_scripted_robots(env_id):
+    """On Warp, through `control`: the passer only turns -- its (vx, vy) servos get 0
+    whatever the action -- and the receiver's dribbler spins with no action of its own."""
+    out = _run("scripted", env_id, 1)
+    assert out["passer_drive_xy"] == 0.0, out
+    assert out["receiver_dribble"] > 0.0, out
+
+
 # ------------------------------------------------------------------ the children
 
 
@@ -206,8 +220,8 @@ def smoke(env_id: str, repeat_action: int) -> dict:
     keys = jax.random.split(jax.random.PRNGKey(0), NWORLD)
     state = jax.jit(jax.vmap(env.reset))(keys)
     mjsoccer.mjx.check_failures(state)
-    # obs: 6 ball entries, then 8 per robot ending in has_ball; robot 1 is the yellow one.
-    holds = np.asarray(state.obs[:, 6 + 8 + 7]) > 0
+    # obs: 6 ball entries, then 8 per robot ending in has_ball.
+    holds = [(np.asarray(state.obs[:, 6 + 8 * i + 7]) > 0).tolist() for i in range(2)]
     xy = np.concatenate([np.asarray(state.pipeline_state.xpos[:, env._body, :2]),
                          np.asarray(state.pipeline_state.xpos[:, env.ball.body, None, :2])], 1)
     gaps = np.linalg.norm(xy[:, :, None] - xy[:, None], axis=-1)
@@ -225,7 +239,8 @@ def smoke(env_id: str, repeat_action: int) -> dict:
         finite &= bool(np.isfinite(np.asarray(state.obs)).all())
         finite &= bool(np.isfinite(np.asarray(state.pipeline_state.qpos)).all())
     steps = np.asarray(state.info["world"]["steps"])
-    return dict(finite=finite, steps=n, yellow_holds_at_reset=holds.tolist(),
+    return dict(finite=finite, steps=n, robot0_holds_at_reset=holds[0],
+                robot1_holds_at_reset=holds[1],
                 control_steps=steps.tolist(), reset_overlap=overlap,
                 min_spacing_at_reset=gaps.min((1, 2)).tolist(), overflow_bits=bits.tolist())
 
@@ -307,6 +322,31 @@ def overflow(env_id: str, repeat_action: int) -> dict:
     )
 
 
+def scripted(env_id: str, repeat_action: int) -> dict:
+    import jax
+    import numpy as np
+
+    import mjsoccer.mjx
+
+    env = mjsoccer.mjx.make(env_id, nworld=NWORLD, repeat_action=repeat_action)
+    keys = jax.random.split(jax.random.PRNGKey(0), NWORLD)
+    state = jax.jit(jax.vmap(env.reset))(keys)
+    passer, receiver = env.robots[0], env.robots[1]
+    control = jax.jit(jax.vmap(env.control))
+    step = jax.jit(jax.vmap(env.step))
+    rng = np.random.default_rng(0)
+    drive, dribble = 0.0, np.inf
+    for _ in range(10):
+        a = _actions(rng, env)
+        c = control(state, a)
+        ctrl = np.asarray(c.pipeline_state.ctrl)
+        drive = max(drive, float(np.abs(ctrl[:, list(passer.drive[:2])]).max()))
+        dribble = min(dribble, float(ctrl[:, receiver.dribble].min()))
+        state = step(state, a)
+        mjsoccer.mjx.check_failures(state)
+    return dict(passer_drive_xy=drive, receiver_dribble=dribble)
+
+
 def main(mode: str, env_id: str, repeat_action: int) -> None:
     import jax
 
@@ -314,7 +354,7 @@ def main(mode: str, env_id: str, repeat_action: int) -> None:
         jax.devices("gpu")
     except RuntimeError:
         sys.exit(SKIP)
-    run = dict(smoke=smoke, nan=nan, overflow=overflow)[mode]
+    run = dict(smoke=smoke, nan=nan, overflow=overflow, scripted=scripted)[mode]
     print(json.dumps(run(env_id, repeat_action)))
 
 
