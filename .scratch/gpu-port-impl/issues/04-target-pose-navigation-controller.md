@@ -51,3 +51,6 @@ Spec: [port GPU](../../gpu-port/spec.md)
   `validation_sweep --seeds 0-4` e `make_gifs` (para o scratchpad, GIFs do repo intactos) rodam.
   `examples/*` trocam `--control-hz` por `--repeat-action`; modelos SB3 salvos com a ação de 6
   dims não carregam mais.
+- **Depois do merge com `gpu-port-impl`** (tickets 03 e 06 dentro): o
+  `test_possession_reads_no_contact_list` do 03 usava ação zero; passou a usar `_hold`.
+  `uv run pytest` 94 passed, `-m validation` 19 passed.
