@@ -277,12 +277,12 @@ class MjxEnv(Env):
         d = self.reset_physics(d)
         return self.init_state(d, rng, overlap)
 
-    def step(self, state: State, action: jax.Array) -> State:
+    def step(self, state: State, action: jax.Array, raw: bool = False) -> State:
         """One decision: `repeat_action` control steps, rewards summed, cut short when the
-        episode ends."""
+        episode ends. `raw` (static): `step_raw`."""
 
         def control_step(s):
-            s = self.control(s, action)
+            s = self.control(s, action, raw)
             d = self.physics(s.pipeline_state, s.info["world"]["fired"].any())
             return self.settle(s.replace(pipeline_state=d))
 
@@ -328,6 +328,11 @@ class MjxEnv(Env):
                                       "reset_overlap": jnp.maximum(after.metrics["reset_overlap"],
                                                                    first.astype(jnp.float32))})
 
+    def step_raw(self, state: State, action: jax.Array) -> State:
+        """Internal, for the envelope scenarios (`BaseEnv.step_raw`): like `step`, but each
+        robot's slice is (vx, vy, omega, kick, chip, dribble), straight to the servos."""
+        return self.step(state, action, raw=True)
+
     @property
     def observation_size(self) -> int:
         return self._obs_size
@@ -361,10 +366,13 @@ class MjxEnv(Env):
                      self._metrics(reset_overlap=overlap),
                      {"world": world, "truncation": zero})
 
-    def control(self, state: State, action: jax.Array) -> State:
+    def control(self, state: State, action: jax.Array, raw: bool = False) -> State:
         """`BaseEnv._apply` + `_script`: the controlled robots' target poses through the
-        navigation controller, their kickers, chippers and dribblers, into a zeroed `ctrl`."""
-        a = jnp.clip(action, -1.0, 1.0).reshape(self.n_controlled, self.act_dim)
+        navigation controller, their kickers, chippers and dribblers, into a zeroed `ctrl`.
+        `raw` (static): each robot's slice is (vx, vy, omega, kick, chip, dribble) and the
+        drive goes straight to the servos, as `BaseEnv.step_raw`."""
+        dim = 6 if raw else self.act_dim
+        a = jnp.clip(action, -1.0, 1.0).reshape(self.n_controlled, dim)
         d = state.pipeline_state
         ctrl = jnp.zeros_like(d.ctrl)
         lock = state.info["world"]["plunger_lock"]
@@ -372,7 +380,10 @@ class MjxEnv(Env):
         cmds = []
         for i in range(self.n_controlled):
             r = self.robots[i]
-            cmd = self.shape_drive(self._navigate(d, i, a[i, :4]))
+            if raw:
+                cmd = self.shape_drive(a[i, :3] * jnp.array(r.drive_range[:, 1]))
+            else:
+                cmd = self.shape_drive(self._navigate(d, i, a[i, :4]))
             cmds.append(jnp.clip(cmd / r.drive_range[:, 1], -1.0, 1.0))
             # Body-frame command to the world-axis slides, as BaseEnv._drive_robot.
             v = d.xmat[r.body] @ jnp.stack([cmd[0], cmd[1], 0.0])

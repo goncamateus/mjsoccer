@@ -30,12 +30,16 @@ env.close()
 ```bash
 uv run python examples/random.py --env GoToBall-v0
 uv run python examples/random.py --list
-uv run python -m pytest tests -q
-uv run python -m pytest tests -m validation -q                  # acceptance criteria, ~2 min
-# with the gpu group the default run adds the MJX task-logic parity (JAX-CPU) and the Warp
-# smoke (skipped without CUDA); run it under a RAM cap:
-systemd-run --user --scope -p MemoryMax=10G uv run python -m pytest tests -q
+uv run python -m pytest tests -q                                 # base layer
+uv run python -m pytest tests -m validation -q                  # acceptance criteria, CPU, ~1 min
 uv run python scripts/validation_sweep.py --out runs/validation --seeds 0-4  # the distributions behind them, CSV
+# With the gpu group (uv sync --group gpu) every layer adds MJX, skipped without CUDA; run
+# them under a RAM cap. The default run adds the task-logic parity (JAX-CPU) and the Warp
+# smoke; -m validation adds every criterion on MJX-Warp and the MJX x CPU parity (~13 min).
+systemd-run --user --scope -p MemoryMax=10G uv run python -m pytest tests -q
+systemd-run --user --scope -p MemoryMax=10G uv run python -m pytest tests -m validation -q
+systemd-run --user --scope -p MemoryMax=10G \
+    uv run python scripts/validation_sweep.py --backend mjx --seeds 0-4 --out runs/validation-mjx
 ```
 
 PPO on the GPU (Brax `ppo.train` over `mjsoccer.mjx`, one process per run; checkpoints in
@@ -48,14 +52,23 @@ uv run --group gpu examples/ppo_mjx.py --play runs/ppo_mjx_GoToBall-v0   # CPU b
 ```
 
 The `validation` suite is excluded from the default run (`pyproject.toml`). It is the
-regression check for the physics acceptance criteria: yaw p99 under `MAX_W` in every
-scripted scenario, in one random-action episode per env and in five `goto_ball_policy`
-episodes; and the navigation controller's, from rest to target poses 0.5 / 2 / 6 m away
-turned 0 / 90 / 180 deg: final error under 1 cm and 2.5 deg, settled within 1.05x the
-analytic trapezoid (3.3 m/s, up at 1.30 m/s², down at 1.0), chatter at the target under
-0.05 m/s RMS over the last second, commanded omega never over `MAX_W`. `validation_sweep.py` runs the same scenarios over
-seeds 0-4 and writes per-episode, summary, navigation, contact-impulse and throughput CSVs;
-its docstring lists the scenarios.
+regression check for the physics acceptance criteria, each on both backends with the same
+threshold: yaw p99 under `MAX_W` in every scripted scenario, in the random-action and the
+`goto_ball_policy` episodes; the chassis envelope through the raw velocity path (1.30 m/s²
+to 3.30 m/s on the slides, 55 rad/s² to 37.1 rad/s on the hinge, within 3 %); kick and chip
+exit speed by `KICK_TABLE_MS` to 0.1 m/s; ball COR 0.47-0.56 off carpet and wall at 1 and
+6.5 m/s, and its inertia; a seated ball through a 2 rad/s turn; and the navigation
+controller's, from rest to target poses 0.5 / 2 / 6 m away turned 0 / 90 / 180 deg: final
+error under 1 cm and 2.5 deg, settled within 1.05x the analytic trapezoid (3.3 m/s, up at
+1.30 m/s², down at 1.0), chatter at the target under 0.05 m/s RMS over the last second,
+commanded omega never over `MAX_W`. On top, the MJX x CPU parity: from the same initial
+state, envelope, kick and COR within 2 %, arrival time within 5 %, arrival error within
+1 cm / 1 deg; on the seeded scenarios (seeds 0-4) the MJX median return and possession rate
+inside the CPU's min-max range (a gross-divergence check: 5 seeds have no power for a
+distribution test). `validation_sweep.py --backend {cpu,mjx}` runs the
+same scenarios over seeds 0-4 and writes per-episode, summary, navigation, contact-impulse
+and throughput CSVs, each row tagged with its `backend`; its docstring lists the scenarios.
+MJX throughput is a report (decisions/s), never a criterion.
 
 ## Environment index
 
