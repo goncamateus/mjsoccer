@@ -12,7 +12,15 @@ on MJX once per world and aborts if any world diverged, overflowed or reset over
 
 One env step is one decision of `--repeat-action` control steps (the env's repeat; Brax's
 `action_repeat` stays 1). The hyperparameters are flags; the defaults are a baseline, not
-a tuning (the spec leaves tuning out). Per epoch the log has the decisions so far,
+a tuning (the spec leaves tuning out). Brax's PPO variants (KL-adaptive learning rate,
+distributional critic) are flags too, off by default. Its asymmetric critic is not: it reads
+a privileged observation key the envs do not have (their observation is one flat vector).
+
+A world that ends restarts from its slot's cached first state; `--num-resets-per-eval`
+(default 1) re-draws every cache that many times an epoch. The default budget
+(`--timesteps` unset) gives each stretch between two resets the PPO iterations one episode
+takes, so the resets do not cut episodes short (one iteration an epoch with resets at 0).
+Per epoch the log has the decisions so far,
 decisions/s, the eval return, and the eval episodes' rate of the three failure counters
 (per episode: diverged, overflow, reset_overlap), plus the GPU memory in use.
 
@@ -40,9 +48,11 @@ from pathlib import Path
 if sys.path and Path(sys.path[0] or ".").resolve() == Path(__file__).resolve().parent:
     sys.path.pop(0)
 
-import argparse  # noqa: E402
-import json  # noqa: E402
-import time  # noqa: E402
+import argparse
+import functools
+import json
+import math
+import time
 
 # Robots in the scene -> worlds per batch. Measured on the real tasks (ticket 13).
 NUM_ENVS = {2: 8192, 7: 2048}
@@ -73,7 +83,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     ap.add_argument("--repeat-action", type=int, default=1,
                     help="control steps (25 ms each) per decision, passed to the env")
     ap.add_argument("--num-envs", type=int, default=None,
-                    help="worlds per batch (default by robot count: %s)" % NUM_ENVS)
+                    help=f"worlds per batch (default by robot count: {NUM_ENVS})")
     ap.add_argument("--graph-mode", choices=GRAPH_MODES, default="WARP")
     ap.add_argument("--obs-noise", type=float, default=0.0,
                     help="std of Gaussian noise on the (normalised) obs, train and eval; 0 off")
@@ -101,9 +111,27 @@ def parse_args(argv=None) -> argparse.Namespace:
                     help="default num_envs // 8: four unrolls of every world per iteration")
     hp.add_argument("--reward-scaling", type=float, default=1.0)
     hp.add_argument("--max-grad-norm", type=float, default=0.5)
+    hp.add_argument("--num-resets-per-eval", type=int, default=1,
+                    help="times per epoch Brax re-draws every world's cached first state "
+                         "(0: one start per world slot for the whole run); the default "
+                         "--timesteps gives each stretch between two resets an episode")
+    var = ap.add_argument_group("Brax PPO variants (off by default: vanilla PPO)")
+    var.add_argument("--learning-rate-schedule", choices=("NONE", "ADAPTIVE_KL"),
+                     default="NONE", help="ADAPTIVE_KL: scale the LR to hold --desired-kl")
+    var.add_argument("--desired-kl", type=float, default=0.01)
+    var.add_argument("--learning-rate-schedule-min-lr", type=float, default=1e-5)
+    var.add_argument("--learning-rate-schedule-max-lr", type=float, default=1e-2)
+    var.add_argument("--distributional-critic", action="store_true",
+                     help="quantile value network and quantile Huber value loss")
+    var.add_argument("--num-quantiles", type=int, default=32)
+    var.add_argument("--clipping-epsilon-value", type=float, default=None,
+                     help="value clipping (off when unset); the Huber kappa of the "
+                          "distributional critic, which needs it")
     args = ap.parse_args(argv)
     if args.eval_randomize and not args.randomize:
         ap.error("--eval-randomize needs --randomize")
+    if args.distributional_critic and args.clipping_epsilon_value is None:
+        ap.error("--distributional-critic needs --clipping-epsilon-value")
     if args.num_envs is None:
         args.num_envs = NUM_ENVS[_n_robots(args.env)]
     if args.batch_size is None:
@@ -113,11 +141,32 @@ def parse_args(argv=None) -> argparse.Namespace:
     return args
 
 
-def ppo_kwargs(args) -> dict:
-    """The `ppo.train` keywords the flags set (the env, eval env and callbacks aside)."""
+def ppo_kwargs(args, episode_length: int) -> dict:
+    """The `ppo.train` keywords the flags set (the env, eval env and callbacks aside).
+
+    Brax splits an epoch into `num_resets_per_eval` stretches and resets every world after
+    each, so the default budget makes a stretch long enough for one episode
+    (`episode_length` decisions per world); with resets off, an epoch is one iteration."""
     per_iteration = args.batch_size * args.num_minibatches * args.unroll_length
+    resets = args.num_resets_per_eval
+    stretch = math.ceil(episode_length * args.num_envs / per_iteration) if resets else 1
+    extra = {}
+    if args.distributional_critic:
+        from brax.training.agents.ppo import networks as ppo_networks
+
+        extra["network_factory"] = functools.partial(
+            ppo_networks.make_ppo_networks, use_distributional_critic=True,
+            num_quantiles=args.num_quantiles)
     return dict(
-        num_timesteps=args.timesteps or args.epochs * per_iteration,
+        num_timesteps=args.timesteps or args.epochs * max(resets, 1) * stretch * per_iteration,
+        num_resets_per_eval=resets,
+        learning_rate_schedule=args.learning_rate_schedule,
+        desired_kl=args.desired_kl,
+        learning_rate_schedule_min_lr=args.learning_rate_schedule_min_lr,
+        learning_rate_schedule_max_lr=args.learning_rate_schedule_max_lr,
+        use_distributional_critic=args.distributional_critic,
+        clipping_epsilon_value=args.clipping_epsilon_value,
+        **extra,
         num_evals=args.epochs + 1,
         num_envs=args.num_envs,
         num_eval_envs=args.num_eval_envs,
@@ -151,7 +200,7 @@ def _gpu_mb() -> tuple[int, int]:
 
     def q(*a):
         return subprocess.run(["nvidia-smi", *a, "--format=csv,noheader,nounits"],
-                              capture_output=True, text=True).stdout.split("\n")
+                              capture_output=True, text=True, check=False).stdout.split("\n")
 
     mine = sum(int(line.split(",")[1]) for line in q("--query-compute-apps=pid,used_memory")
                if line.strip() and int(line.split(",")[0]) == os.getpid())
@@ -191,8 +240,6 @@ def make_envs(args):
 
 def train(args) -> int:
     os.environ.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
-    import functools
-
     import jax
     from brax.training.agents.ppo import train as ppo
 
@@ -202,10 +249,12 @@ def train(args) -> int:
     run = Path(args.save).resolve()
     run.mkdir(parents=True, exist_ok=True)
     (run / "args.json").write_text(json.dumps(vars(args), indent=1))
-    hp = ppo_kwargs(args)
+    length = wrappers.episode_length(env)
+    hp = ppo_kwargs(args, length)
     print(f"{args.env} on {jax.devices()[0]}: {args.num_envs} worlds, repeat_action "
           f"{args.repeat_action}, {args.graph_mode}, {hp['num_timesteps']:,} decisions in "
-          f"{args.epochs} epochs, DR {args.randomize or 'off'}"
+          f"{args.epochs} epochs ({args.num_resets_per_eval} resets each), "
+          f"DR {args.randomize or 'off'}"
           f"{' (eval too)' if args.eval_randomize else ''} -> {run}", flush=True)
 
     t0 = time.perf_counter()
@@ -227,7 +276,7 @@ def train(args) -> int:
 
     wrap = functools.partial(wrappers.wrap, obs_noise=args.obs_noise)
     ppo.train(env, eval_env=eval_env, wrap_env_fn=wrap,
-              episode_length=wrappers.episode_length(env), save_checkpoint_path=str(run),
+              episode_length=length, save_checkpoint_path=str(run),
               progress_fn=progress, randomization_fn=env.randomization_fn, **hp)
     print(f"saved {latest_checkpoint(run)}")
     return 0
@@ -307,7 +356,7 @@ def play(args) -> int:
     import jax
     import numpy as np
 
-    import mjsoccer  # noqa: F401  -- registers the ids
+    import mjsoccer  # noqa: F401  (registers the ids)
 
     ckpt = latest_checkpoint(args.play)
     saved = _saved_args(args.play)
@@ -321,7 +370,7 @@ def play(args) -> int:
     obs, _ = env.reset(seed=args.seed)
     episode, ret, length = 0, 0.0, 0
     while args.episodes is None or episode < args.episodes:
-        obs, reward, terminated, truncated, info = env.step(
+        obs, reward, terminated, truncated, _ = env.step(
             np.asarray(act(obs.astype(np.float32)), np.float64))
         ret, length = ret + reward, length + 1
         if terminated or truncated:

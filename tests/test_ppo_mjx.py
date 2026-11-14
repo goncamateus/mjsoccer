@@ -45,12 +45,73 @@ def test_flags_override_and_reach_the_config():
     args = _script().parse_args(["--env", "GoToBall-v0", "--num-envs", "512",
                                  "--repeat-action", "3", "--graph-mode", "WARP_STAGED"])
     assert (args.num_envs, args.repeat_action, args.graph_mode) == (512, 3, "WARP_STAGED")
-    hp = _script().ppo_kwargs(args)
+    hp = _script().ppo_kwargs(args, episode_length=1200)
     assert hp["num_envs"] == 512
     assert hp["action_repeat"] == 1  # the repeat is the env's, never Brax's
     assert hp["batch_size"] * hp["num_minibatches"] % hp["num_envs"] == 0  # Brax's rule
     with pytest.raises(SystemExit):
         _script().parse_args(["--graph-mode", "WARP_STAGED_EX"])
+
+
+def test_worlds_redraw_their_first_state_once_per_epoch_by_default():
+    """Brax's auto-reset restarts a world from its cached first state; `num_resets_per_eval`
+    re-draws every cache. By default once per epoch, and the default budget makes the
+    stretch between two resets one whole episode: GoToBall (1 200 decisions) on 2 048
+    worlds, 20 x 32 x 256 decisions an iteration = 80 per world, 15 iterations."""
+    mod = _script()
+    args = mod.parse_args(["--env", "GoToBall-v0", "--epochs", "3"])
+    hp = mod.ppo_kwargs(args, episode_length=1200)
+    assert hp["num_resets_per_eval"] == 1
+    assert hp["num_timesteps"] == 3 * 15 * 163_840
+    hp = mod.ppo_kwargs(mod.parse_args(["--env", "GoToBall-v0", "--epochs", "3",
+                                        "--num-resets-per-eval", "2"]), episode_length=1200)
+    assert (hp["num_resets_per_eval"], hp["num_timesteps"]) == (2, 3 * 2 * 15 * 163_840)
+    # Off: the cached first state for the whole run, one iteration an epoch as before.
+    hp = mod.ppo_kwargs(mod.parse_args(["--env", "GoToBall-v0", "--epochs", "3",
+                                        "--num-resets-per-eval", "0"]), episode_length=1200)
+    assert (hp["num_resets_per_eval"], hp["num_timesteps"]) == (0, 3 * 163_840)
+    hp = mod.ppo_kwargs(mod.parse_args(["--env", "GoToBall-v0", "--timesteps", "1000"]),
+                        episode_length=1200)
+    assert hp["num_timesteps"] == 1000  # an explicit budget is kept
+
+
+def test_brax_ppo_variants_are_flags_and_off_by_default():
+    """Brax's own variants at the pinned commit: the KL-adaptive learning rate and the
+    distributional (quantile) critic. Off, the keywords are vanilla PPO's."""
+    mod = _script()
+    hp = mod.ppo_kwargs(mod.parse_args(["--env", "GoToBall-v0"]), episode_length=1200)
+    assert hp["learning_rate_schedule"] == "NONE"
+    assert hp["use_distributional_critic"] is False
+    assert hp["clipping_epsilon_value"] is None
+    assert "network_factory" not in hp  # Brax's default networks
+
+    hp = mod.ppo_kwargs(mod.parse_args([
+        "--env", "GoToBall-v0", "--learning-rate-schedule", "ADAPTIVE_KL",
+        "--desired-kl", "0.02", "--learning-rate-schedule-min-lr", "1e-6",
+        "--learning-rate-schedule-max-lr", "1e-3"]), episode_length=1200)
+    assert (hp["learning_rate_schedule"], hp["desired_kl"]) == ("ADAPTIVE_KL", 0.02)
+    assert (hp["learning_rate_schedule_min_lr"], hp["learning_rate_schedule_max_lr"]) == (
+        1e-6, 1e-3)
+    with pytest.raises(SystemExit):
+        mod.parse_args(["--learning-rate-schedule", "COSINE"])
+
+    with pytest.raises(SystemExit):  # Brax needs the kappa of its quantile Huber loss
+        mod.parse_args(["--distributional-critic"])
+
+
+def test_distributional_critic_builds_quantile_value_networks():
+    pytest.importorskip("brax")
+    mod = _script()
+    hp = mod.ppo_kwargs(mod.parse_args([
+        "--env", "GoToBall-v0", "--distributional-critic", "--num-quantiles", "16",
+        "--clipping-epsilon-value", "0.2"]), episode_length=1200)
+    assert hp["use_distributional_critic"] is True and hp["clipping_epsilon_value"] == 0.2
+    net = hp["network_factory"](8, 2)
+    import jax
+
+    params = net.value_network.init(jax.random.PRNGKey(0))
+    out = net.value_network.apply(None, params, jax.numpy.zeros((3, 8)))
+    assert out[1].shape == (3, 16)  # (value, quantiles)
 
 
 def test_obs_noise_and_action_latency_are_off_by_default():
@@ -87,13 +148,13 @@ def test_play_runs_a_saved_checkpoint_on_the_cpu_backend(tmp_path):
     pytest.importorskip("brax")
     run = tmp_path / "ppo_mjx_GoToBall-v0"
     p = subprocess.run([sys.executable, "-c", MAKE_CHECKPOINT, str(run), "GoToBall-v0"],
-                       env=_cpu_env(), capture_output=True, text=True, timeout=600)
+                       env=_cpu_env(), capture_output=True, text=True, timeout=600, check=False)
     assert p.returncode == 0, p.stderr[-3000:]
     (run / "args.json").write_text(json.dumps({"env": "GoToBall-v0", "repeat_action": 2}))
 
     p = subprocess.run([sys.executable, str(SCRIPT), "--play", str(run), "--episodes", "1",
                         "--render", "none"],
-                       env=_cpu_env(), capture_output=True, text=True, timeout=600)
+                       env=_cpu_env(), capture_output=True, text=True, timeout=600, check=False)
     assert p.returncode == 0, p.stderr[-3000:]
     out = p.stdout
     assert "000000001234" in out  # the latest step of the run directory was loaded
