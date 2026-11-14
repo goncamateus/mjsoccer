@@ -6,11 +6,11 @@ Spec: [port GPU](../../gpu-port/spec.md)
 
 **Blocked by:** 05 (Critérios de aceitação do controlador de navegação), 11 (As quatro tasks restantes no MJX)
 
-**Status:** done
+**Status:** done (2 caixas abertas: posse no giro de 2 rad/s no MJX e `test_parity_seeded` instável — ver Comments)
 
 - [x] `validation_sweep.py --backend mjx --seeds 0-4` roda e grava CSVs com coluna `backend`
 - [ ] Todos os critérios passam no MJX com os limiares da CPU — **todos menos o giro de 2 rad/s com a bola (ver Comments)**
-- [x] `test_parity_deterministic` e `test_parity_seeded` verdes nesta máquina
+- [ ] `test_parity_deterministic` e `test_parity_seeded` verdes nesta máquina — **o determinístico sempre; o seeded oscila de run para run (ver Comments)**
 - [x] Comandos de teste por camada documentados nos docstrings e no `docs/index.md`
 
 ## Comments
@@ -78,9 +78,17 @@ Spec: [port GPU](../../gpu-port/spec.md)
   [−0.731, −0.052] e posse 0.336 vs [0.370, 0.636]; PassEndurance retorno −0.9999 vs
   [−0.9996, −0.9996]; StaticDefenders retorno 0.523 vs [0.138, 0.315]). O teste agora usa o
   [min, max] da CPU (0.83 de aprovação por célula sob a hipótese nula: é checagem de
-  divergência grosseira, não teste de distribuição). Todas as 24 passam; a mais justa é
-  StaticDefenders retorno, mediana MJX 0.5226 contra máx CPU 0.5252 — com o Warp não
-  determinístico, pode virar num run futuro.
+  divergência grosseira, não teste de distribuição). **Ainda instável**: no primeiro run as
+  24 passaram; no `-m validation` final, `competent` StaticDefenders retorno deu mediana MJX
+  0.5273 contra máx CPU 0.5252 (0.5226 no run anterior) e reprovou. O Warp não é
+  determinístico de run para run, e com 5 seeds qualquer intervalo da CPU reprova uma
+  fração fixa das células mesmo com distribuições iguais. Não afrouxei mais; a decidir:
+  mais seeds no MJX (barato: são mundos do lote; o CPU fica em 0-4), comparar só o
+  agregado entre envs, ou aceitar o teste como relatório.
 - **Custo**: sweep MJX completo ~10 min (compilação por lote + laço no host passo a passo;
   o Dribbling a 4 800 passos domina); `-m validation` com o grupo `gpu` ~12.5 min (CPU + MJX
   em subprocessos). Pico de GPU ~0.5 GB.
+- **Verificação**: `git merge gpu-port-impl` em dia. Com o grupo `gpu`: `uv run pytest`
+  216 passed; `-m validation` 149 passed, 1 xfailed (`hold_turn[mjx]`, 73/120 nesse run),
+  1 failed (`test_parity_seeded[competent-StaticDefenders-v0-ret]`), 12.7 min. Sem o grupo:
+  ver o relatório do merge. Nenhum processo na GPU depois.

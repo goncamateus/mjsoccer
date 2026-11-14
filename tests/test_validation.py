@@ -239,7 +239,9 @@ def test_parity_seeded(sweep, scenario, env_id, column):
     0.48 (simulated, numpy's interpolated percentiles), and measured it failed 5 of the 24
     cells, all on `competent` (contact-chaotic episodes). The range passes 0.83 of the time
     per cell under the same null, so this is a check for gross divergence, not a test of
-    equal distributions; with 5 seeds there is no power for one."""
+    equal distributions; with 5 seeds there is no power for one. Still not stable here:
+    MJX-Warp is not deterministic run to run, and `competent` StaticDefenders' return had an
+    MJX median of 0.5226 in one run and 0.5273 in the next against a CPU max of 0.5252."""
     mjx = [_row(sweep, "mjx", scenario, env_id, None, s)[column] for s in SEEDS]
     cpu = [_row(sweep, "cpu", scenario, env_id, None, s)[column] for s in SEEDS]
     lo, hi = min(cpu), max(cpu)
