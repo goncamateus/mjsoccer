@@ -82,15 +82,41 @@ def test_nan_world_ends_zeroed_and_auto_resets_alone(repeat_action):
     assert raw["overflow"] == [0.0] * NWORLD, raw
     assert raw["others_finite"], raw
     assert "diverged" in raw["check_failures"], raw
-    if repeat_action > 1:
-        # TODO(ticket 13): repeat_action > 1 under Brax's EpisodeWrapper scan leaks a
-        # tracer from Warp's contact buffer (already at ticket 07's commit); see ticket 09.
-        return
     wrapped = out["wrapped"]
     assert wrapped["diverged"] == [1.0, 0.0, 0.0, 0.0], wrapped
     assert wrapped["restored"], wrapped  # qpos/qvel/obs of world 0 back to its first state
+    # ...and its per-world state (steps, grace, plunger lock, the task's own) with it,
+    # which Brax's AutoResetWrapper would have carried over from the ended episode.
+    assert wrapped["world_restored"], wrapped
+    assert wrapped["control_steps"] == [0] + [4 * repeat_action] * (NWORLD - 1), wrapped
+    assert all(wrapped["others_kept"]), wrapped
     assert wrapped["episode_diverged"][0] == 1.0, wrapped  # what the training log sums
     assert wrapped["after_finite"] and wrapped["after_failures"] == 0, wrapped
+
+
+@pytest.mark.parametrize("env_id", TASKS)
+@pytest.mark.parametrize("repeat_action", [1, 2])
+def test_timeout_is_truncation_and_resets_per_world_state(env_id, repeat_action):
+    """The env's own horizon is the episode's end under `mjx.wrappers.wrap`: the step that
+    reaches it is done and flagged truncation (PPO bootstraps through it, it is not a
+    terminal), and the worlds come back with fresh per-world state."""
+    out = _run("truncation", env_id, repeat_action)
+    assert out["max_steps"] == 4, out
+    assert out["done"][-1] == [1.0] * NWORLD and out["done"][0] == [0.0] * NWORLD, out
+    assert out["truncation"] == [1.0] * NWORLD, out
+    assert all(out["world_restored"]), out
+    assert out["episode_length"] == [float(out["length"])] * NWORLD, out
+
+
+@pytest.mark.parametrize("repeat_action", [1, 2])
+def test_reset_overlap_is_counted_on_the_first_decision(repeat_action):
+    """A world placed with an overlap reports it in `metrics["reset_overlap"]` on its first
+    decision too, not only on the reset state: Brax's episode and eval sums count step
+    metrics only. The overlap is put in by hand (a real one is ~1e-16 likely)."""
+    out = _run("overlap", TASKS[0], repeat_action)
+    assert out["at_reset"] == [0.0] * NWORLD, out
+    assert out["first"] == [1.0, 0.0, 0.0, 0.0], out
+    assert out["second"] == [0.0] * NWORLD, out
 
 
 def test_overflow_world_is_treated_like_nan():
@@ -238,9 +264,8 @@ def _poison(state):
 def nan(env_id: str, repeat_action: int) -> dict:
     import jax
     import numpy as np
-    from brax.envs.wrappers import training
-
     import mjsoccer.mjx
+    from mjsoccer.mjx import wrappers
 
     env = mjsoccer.mjx.make(env_id, nworld=NWORLD, repeat_action=repeat_action)
     keys = jax.random.split(jax.random.PRNGKey(0), NWORLD)
@@ -261,19 +286,24 @@ def nan(env_id: str, repeat_action: int) -> dict:
                            and np.isfinite(np.asarray(s.obs[1:])).all()),
         check_failures=_error(lambda: mjsoccer.mjx.check_failures(s)),
     )
-    if repeat_action > 1:
-        return dict(raw=raw)
 
-    wenv = training.wrap(env, episode_length=10**6)
+    wenv = wrappers.wrap(env, episode_length=10**6)
     reset, step = jax.jit(wenv.reset), jax.jit(wenv.step)
     first = reset(keys)
-    s = step(_poison(first), a)
+    s = first
+    for _ in range(3):  # world 0 gets an episode's worth of per-world state to forget
+        s = step(s, _actions(rng, env))
+    s = step(_poison(s), a)
     d, d0 = s.pipeline_state, first.pipeline_state
     restored = all(np.array_equal(np.asarray(x[0]), np.asarray(y[0]))
                    for x, y in [(d.qpos, d0.qpos), (d.qvel, d0.qvel), (s.obs, first.obs)])
+    world = jax.tree.map(np.asarray, (s.info["world"], first.info["world"]))
     wrapped = dict(
         diverged=np.asarray(s.metrics["diverged"]).tolist(),
         restored=restored,
+        world_restored=_same_world(world, 0),
+        others_kept=[not _same_world(world, w) for w in range(1, NWORLD)],
+        control_steps=world[0]["steps"].tolist(),
         episode_diverged=np.asarray(s.info["episode_metrics"]["diverged"]).tolist(),
     )
     finite, failures = True, 0
@@ -285,6 +315,72 @@ def nan(env_id: str, repeat_action: int) -> dict:
                         + np.asarray(s.metrics["overflow"]).sum())
     wrapped.update(after_finite=finite, after_failures=failures)
     return dict(raw=raw, wrapped=wrapped)
+
+
+def _same_world(world, w) -> bool:
+    """World `w`'s per-world state (`info["world"]`) equals its first state, bit for bit."""
+    import jax
+    import numpy as np
+
+    now, first = world
+    return all(np.array_equal(x[w], y[w]) for x, y in
+               zip(jax.tree.leaves(now), jax.tree.leaves(first), strict=True))
+
+
+def truncation(env_id: str, repeat_action: int) -> dict:
+    """A 0.1 s horizon (4 control steps) under `mjx.wrappers.wrap`: every world times out
+    together, flagged as truncation, and comes back with fresh per-world state."""
+    import math
+
+    import jax
+    import numpy as np
+
+    import mjsoccer.mjx
+    from mjsoccer import ENV_IDS
+    from mjsoccer.mjx import tasks, wrappers
+
+    cls = getattr(tasks, ENV_IDS[env_id][0])
+    env = cls(horizon_s=0.1, nworld=NWORLD, repeat_action=repeat_action)
+    length = math.ceil(env.max_steps / repeat_action)
+    wenv = wrappers.wrap(env, episode_length=length)
+    reset, step = jax.jit(wenv.reset), jax.jit(wenv.step)
+    keys = jax.random.split(jax.random.PRNGKey(0), NWORLD)
+    first = s = reset(keys)
+    a = np.zeros((NWORLD, env.action_size), np.float32)
+    a[:, 3], a[:, 4:7] = 1.0, -1.0  # hold the origin facing +x, no kick, no dribbler
+    done = []
+    for _ in range(length):
+        s = step(s, a)
+        mjsoccer.mjx.check_failures(s)
+        done.append(np.asarray(s.done).tolist())
+    world = jax.tree.map(np.asarray, (s.info["world"], first.info["world"]))
+    return dict(
+        max_steps=env.max_steps, length=length, done=done,
+        truncation=np.asarray(s.info["truncation"]).tolist(),
+        world_restored=[_same_world(world, w) for w in range(NWORLD)],
+        episode_length=np.asarray(s.info["episode_metrics"]["length"]).tolist(),
+    )
+
+
+def overlap(env_id: str, repeat_action: int) -> dict:
+    import jax
+    import numpy as np
+
+    import mjsoccer.mjx
+
+    env = mjsoccer.mjx.make(env_id, nworld=NWORLD, repeat_action=repeat_action)
+    keys = jax.random.split(jax.random.PRNGKey(0), NWORLD)
+    s = jax.jit(jax.vmap(env.reset))(keys)
+    at_reset = np.asarray(s.metrics["reset_overlap"]).tolist()
+    w = s.info["world"]
+    s = s.replace(info={**s.info, "world": {**w, "overlap": w["overlap"].at[0].set(True)}})
+    step = jax.jit(jax.vmap(env.step))
+    a = _actions(np.random.default_rng(0), env)
+    s = step(s, a)
+    first = np.asarray(s.metrics["reset_overlap"]).tolist()
+    s = step(s, a)
+    return dict(at_reset=at_reset, first=first,
+                second=np.asarray(s.metrics["reset_overlap"]).tolist())
 
 
 def overflow(env_id: str, repeat_action: int) -> dict:
@@ -314,7 +410,8 @@ def main(mode: str, env_id: str, repeat_action: int) -> None:
         jax.devices("gpu")
     except RuntimeError:
         sys.exit(SKIP)
-    run = dict(smoke=smoke, nan=nan, overflow=overflow)[mode]
+    run = dict(smoke=smoke, nan=nan, overflow=overflow, truncation=truncation,
+               overlap=overlap)[mode]
     print(json.dumps(run(env_id, repeat_action)))
 
 

@@ -11,8 +11,9 @@ tests/test_mjx_task_logic.py can put the CPU's own physics between them:
 Per-world state lives in `State.info["world"]`, a pytree: `grace` (n_robots,),
 `plunger_lock` (n_robots, 2) int32 and `fired` (n_robots,) bool (the kick's cooldown and
 this step's firing, `BaseEnv._plunger_lock`/`fired`), `steps` (in control steps, as the CPU
-counts them), `drive_cmd` (the energy penalties' input), the world's RNG key, and the
-task's own entries. It is nested rather than spread over `info`
+counts them), `drive_cmd` (the energy penalties' input), the world's RNG key, `overlap`
+(its `place` found no free spot; `metrics["reset_overlap"]` on the reset state and the
+first decision), and the task's own entries. It is nested rather than spread over `info`
 because Brax's `EpisodeWrapper` keeps its own `info["steps"]`; the env still owns the
 ending: `done` includes truncation at `max_steps`, flagged in `info["truncation"]`, so an
 `EpisodeWrapper(episode_length=max_steps / repeat_action)` only agrees with it.
@@ -285,25 +286,47 @@ class MjxEnv(Env):
             d = self.physics(s.pipeline_state, s.info["world"]["fired"].any())
             return self.settle(s.replace(pipeline_state=d))
 
-        s = control_step(state)
+        s = self._first_decision(state, control_step(state))
         if self.repeat_action == 1:
             return s
 
         # A world that ended keeps its final state through the rest of the decision. Not a
         # while_loop: under vmap its per-world predicate would batch Warp's shared contact
         # buffer, so every world runs every control step and the ended ones are put back
-        # with Data.where -- the one merge Warp's buffers allow.
+        # with Data.where -- the one merge Warp's buffers allow. Only the env's own fields
+        # are merged: a wrapper's entries in `info` pass through untouched, and one of them
+        # may be a Data (the auto-reset's first state), whose shared contact buffer a
+        # jnp.where would batch -- a tracer leak out of the vmap.
         def body(_, c):
             s, total = c
             new = control_step(s)
             ended = s.done > 0
-            merged = jax.tree.map(lambda a, b: jnp.where(ended, a, b),
-                                  s.replace(pipeline_state=None), new.replace(pipeline_state=None))
-            merged = merged.replace(pipeline_state=new.pipeline_state.where(ended, s.pipeline_state))
+
+            def keep(a, b):
+                return jax.tree.map(lambda x, y: jnp.where(ended, x, y), a, b)
+
+            mine = ("world", "truncation")
+            merged = new.replace(
+                pipeline_state=new.pipeline_state.where(ended, s.pipeline_state),
+                obs=keep(s.obs, new.obs), done=keep(s.done, new.done),
+                metrics=keep(s.metrics, new.metrics),
+                info={**new.info, **keep({k: s.info[k] for k in mine},
+                                         {k: new.info[k] for k in mine})},
+            )
             return merged, total + jnp.where(ended, 0.0, new.reward)
 
         s, total = jax.lax.fori_loop(1, self.repeat_action, body, (s, s.reward))
-        return s.replace(reward=total)
+        return self._first_decision(state, s.replace(reward=total))
+
+    @staticmethod
+    def _first_decision(before: State, after: State) -> State:
+        """The episode's first decision repeats the reset's `reset_overlap`: Brax's episode
+        and eval sums count step metrics, never the reset state's."""
+        w = before.info["world"]
+        first = (w["steps"] == 0) & w["overlap"]
+        return after.replace(metrics={**after.metrics,
+                                      "reset_overlap": jnp.maximum(after.metrics["reset_overlap"],
+                                                                   first.astype(jnp.float32))})
 
     @property
     def observation_size(self) -> int:
@@ -329,6 +352,7 @@ class MjxEnv(Env):
             steps=jnp.zeros((), jnp.int32),
             drive_cmd=jnp.zeros((self.n_controlled, 3)),
             rng=rng,
+            overlap=jnp.asarray(overlap, bool),
             **self.init_task(data),
         )
         world["grace"] = self._possession(data, world["grace"])
