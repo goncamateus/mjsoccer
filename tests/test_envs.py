@@ -256,6 +256,112 @@ def test_seated_ball_survives_a_2_rad_s_turn():
     env.close()
 
 
+def _dribbler_touch_by_scan(model, robots, ball, data) -> list[bool]:
+    """The old definition of possession contact, kept as the independent reference:
+    any contact in data.contact between the ball and a geom of the robot's dribbler body."""
+    out = []
+    for r in robots:
+        hit = False
+        for c in data.contact[: data.ncon]:
+            b1, b2 = int(model.geom_bodyid[c.geom1]), int(model.geom_bodyid[c.geom2])
+            if ball.body in (b1, b2) and r.dribbler_body in (b1, b2):
+                hit = True
+        out.append(hit)
+    return out
+
+
+def test_possession_contact_sensor_matches_the_contact_list():
+    """The ball x dribbler contact sensor (GPU port, ticket 03) must call touch exactly
+    where a scan of data.contact does, for every robot, step by step.
+
+    MJX can only read contacts through sensors, so the sensor is now the definition of
+    possession on both backends; this pins it to the one it replaced. Two robots, each
+    seated with the ball in turn, bar spinning and chassis turning, so the run sees
+    touch, slip and loss on both.
+    """
+    model, robots, ball = S.build(1, 1)
+    agree = touched = 0
+    for seed in range(3):
+        rng = np.random.default_rng(seed)
+        for holder in range(2):
+            data = mujoco.MjData(model)
+            for i, r in enumerate(robots):
+                r.place(data, -1.0 + 2.0 * i, 0.0, 0.0 if i == 0 else np.pi)
+            mujoco.mj_forward(model, data)
+            mouth = data.xpos[robots[holder].body] + 0.094 * robots[holder].forward(data)
+            ball.place(data, mouth[0], mouth[1])
+            for _ in range(600):
+                data.ctrl[:] = 0.0
+                for r in robots:
+                    data.ctrl[r.dribble] = S.DRIBBLER_OMEGA * rng.uniform(0.0, 1.0)
+                    data.ctrl[r.drive[2]] = rng.uniform(-3.0, 3.0)
+                mujoco.mj_step(model, data)
+                ref = _dribbler_touch_by_scan(model, robots, ball, data)
+                got = [r.touches_ball(data) for r in robots]
+                assert got == ref, f"seed {seed}: sensor {got} vs contact list {ref}"
+                agree += 1
+                touched += any(ref)
+    assert touched > agree // 10, f"only {touched}/{agree} steps had any touch to compare"
+
+
+def test_possession_sensor_leaves_the_physics_alone():
+    """Adding the possession sensors must not change the model's physics (spec,
+    restriction 7): same geoms, masses, contact pairs and actuators, and a bit-identical
+    rollout against the same scene compiled without them."""
+    with_s, robots, ball = S.build(1, 1)
+    without, _, _ = S.build.__wrapped__(1, 1, possession_sensors=False)
+    assert with_s.nsensor > without.nsensor
+    for field in (
+        "geom_size", "geom_pos", "geom_friction", "geom_solref", "geom_solimp",
+        "geom_contype", "geom_conaffinity", "body_mass", "body_inertia",
+        "pair_geom1", "pair_geom2", "pair_friction", "pair_solref", "pair_solimp",
+        "actuator_gainprm", "actuator_biasprm", "actuator_ctrlrange", "dof_damping",
+    ):
+        np.testing.assert_array_equal(getattr(with_s, field), getattr(without, field), field)
+    traces = []
+    for model in (with_s, without):
+        data = mujoco.MjData(model)
+        robots[0].place(data, -0.5, 0.0, 0.0)
+        robots[1].place(data, 0.5, 0.0, np.pi)
+        ball.place(data, 0.0, 0.0, 0.0, 0.0)
+        rng = np.random.default_rng(0)
+        for _ in range(500):
+            data.ctrl[:] = rng.uniform(-1, 1, model.nu) * model.actuator_ctrlrange[:, 1] * 0.3
+            mujoco.mj_step(model, data)
+        traces.append(data.qpos.copy())
+    np.testing.assert_array_equal(traces[0], traces[1])
+
+
+def test_possession_reads_no_contact_list():
+    """The task logic must decide possession from sensordata alone -- the one channel MJX
+    exposes. Emptying data.contact under a seated ball must not change holds()."""
+    env = gym.make("Dribbling-v0").unwrapped
+    env.reset(seed=0)
+    hold = np.zeros(env.action_space.shape, dtype=np.float32)
+    hold[-1] = 0.5
+    for _ in range(5):
+        env.step(hold)
+    assert env.holds(0)
+
+    class NoContacts:
+        def __init__(self, data):
+            object.__setattr__(self, "_d", data)
+
+        def __getattr__(self, name):
+            if name in ("contact", "ncon"):
+                raise AssertionError(f"possession read data.{name}")
+            return getattr(self._d, name)
+
+    real = env.data
+    env.data = NoContacts(real)
+    try:
+        env._update_possession()
+    finally:
+        env.data = real
+    assert env.holds(0)
+    env.close()
+
+
 def test_goto_ball_is_solvable():
     """A P-controller must actually finish GoToBall-v0.
 

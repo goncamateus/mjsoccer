@@ -49,6 +49,13 @@ DRIBBLER_OMEGA = 314.0
 # with the ball parked square in the mouth at (94, 0, 21) mm. Any positive threshold on
 # that sensor reports "no ball" forever. Contact is unambiguous and is what the mjssl
 # retention benchmarks score against too.
+#
+# The contact is read through `contact` sensors, not by scanning data.contact (GPU port,
+# ticket 03): MJX exposes contacts only through sensors, so this is the one definition both
+# backends share. One geom-geom sensor per dribbler collision geom -- the bar and its axle,
+# the only colliding geoms on the dribbler body -- each reporting `found`, the number of
+# matched contacts. Sensors add sensordata and nothing else to the physics.
+DRIBBLER_GEOMS = ("r_col_barDribbler", "r_col_axisDribbler")
 
 # Kicker and chipper take a *speed*, as the firmware does (ticket 09): a in (0, 1] asks for
 # KICK_SPEED_MAX * a, the §8.4.2 cap at a = 1 (ticket 02). The plunger is still a force
@@ -115,6 +122,7 @@ class RobotIds:
     dribble: int
     arm_adr: int
     dribbler_body: int
+    touch_adr: tuple[int, ...]  # sensordata index of each ball x DRIBBLER_GEOMS `found`
     qpos_adr: int
     qvel_adr: int
     xy0: tuple[float, float]  # where the scene built the body; the slides start there
@@ -126,6 +134,10 @@ class RobotIds:
         # Slide joints are relative to the body's built position, not the origin.
         data.qpos[a : a + 3] = (x - self.xy0[0], y - self.xy0[1], theta)
         data.qvel[self.qvel_adr : self.qvel_adr + 3] = 0.0
+
+    def touches_ball(self, data: mujoco.MjData) -> bool:
+        """Is the ball in contact with this robot's dribbler, per the contact sensors?"""
+        return bool(data.sensordata[list(self.touch_adr)].any())
 
     def pose(self, data: mujoco.MjData) -> tuple[float, float, float]:
         """(x, y, yaw) in world coordinates, read off the compiled frame."""
@@ -191,6 +203,12 @@ def _robot_ids(model: mujoco.MjModel, prefix: str, team: str) -> RobotIds:
         dribbler_body=mujoco.mj_name2id(
             model, mujoco.mjtObj.mjOBJ_BODY, prefix + "dribbler"
         ),
+        touch_adr=tuple(
+            int(model.sensor_adr[mujoco.mj_name2id(
+                model, mujoco.mjtObj.mjOBJ_SENSOR, prefix + "ball_touch_" + g
+            )])
+            for g in DRIBBLER_GEOMS
+        ),
         qpos_adr=int(model.jnt_qposadr[jnt]),
         qvel_adr=int(model.jnt_dofadr[jnt]),
         xy0=(float(model.body_pos[body][0]), float(model.body_pos[body][1])),
@@ -199,13 +217,16 @@ def _robot_ids(model: mujoco.MjModel, prefix: str, team: str) -> RobotIds:
 
 @lru_cache(maxsize=8)
 def build(
-    n_blue: int, n_yellow: int
+    n_blue: int, n_yellow: int, possession_sensors: bool = True
 ) -> tuple[mujoco.MjModel, tuple[RobotIds, ...], BallIds]:
     """Compile a field + n_blue + n_yellow robots + one ball.
 
     ponytail: the MjModel is cached and shared by every env of the same shape, which is
     safe only while nothing mutates it -- each env owns its own MjData. The first caller
     that wants domain randomisation has to drop the cache and pay the ~0.2 s compile.
+
+    `possession_sensors=False` exists only to prove the sensors leave the physics alone;
+    RobotIds needs them, so such a model comes back with no robots or ball resolved.
     """
     if n_blue < 1:
         raise ValueError("need at least one blue robot")
@@ -244,8 +265,21 @@ def build(
             pair.geomname1, pair.geomname2 = "ball", prefix + geom
             pair.condim = condim
             pair.friction, pair.solref, pair.solimp = friction, solref, solimp
+        for geom in DRIBBLER_GEOMS if possession_sensors else ():
+            spec.add_sensor(
+                name=prefix + "ball_touch_" + geom,
+                type=mujoco.mjtSensor.mjSENS_CONTACT,
+                objtype=mujoco.mjtObj.mjOBJ_GEOM,
+                objname="ball",
+                reftype=mujoco.mjtObj.mjOBJ_GEOM,
+                refname=prefix + geom,
+                # dataspec (bit field), reduce, num: one slot, `found` only.
+                intprm=[1 << int(mujoco.mjtConDataField.mjCONDATA_FOUND), 0, 1],
+            )
 
     model = spec.compile()
+    if not possession_sensors:
+        return model, (), None
     robots = tuple(_robot_ids(model, prefix, team) for team, prefix in teams)
     body = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "ball")
     geom = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "ball")

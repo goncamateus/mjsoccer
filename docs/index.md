@@ -388,11 +388,25 @@ in the goal when its centre is past the goal line, inside the mouth and under th
 
 ## Rendering
 
-`render_mode="human"` opens `mujoco.viewer.launch_passive` and syncs it once per `step`.
+`render_mode="human"` opens a MuJoCo Studio viewer (`mujoco.studio`, `src/mjsoccer/viewer.py`)
+and syncs it once per `step`. The viewer is a spectator: it gets a copy of the state, and
+whatever it hands back from `sync` (edits made in its UI) is ignored. Closing the window
+does not end the episode; the next `render()` opens a new one.
+
+The `viewer_gfx` kwarg picks how it draws:
+
+- `opengl_headless` (default): a native window. Filament renders to a texture and SDL
+  blits it, the one native mode that runs under Wayland here.
+- `web`: no window and no GPU on the host. The URL is printed on launch, and the browser
+  draws the scene (e.g. over `ssh -L`). **It listens on all interfaces with no
+  authentication**, so use it only on a trusted network or behind a tunnel. In mujoco 4.0.0
+  only one web viewer works per process; a second one raises.
+
 The view starts on the whole field — south side, both goals in frame, `+x` on the right —
-rather than on the viewer's own default, which is placed off the model's extent statistic
-and lands close in on a patch of grass. It stays a *free* camera, so the mouse still
-orbits, pans and zooms from there; only the opening view is set.
+rather than on Studio's default, which is placed off the model's extent statistic and lands
+close in on a patch of grass. A `ViewerPlugin` sets it once, when the model first reaches the
+viewer. It stays a *free* camera, so the mouse still orbits, pans and zooms from there; only
+the opening view is set.
 
 `render_mode="rgb_array"` returns a 720x1280 RGB frame from an off-screen
 `mujoco.Renderer`, using the model's `overview` camera.
