@@ -34,7 +34,6 @@ import jax.numpy as jnp
 import mujoco
 import numpy as np
 
-
 _SMALL = 1 << 20
 # Derived by mj_setConst, but unbatched in MJX-Warp and read by neither engine: put back
 # after every slot, never stacked.

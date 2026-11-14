@@ -153,8 +153,8 @@ def envelope(env, axis):
 
     def metrics(tr, dt):
         v = tr["vel0"][:, i]
-        return dict(env_accel=round(float(np.diff(v, prepend=0.0).max() / dt), 4),
-                    env_v_end=round(float(v[-1]), 4))
+        return {"env_accel": round(float(np.diff(v, prepend=0.0).max() / dt), 4),
+                "env_v_end": round(float(v[-1]), 4)}
 
     policy.metrics = metrics
     return policy
@@ -179,8 +179,8 @@ def kick(env, param):
         return b
 
     def metrics(tr, dt):
-        return dict(kick_speed=round(float(np.linalg.norm(tr["ball_v"], axis=1).max()), 4),
-                    kick_target=round(scene.KICK_SPEED_MAX * a, 4))
+        return {"kick_speed": round(float(np.linalg.norm(tr["ball_v"], axis=1).max()), 4),
+                "kick_target": round(scene.KICK_SPEED_MAX * a, 4)}
 
     policy.metrics = metrics
     return policy
@@ -217,8 +217,8 @@ def bounce(env, param):
         return a
 
     def metrics(tr, dt):
-        return dict(cor=round(float(-sign * tr["ball_v"][-1, axis] / v), 5),
-                    ball_beta=tr.get("ball_beta", ""))
+        return {"cor": round(float(-sign * tr["ball_v"][-1, axis] / v), 5),
+                "ball_beta": tr.get("ball_beta", "")}
 
     policy.metrics = metrics
     return policy
@@ -309,15 +309,15 @@ def nav_metrics(dt: float, target, xy: np.ndarray, yaw: np.ndarray, speed: np.nd
     out_y = np.flatnonzero(np.rad2deg(yaw_err) >= NAV_YAW_ERR_DEG)
     settle_y = (out_y[-1] + 1 if len(out_y) else 0) * dt if len(out_y) < len(err) else np.inf
     last = max(1, round(1.0 / dt))
-    return dict(
-        nav_pos_err=round(float(err[-1]), 5),
-        nav_yaw_err_deg=round(float(np.rad2deg(yaw_err[-1])), 4),
-        nav_settle_s=round(float(settle), 4), nav_yaw_settle_s=round(float(settle_y), 4),
-        nav_trap_s=round(trapezoid_time(d), 4),
-        nav_time_ratio=round(float(settle / trapezoid_time(d)), 4),
-        nav_chatter_rms=round(float(np.sqrt(np.mean(speed[-last:] ** 2))), 5),
-        nav_cmd_w_max=round(float(np.abs(cmd_w).max()), 4),
-    )
+    return {
+        "nav_pos_err": round(float(err[-1]), 5),
+        "nav_yaw_err_deg": round(float(np.rad2deg(yaw_err[-1])), 4),
+        "nav_settle_s": round(float(settle), 4), "nav_yaw_settle_s": round(float(settle_y), 4),
+        "nav_trap_s": round(trapezoid_time(d), 4),
+        "nav_time_ratio": round(float(settle / trapezoid_time(d)), 4),
+        "nav_chatter_rms": round(float(np.sqrt(np.mean(speed[-last:] ** 2))), 5),
+        "nav_cmd_w_max": round(float(np.abs(cmd_w).max()), 4),
+    }
 
 
 def random(env, _):
@@ -416,16 +416,17 @@ def _row(scenario, env_id, param, seed, backend, dt, policy, tr) -> dict:
     y = np.abs(tr["vel0"][:, 2])
     held = tr["held"]
     runs = _runs(held)
-    row = dict(
-        backend=backend, scenario=scenario, env=env_id, param=param, seed=seed,
-        steps=tr["steps"], sim_s=round(tr["steps"] * dt, 4), reason=tr["reason"],
-        success=tr["success"],
-        yaw_p99=round(np.percentile(y, 99), 3), yaw_max=round(y.max(), 3),
-        yaw_frac_over_max_w=round(float((y > MAX_W).mean()), 5), held_frac=round(float(np.mean(held)), 4),
-        poss_mean_steps=round(float(np.mean(runs)), 2) if runs else 0,
-        poss_p95_steps=round(float(np.percentile(runs, 95)), 2) if runs else 0,
-        ret=round(tr["ret"], 4), wall_s=round(tr["wall_s"], 3),
-    )
+    row = {
+        "backend": backend, "scenario": scenario, "env": env_id, "param": param, "seed": seed,
+        "steps": tr["steps"], "sim_s": round(tr["steps"] * dt, 4), "reason": tr["reason"],
+        "success": tr["success"],
+        "yaw_p99": round(np.percentile(y, 99), 3), "yaw_max": round(y.max(), 3),
+        "yaw_frac_over_max_w": round(float((y > MAX_W).mean()), 5),
+        "held_frac": round(float(np.mean(held)), 4),
+        "poss_mean_steps": round(float(np.mean(runs)), 2) if runs else 0,
+        "poss_p95_steps": round(float(np.percentile(runs, 95)), 2) if runs else 0,
+        "ret": round(tr["ret"], 4), "wall_s": round(tr["wall_s"], 3),
+    }
     if hasattr(policy, "metrics"):
         row.update(policy.metrics(tr, dt))
     return row
@@ -487,8 +488,8 @@ def episode(scenario: str, env_id: str, param, seed: int, backend: str = "cpu") 
               wall_s=wall_s, cmd_w=np.array(cmd_w), ball_beta=_ball_beta(m, b))
     row = _row(scenario, env_id, param, seed, "cpu", env.dt, policy, tr)
     env.close()
-    return dict(row=row, yaws=np.abs(tr["vel0"][:, 2]), runs=_runs(tr["held"]),
-                impulses=dict(impulses))
+    return {"row": row, "yaws": np.abs(tr["vel0"][:, 2]), "runs": _runs(tr["held"]),
+            "impulses": dict(impulses)}
 
 
 def _unit(args):
@@ -571,13 +572,14 @@ def _mjx_batch(env_id: str, raw: bool, group: list[tuple]) -> list[dict]:
         cmd_w = jnp.zeros(()) if raw else env._navigate(s.pipeline_state, 0, a[:4])[2]
         s = env.step(s, a, raw)
         d = s.pipeline_state
-        return s, dict(
-            reward=s.reward, done=s.done, trunc=s.info["truncation"],
-            held=s.info["world"]["grace"][0] > 0,
-            qpos0=d.qpos[r.qpos_adr : r.qpos_adr + 3], vel0=d.qvel[r.qvel_adr : r.qvel_adr + 3],
-            ball_v=d.qvel[b.qvel_adr : b.qvel_adr + 3], cmd_w=cmd_w,
-            diverged=s.metrics["diverged"], overflow=s.metrics["overflow"],
-        )
+        return s, {
+            "reward": s.reward, "done": s.done, "trunc": s.info["truncation"],
+            "held": s.info["world"]["grace"][0] > 0,
+            "qpos0": d.qpos[r.qpos_adr : r.qpos_adr + 3],
+            "vel0": d.qvel[r.qvel_adr : r.qvel_adr + 3],
+            "ball_v": d.qvel[b.qvel_adr : b.qvel_adr + 3], "cmd_w": cmd_w,
+            "diverged": s.metrics["diverged"], "overflow": s.metrics["overflow"],
+        }
 
     t0 = time.perf_counter()
     state = jax.jit(jax.vmap(env.reset))(jnp.stack(keys))
@@ -621,8 +623,8 @@ def _mjx_batch(env_id: str, raw: bool, group: list[tuple]) -> list[dict]:
         tr.update(steps=int(steps[i]), ret=float(total[i]), reason=ends[i], success="",
                   wall_s=wall_s / n, ball_beta=beta)
         row = _row(scenario, env_id, param, seed, "mjx", dt, policies[i], tr)
-        results.append(dict(row=row, yaws=np.abs(tr["vel0"][:, 2]), runs=_runs(tr["held"]),
-                            impulses={}))
+        results.append({"row": row, "yaws": np.abs(tr["vel0"][:, 2]), "runs": _runs(tr["held"]),
+                        "impulses": {}})
         cpus[i].close()
     return results
 
@@ -681,7 +683,7 @@ def summarise(results: list[dict], out: Path) -> None:
         ret = [r["ret"] for r in rr]
         held = [r["held_frac"] for r in rr]
         succ = [r["success"] for r in rr if r["success"] != ""]
-        cell = dict(backend=key[0], scenario=key[1], env=key[2], param=key[3])
+        cell = {"backend": key[0], "scenario": key[1], "env": key[2], "param": key[3]}
         summary.append(dict(
             **cell, episodes=len(rr),
             minutes=round(minutes, 3),

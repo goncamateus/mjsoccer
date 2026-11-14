@@ -18,11 +18,11 @@ from __future__ import annotations
 
 import jax.numpy as jnp
 
-from .. import scene as S
+from .. import scene
 from .. import tasks as cpu
 from .base import MjxEnv, first_free
 
-HALF_X, HALF_Y = S.FIELD_HALF_X, S.FIELD_HALF_Y
+HALF_X, HALF_Y = scene.FIELD_HALF_X, scene.FIELD_HALF_Y
 SCATTER_CANDIDATES = 8
 # PassEndurance's receiver x is redrawn while within 1 m of the ball's on a 3 m range: up
 # to 2/3 of draws rejected, so (2/3)^64 ~ 5e-12 of worlds run out.
@@ -38,13 +38,13 @@ def first_where(cand, free, roomy):
 
 def _in_gk_area(x, y):
     """`tasks._in_gk_area`: inside the +x penalty area."""
-    return (x > HALF_X - S.PENALTY_DEPTH) & (jnp.abs(y) < S.PENALTY_HALF_Y)
+    return (x > HALF_X - scene.PENALTY_DEPTH) & (jnp.abs(y) < scene.PENALTY_HALF_Y)
 
 
 def in_goal(pos, sign: float = 1.0):
     """`scene.in_goal`."""
-    return (sign * pos[0] > HALF_X) & (jnp.abs(pos[1]) < S.GOAL_HALF_Y) & (
-        pos[2] - S.FLOOR_Z < S.GOAL_HEIGHT
+    return (sign * pos[0] > HALF_X) & (jnp.abs(pos[1]) < scene.GOAL_HALF_Y) & (
+        pos[2] - scene.FLOOR_Z < scene.GOAL_HEIGHT
     )
 
 
@@ -113,8 +113,8 @@ class ContestedPossessionEnv(_ShootTask):
 
     def place(self, d, u):
         d = self.place_robot(d, self.robots[0], 0.0, 0.0, 0.0)
-        ox = S.PENALTY_DEPTH + u[0] * (HALF_X - 2 * S.PENALTY_DEPTH)
-        oy = -S.PENALTY_HALF_Y + u[1] * (2 * S.PENALTY_HALF_Y)
+        ox = scene.PENALTY_DEPTH + u[0] * (HALF_X - 2 * scene.PENALTY_DEPTH)
+        oy = -scene.PENALTY_HALF_Y + u[1] * (2 * scene.PENALTY_HALF_Y)
         return self.place_robot(d, self.robots[self.n_blue], ox, oy, jnp.pi), jnp.array(False)
 
     def reset_physics(self, d):
@@ -131,7 +131,7 @@ class GoToBallShootEnv(_ShootTask):
     def place(self, d, u):
         k = SCATTER_CANDIDATES
         lo = jnp.array([0.3, -HALF_Y + 0.1])
-        hi = jnp.array([HALF_X - S.PENALTY_DEPTH - 0.3, HALF_Y - 0.1])
+        hi = jnp.array([HALF_X - scene.PENALTY_DEPTH - 0.3, HALF_Y - 0.1])
         ball = lo + u[:2] * (hi - lo)
         d = self.place_ball(d, ball[0], ball[1])
         cand = lo + u[2 : 2 + 2 * k].reshape(k, 2) * (hi - lo)
@@ -239,7 +239,7 @@ class PassEnduranceEnv(_BallTask):
         return jnp.stack([0.0, 0.0, cmd[2]])
 
     def script(self, d, ctrl):
-        return ctrl.at[self.robots[1].dribble].set(S.DRIBBLER_OMEGA)
+        return ctrl.at[self.robots[1].dribble].set(scene.DRIBBLER_OMEGA)
 
     def reward_done(self, d, w):
         dist = self.to_receiver(d)

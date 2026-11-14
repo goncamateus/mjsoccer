@@ -13,12 +13,12 @@ from . import scene
 # Where the camera starts, matching the `overview` camera in the MJCF: south side (+x,
 # the attacking goal, on the right), both goals in frame, the field roughly filling the
 # window. Distance is tied to the field so it survives a differently sized pitch.
-FIELD_VIEW = dict(
-    lookat=(0.0, 0.0, 0.0),
-    distance=2.2 * scene.FIELD_HALF_X,
-    azimuth=90.0,
-    elevation=-35.0,
-)
+FIELD_VIEW = {
+    "lookat": (0.0, 0.0, 0.0),
+    "distance": 2.2 * scene.FIELD_HALF_X,
+    "azimuth": 90.0,
+    "elevation": -35.0,
+}
 
 
 class FrameField(plugin.ViewerPlugin):

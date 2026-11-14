@@ -147,7 +147,7 @@ def first_free(cand, taken, min_dist: float, strict: bool = False):
 
 def overflow_bits(d: mjx.Data) -> jax.Array:
     """Warp's per-world overflow bitmask (`OverflowType`), sticky until the world is reset;
-    0 for data that is not on Warp (the JAX-CPU parity snapshots)."""
+    0 for data that is not on Warp (the JAX-CPU task-logic parity snapshots)."""
     bits = getattr(d._impl, "overflow", None)
     return jnp.zeros((), jnp.int32) if bits is None else bits
 
@@ -156,7 +156,7 @@ def check_failures(state: State) -> None:
     """Abort on the host if any world of `state` (batched or not) diverged or overflowed.
 
     Inside the jit a failed world just ends and resets; a run that must not paper over it
-    (the parity tests, the standalone eval) calls this after each step, reading
+    (the parity sweep, the task-logic parity tests, the eval) calls this after each step, reading
     `metrics["diverged"]`/`["overflow"]` and naming the overflow bits per type, so an
     undersized `naconmax`/`njmax` says which buffer.
     """
@@ -233,7 +233,7 @@ class MjxEnv(Env):
 
     @functools.cached_property
     def sys(self) -> mjx.Model:
-        """The base model on MJX-Warp. Lazy: the task logic alone (the parity test, on
+        """The base model on MJX-Warp. Lazy: the task logic alone (the task-logic parity test, on
         JAX-CPU) never needs it. Built eagerly even when first asked for inside a trace,
         so no tracer leaks into the cache."""
         from mujoco.mjx.warp import types as wt
@@ -476,12 +476,12 @@ class MjxEnv(Env):
 
     @staticmethod
     def _metrics(diverged=False, overflow=False, reset_overlap=False):
-        """The per-step 0/1 counters Brax's `EpisodeWrapper` sums per episode.
+        """The per-decision 0/1 counters Brax's `EpisodeWrapper` sums per episode.
         `reset_overlap` is 1 on the first state of a world whose `place` ran out of free
         candidates (`first_free`), where the CPU would have kept drawing."""
         def f(x):
             return jnp.asarray(x, jnp.float32)
-        return dict(diverged=f(diverged), overflow=f(overflow), reset_overlap=f(reset_overlap))
+        return {"diverged": f(diverged), "overflow": f(overflow), "reset_overlap": f(reset_overlap)}
 
     def _navigate(self, d, i, pose):
         r = self.robots[i]
