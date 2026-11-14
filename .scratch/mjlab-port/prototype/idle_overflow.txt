@@ -1,0 +1,2 @@
+RESULT {"nworld": 1024, "decisions": 40, "idle_checked": 38912, "idle_changed": 0, "fired_checked": 2048, "fired_frozen": 0, "changed_fields": {}, "bitwise_frozen": true}
+RESULT {"nworld": 512, "a_reset_cleared": true, "a_others_kept": true, "b_overflow_world_steps": 15360, "b_bits": ["NEFC", "BROADPHASE", "ITERATIONS"], "b_terminated": true, "b_reward_zero": true, "b_episode_restarted": true, "b_reraised_by_post_reset_forward": 0}
