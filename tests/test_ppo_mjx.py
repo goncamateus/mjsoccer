@@ -53,6 +53,13 @@ def test_flags_override_and_reach_the_config():
         _script().parse_args(["--graph-mode", "WARP_STAGED_EX"])
 
 
+def test_obs_noise_and_action_latency_are_off_by_default():
+    args = _script().parse_args(["--env", "GoToBall-v0"])
+    assert (args.obs_noise, args.action_latency) == (0.0, 0)
+    args = _script().parse_args(["--obs-noise", "0.01", "--action-latency", "2"])
+    assert (args.obs_noise, args.action_latency) == (0.01, 2)
+
+
 def _cpu_env():
     return {**{k: v for k, v in os.environ.items() if k != "JAX_PLATFORMS"},
             "JAX_PLATFORMS": "cpu"}

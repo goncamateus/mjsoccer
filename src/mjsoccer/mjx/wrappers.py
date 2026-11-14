@@ -1,5 +1,5 @@
 """Training-side wrappers for the MJX envs: `wrap`, Brax's training wrapper stack fitted to
-an env that owns its episode (later: observation noise and action latency, ticket 15).
+an env that owns its episode, and the optional observation noise.
 
     env = mjsoccer.mjx.make(env_id, nworld=n)
     train_env = wrap(env, episode_length=episode_length(env))   # what ppo.train wants
@@ -18,6 +18,13 @@ Brax's `training.wrap` gets two things wrong for these envs:
 restores `info["world"]` with the rest, and merges the data with `mjx.Data.where`, which
 knows Warp's batch-shared buffers. The reset is Brax's cached first state per world slot
 (a pool of reset states is out of scope; spec, Out of Scope).
+
+`obs_noise` (default 0, off) adds N(0, obs_noise^2) to every observation entry, on the
+already normalised obs, reset ones included, drawn from `info["rng"]` (one key per world,
+folded off the reset key, so the same seed gives the same noise and the env's own draws are
+untouched). Outermost, so a world's fresh first obs after an auto-reset is noised too. The
+physics never sees it. Action latency is the env's (`mjsoccer.mjx.make(action_latency=N)`):
+it counts control steps, which only the env sees.
 """
 
 from __future__ import annotations
@@ -37,7 +44,7 @@ def episode_length(env) -> int:
 
 
 def wrap(env: Env, episode_length: int, action_repeat: int = 1,
-         randomization_fn=None) -> Wrapper:
+         randomization_fn=None, obs_noise: float = 0.0) -> Wrapper:
     """`brax.envs.wrappers.training.wrap` with this module's episode and auto-reset
     wrappers; the signature `ppo.train(wrap_env_fn=...)` calls. `action_repeat` must stay
     1: the repeat is the env's `repeat_action`, which runs the physics as the CPU does.
@@ -51,7 +58,27 @@ def wrap(env: Env, episode_length: int, action_repeat: int = 1,
         env = training.VmapWrapper(env)
     else:
         env = training.DomainRandomizationVmapWrapper(env, randomization_fn)
-    return AutoResetWrapper(EpisodeWrapper(env, episode_length, 1))
+    env = AutoResetWrapper(EpisodeWrapper(env, episode_length, 1))
+    return ObsNoiseWrapper(env, obs_noise) if obs_noise else env
+
+
+class ObsNoiseWrapper(Wrapper):
+    """Gaussian observation noise of std `sigma`, over a batch, keyed by `info["rng"]`."""
+
+    def __init__(self, env: Env, sigma: float) -> None:
+        super().__init__(env)
+        self.sigma = float(sigma)
+
+    def _noise(self, state: State, keys: jax.Array) -> State:
+        keys, sub = jnp.moveaxis(jax.vmap(jax.random.split)(keys), 1, 0)
+        eps = jax.vmap(lambda k: jax.random.normal(k, state.obs.shape[1:], state.obs.dtype))(sub)
+        return state.replace(obs=state.obs + self.sigma * eps, info={**state.info, "rng": keys})
+
+    def reset(self, rng: jax.Array) -> State:
+        return self._noise(self.env.reset(rng), jax.vmap(lambda k: jax.random.fold_in(k, 15))(rng))
+
+    def step(self, state: State, action: jax.Array) -> State:
+        return self._noise(self.env.step(state, action), state.info["rng"])
 
 
 class EpisodeWrapper(training.EpisodeWrapper):

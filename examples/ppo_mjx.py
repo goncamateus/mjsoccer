@@ -24,6 +24,9 @@ of each epoch drops Warp's captured graphs (they pile up otherwise).
 own model variant for the run (`mjsoccer.mjx.randomize`), drawn from keys derived from
 `--seed`. Brax's eval runs on the nominal model unless `--eval-randomize`. The CPU backend
 (`--play`) is always nominal.
+
+`--obs-noise` and `--action-latency` (ticket 15, both off by default) apply to training and
+to Brax's built-in eval; `--eval` and `--play` run without them.
 """
 
 from __future__ import annotations
@@ -72,6 +75,10 @@ def parse_args(argv=None) -> argparse.Namespace:
     ap.add_argument("--num-envs", type=int, default=None,
                     help="worlds per batch (default by robot count: %s)" % NUM_ENVS)
     ap.add_argument("--graph-mode", choices=GRAPH_MODES, default="WARP")
+    ap.add_argument("--obs-noise", type=float, default=0.0,
+                    help="std of Gaussian noise on the (normalised) obs, train and eval; 0 off")
+    ap.add_argument("--action-latency", type=int, default=0,
+                    help="delay each action by this many control steps; 0 off")
     ap.add_argument("--epochs", type=int, default=30, help="training epochs, an eval after each")
     ap.add_argument("--timesteps", type=int, default=None,
                     help="decisions in all (default: one PPO iteration per epoch)")
@@ -175,7 +182,8 @@ def make_envs(args):
 
     def make(n, randomize):
         return mjsoccer.mjx.make(args.env, repeat_action=args.repeat_action,
-                                 graph_mode=args.graph_mode, nworld=n, randomize=randomize)
+                                 graph_mode=args.graph_mode, nworld=n, randomize=randomize,
+                                 action_latency=args.action_latency)
 
     return (make(args.num_envs, sampler),
             make(args.num_eval_envs, sampler if args.eval_randomize else None))
@@ -183,6 +191,8 @@ def make_envs(args):
 
 def train(args) -> int:
     os.environ.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
+    import functools
+
     import jax
     from brax.training.agents.ppo import train as ppo
 
@@ -215,7 +225,8 @@ def train(args) -> int:
               f" len {m.get('eval/avg_episode_length', float('nan')):6.1f}  {rates}"
               f"  gpu {mine} MB, free {free} MB  t {now - t0:6.0f}s", flush=True)
 
-    ppo.train(env, eval_env=eval_env, wrap_env_fn=wrappers.wrap,
+    wrap = functools.partial(wrappers.wrap, obs_noise=args.obs_noise)
+    ppo.train(env, eval_env=eval_env, wrap_env_fn=wrap,
               episode_length=wrappers.episode_length(env), save_checkpoint_path=str(run),
               progress_fn=progress, randomization_fn=env.randomization_fn, **hp)
     print(f"saved {latest_checkpoint(run)}")
