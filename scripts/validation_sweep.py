@@ -10,6 +10,7 @@ scenarios; this script produces the distributions behind them.
     scenario      env              parameter
     spin          GoToBall         raw yaw command k in 0.2..1.0, 7.5 s
     kick_recoil   Dribbling        full kick from 0/2/4 m/s of chassis speed, raw drive
+    navigate      GoToBall         target pose 0.5/2/6 m ahead, turned 0/90/180 deg, 10 s
     random        all six ids      action_space.sample()
     competent     all six ids      goto_ball_policy
 
@@ -24,6 +25,8 @@ Writes into --out:
     episodes.csv   one row per episode
     summary.csv    one row per (scenario, env, param): yaw percentiles, possession, return
                    -- medians and IQRs for the skewed ones
+    navigation.csv one row per navigate episode: final error, settle time against the
+                   analytic trapezoid, chatter RMS, the controller's peak omega
     impulse.csv    per-step contact impulse on the controlled robot, by contact pair
     throughput.csv steps/s per env, one process, no impulse hook (with --scenario random)
 """
@@ -42,6 +45,7 @@ import mujoco
 import numpy as np
 
 import mjsoccer
+from mjsoccer import scene
 from mjsoccer.base import MAX_V, MAX_W
 from mjsoccer.tasks import goto_ball_policy
 
@@ -98,6 +102,69 @@ def kick_recoil(env, v):
     return policy
 
 
+# Ticket 05's navigation criteria, pinned to the CPU measurement plus margin
+# (.scratch/gpu-port-impl/issues/05-navigation-acceptance-criteria.md). Worst cell measured
+# on the grid in the comment; the ticket's starting point in brackets.
+NAV_POS_ERR = 0.01  # m, final; 0.0019 [0.05]
+NAV_YAW_ERR_DEG = 2.5  # final; 2.37 -- the controller's 2.5 deg deadzone, cannot go lower
+NAV_TIME_RATIO = 1.05  # settle-within-NAV_POS_ERR time / trapezoid_time; 0.950 [1.25]
+NAV_CHATTER_RMS = 0.05  # m/s, chassis speed over the last second; 0.0444 [0.05]
+NAV_GRID = [(d, t) for d in (0.5, 2.0, 6.0) for t in (0, 90, 180)]
+NAV_START = (-3.0, 2.0)
+
+
+def trapezoid_time(d: float, v_max: float = MAX_V, a_up: float = 1.30, a_down: float = 1.0) -> float:
+    """Rest-to-rest time over d metres: up at the chassis's 1.30 m/s^2, cruise at v_max,
+    down at the controller's planned 1.0 m/s^2. A triangle when d is too short to cruise."""
+    ramps = v_max**2 / 2 * (1 / a_up + 1 / a_down)
+    if d <= ramps:
+        v = (2 * d / (1 / a_up + 1 / a_down)) ** 0.5
+        return v / a_up + v / a_down
+    return v_max / a_up + v_max / a_down + (d - ramps) / v_max
+
+
+def navigate(env, param):
+    """From rest at NAV_START facing +x, to a target pose d m along +x turned by t degrees.
+    The six yellows and the ball are lined up on the far touchline, out of the way."""
+    d, t = param
+    x0, y0 = NAV_START
+    env.robots[0].place(env.data, x0, y0, 0.0)
+    for k, r in enumerate(env.robots[env.n_blue :]):
+        r.place(env.data, -5.0 + 2.0 * k, -4.2, 0.0)
+    env.ball.place(env.data, 0.0, -3.5)
+    th = np.deg2rad(t)
+    a = _action(env)
+    a[:4] = ((x0 + d) / scene.FIELD_HALF_X, y0 / scene.FIELD_HALF_Y, np.sin(th), np.cos(th))
+
+    def policy(obs, step):
+        return a
+
+    policy.target = (x0 + d, y0, th, d)
+    return policy
+
+
+def nav_metrics(env, target, xy: np.ndarray, yaw: np.ndarray, speed: np.ndarray,
+                cmd_w: np.ndarray) -> dict:
+    """Ticket 05's four numbers off one navigate episode, one sample per control step."""
+    tx, ty, th, d = target
+    err = np.hypot(xy[:, 0] - tx, xy[:, 1] - ty)
+    yaw_err = np.abs((yaw - th + np.pi) % (2 * np.pi) - np.pi)
+    out = np.flatnonzero(err >= NAV_POS_ERR)  # settled = inside the tolerance from then on
+    settle = (out[-1] + 1 if len(out) else 0) * env.dt if len(out) < len(err) else np.inf
+    out_y = np.flatnonzero(np.rad2deg(yaw_err) >= NAV_YAW_ERR_DEG)
+    settle_y = (out_y[-1] + 1 if len(out_y) else 0) * env.dt if len(out_y) < len(err) else np.inf
+    last = max(1, round(1.0 / env.dt))
+    return dict(
+        nav_pos_err=round(float(err[-1]), 5),
+        nav_yaw_err_deg=round(float(np.rad2deg(yaw_err[-1])), 4),
+        nav_settle_s=round(float(settle), 4), nav_yaw_settle_s=round(float(settle_y), 4),
+        nav_trap_s=round(trapezoid_time(d), 4),
+        nav_time_ratio=round(float(settle / trapezoid_time(d)), 4),
+        nav_chatter_rms=round(float(np.sqrt(np.mean(speed[-last:] ** 2))), 5),
+        nav_cmd_w_max=round(float(np.abs(cmd_w).max()), 4),
+    )
+
+
 def random(env, _):
     return lambda obs, t: env.action_space.sample()
 
@@ -117,6 +184,7 @@ ALL = list(mjsoccer.ENV_IDS)
 SCENARIOS = {
     "spin": (spin, [("GoToBall-v0", k) for k in (0.2, 0.4, 0.6, 0.8, 1.0)], 300, False, True),
     "kick_recoil": (kick_recoil, [("Dribbling-v0", v) for v in (0, 2, 4)], 60, False, True),
+    "navigate": (navigate, [("GoToBall-v0", p) for p in NAV_GRID], 400, False, False),
     "random": (random, [(e, None) for e in ALL], None, True, False),
     "competent": (competent, [(e, None) for e in ALL], None, True, False),
 }
@@ -163,6 +231,7 @@ def _hooked(m, d, *args):
 def episode(scenario: str, env_id: str, param, seed: int) -> dict:
     """Run one episode and return its row plus the per-step arrays the summary pools."""
     global _ctx
+    xy, yaw, speed, cmd_w = [], [], [], []
     setup, _, max_steps, _, raw = SCENARIOS[scenario]
     env = gym.make(env_id).unwrapped
     m = env.model
@@ -173,6 +242,15 @@ def episode(scenario: str, env_id: str, param, seed: int) -> dict:
     policy = setup(env, param)
     step = env.step_raw if raw else env.step
     _ctx = (_classify(m), root, mine)
+    navigate_ = env._navigate
+
+    def recorded(i, pose):  # the controller's own omega, before the servo's ctrlrange clip
+        cmd = navigate_(i, pose)
+        if i == 0:
+            cmd_w.append(cmd[2])
+        return cmd
+
+    env._navigate = recorded
     r = env.robots[0]
     yaws, held, impulses, total, info = [], [], collections.defaultdict(list), 0.0, {}
     steps, terminated, truncated, t0 = 0, False, False, time.perf_counter()
@@ -187,6 +265,10 @@ def episode(scenario: str, env_id: str, param, seed: int) -> dict:
             total += reward
             yaws.append(abs(r.velocity(env.data)[2]))
             held.append(env.holds(0))
+            q = env.data.qpos[r.qpos_adr : r.qpos_adr + 3]
+            xy.append(q[:2] + np.asarray(r.xy0))
+            yaw.append(q[2])
+            speed.append(np.hypot(*r.velocity(env.data)[:2]))
             for pair, j in _impulse.items():
                 impulses[pair].append(j)
     finally:
@@ -208,6 +290,9 @@ def episode(scenario: str, env_id: str, param, seed: int) -> dict:
         poss_p95_steps=round(float(np.percentile(runs, 95)), 2) if runs else 0,
         ret=round(total, 4), wall_s=round(wall_s, 3),
     )
+    if hasattr(policy, "target"):
+        row.update(nav_metrics(env, policy.target, np.array(xy), np.array(yaw),
+                               np.array(speed), np.array(cmd_w)))
     return dict(row=row, yaws=y, runs=runs, impulses=dict(impulses))
 
 
@@ -226,9 +311,15 @@ def _q(x, qs):
 def summarise(results: list[dict], out: Path) -> None:
     rows = [r["row"] for r in results]
     with open(out / "episodes.csv", "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(rows[0]))
+        w = csv.DictWriter(f, fieldnames=list(dict.fromkeys(k for r in rows for k in r)), restval="")
         w.writeheader()
         w.writerows(rows)
+    nav = [r for r in rows if "nav_pos_err" in r]
+    if nav:
+        with open(out / "navigation.csv", "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=list(nav[0]))
+            w.writeheader()
+            w.writerows(nav)
 
     cells = collections.defaultdict(list)
     for r in results:
@@ -264,6 +355,8 @@ def summarise(results: list[dict], out: Path) -> None:
                                 max=round(max(js), 5)))
 
     for name, table in (("summary", summary), ("impulse", impulse)):
+        if not table:  # navigate alone touches nothing
+            continue
         with open(out / f"{name}.csv", "w", newline="") as f:
             w = csv.DictWriter(f, fieldnames=list(table[0]))
             w.writeheader()
