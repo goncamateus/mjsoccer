@@ -484,3 +484,29 @@ def test_control_step_timesteps(fire):
         want = [dt] * 24 + [0.0] * 24
     np.testing.assert_allclose(ts, want, rtol=1e-12, atol=0)
     np.testing.assert_allclose(ts.sum(), cpu.dt, rtol=1e-12)
+
+
+@pytest.mark.parametrize("env_id", ["ContestedPossession-v0", "PassEndurance-v0"])
+def test_raw_control_matches_cpu(env_id):
+    """`control(..., raw=True)` is `step_raw`'s half (the envelope scenarios of
+    scripts/validation_sweep.py): (vx, vy, omega) scaled by the servo range straight to
+    the chassis, past the navigation controller but not the task's `shape_drive`; kick,
+    chip and dribbler as usual. PassEndurance zeroes the passer's slides either way."""
+    cpu = gym.make(env_id).unwrapped
+    cpu.reset(seed=0)
+    env = mjsoccer.mjx.make(env_id)
+    control = jax.jit(lambda s, a: env.control(s, a, raw=True))
+    state = env.init_state(_put(cpu), jax.random.PRNGKey(0))
+    rng = np.random.default_rng(0)
+    for t in range(20):
+        a = rng.uniform(-1, 1, (cpu.n_controlled, 6))
+        state = control(state.replace(pipeline_state=_put(cpu)), a.ravel())
+        cpu._control_step(a, raw=True)
+        np.testing.assert_allclose(np.asarray(state.pipeline_state.ctrl), cpu.data.ctrl,
+                                   **TOL, err_msg=f"ctrl step {t}")
+        np.testing.assert_allclose(np.asarray(state.info["world"]["drive_cmd"]), cpu.drive_cmd,
+                                   **TOL, err_msg=f"drive_cmd step {t}")
+        world = state.info["world"]
+        world = {**world, **{k: v.astype(world[k].dtype)
+                             for k, v in _world_from_cpu(env_id, cpu).items()}}
+        state = state.replace(info={**state.info, "world": world})
