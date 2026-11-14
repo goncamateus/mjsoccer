@@ -39,14 +39,17 @@ import mjsoccer  # noqa: E402
 import mjsoccer.mjx  # noqa: E402
 
 SEEDS = range(5)
-TASKS = ["ContestedPossession-v0", "GoToBall-v0"]
+TASKS = ["ContestedPossession-v0", "GoToBall-v0", "GoToBallShoot-v0",
+         "StaticDefenders-v0"]
 
 # Per task: JAX per-world state key -> the CPU env attribute it mirrors. Every task shares
 # the base entries; a task that adds state on one side must add it here too.
 BASE_STATE = {"grace": "_grace", "steps": "steps", "drive_cmd": "drive_cmd",
               "plunger_lock": "_plunger_lock", "fired": "fired"}
 TASK_STATE = {"ContestedPossession-v0": {"prev": "_prev", "prev_goal": "_prev_goal"},
-              "GoToBall-v0": {}}
+              "GoToBall-v0": {},
+              "GoToBallShoot-v0": {"prev": "_prev", "prev_goal": "_prev_goal"},
+              "StaticDefenders-v0": {"prev": "_prev", "prev_goal": "_prev_goal"}}
 
 TOL = dict(rtol=1e-5, atol=1e-5)
 
@@ -107,10 +110,19 @@ class _Scattered(_Injected):
     robot (`k` candidates, then the heading), so the heading draw skips the rest of the
     block -- the candidates the CPU never needed."""
 
-    def __init__(self, u, head, k):
+    def __init__(self, u, head, k, lead=()):
         super().__init__(u[:head])
         n = 2 * k + 1
-        self.blocks = [list(u[i : i + n]) for i in range(head, len(u), n)]
+        # `lead`: sizes of headless candidate blocks before the per-robot ones (a ball
+        # redrawn until free), each ended by `end_block` once the CPU accepts a draw.
+        self.blocks = []
+        for size in lead:
+            self.blocks.append(list(u[head : head + size]))
+            head += size
+        self.blocks += [list(u[i : i + n]) for i in range(head, len(u), n)]
+
+    def end_block(self):
+        self.blocks.pop(0)
 
     def uniform(self, lo=0.0, hi=1.0):
         if self.u:
@@ -132,6 +144,15 @@ def _placement_uniforms(env_id, env, seed):
     if env_id == "GoToBall-v0":
         u[2:4] = u[4:6] = u[0:2]
         return u, _Scattered(u, 2, mjsoccer.mjx.tasks.SCATTER_CANDIDATES)
+    if env_id == "GoToBallShoot-v0":
+        # The robot's first candidate (whose y the CPU negates) right on the ball.
+        u[2], u[3] = u[0], 1 - u[1]
+        return u, _Scattered(u, 2, mjsoccer.mjx.tasks.SCATTER_CANDIDATES)
+    if env_id == "StaticDefenders-v0":
+        # The ball's first candidate inside the penalty area, so it is redrawn.
+        k = mjsoccer.mjx.tasks.SCATTER_CANDIDATES
+        u[0:2] = 0.99, 0.5
+        return u, _Scattered(u, 0, k, lead=(2 * k,))
     return u, _Injected(u)
 
 
@@ -145,7 +166,25 @@ def test_place_matches_cpu_on_the_same_candidates(env_id, seed):
     mujoco.mj_resetData(cpu.model, cpu.data)
     blank = _put(cpu)
     cpu._np_random = fake
-    cpu._place()
+    if env_id == "StaticDefenders-v0":
+        # The CPU's ball loop ends on the first draw out of the penalty area: end the
+        # injected ball block there too.
+        in_gk = mjsoccer.tasks._in_gk_area
+
+        def hooked(x, y):
+            inside = in_gk(x, y)
+            if not inside:
+                fake.end_block()
+            return inside
+
+        mp = pytest.MonkeyPatch()
+        mp.setattr(mjsoccer.tasks, "_in_gk_area", hooked)
+        try:
+            cpu._place()
+        finally:
+            mp.undo()
+    else:
+        cpu._place()
     assert not fake.left, "the JAX side declares fewer uniforms than the CPU draws"
     d, overlap = env.place(blank, u)
     assert not bool(overlap)
@@ -236,7 +275,7 @@ def test_control_steps_match_cpu(env_id, seed):
     state = env.init_state(_put(cpu), jax.random.PRNGKey(seed))
     rng = np.random.default_rng(seed)
     fires = blocked = 0
-    for t in range(300):
+    for t in range(cpu.max_steps):  # to an ending or, failing one, the horizon
         world = state.info["world"]
         world = {**world, **{k: v.astype(world[k].dtype)
                              for k, v in _world_from_cpu(env_id, cpu).items()}}

@@ -24,6 +24,13 @@ HALF_X, HALF_Y = S.FIELD_HALF_X, S.FIELD_HALF_Y
 SCATTER_CANDIDATES = 8
 
 
+def first_where(cand, free, roomy):
+    """`first_free` for any rejection test: the first of the candidates (N, ...) whose
+    `free` (N,) holds, else the one with the largest `roomy` (N,), and `overlap` True."""
+    pick = jnp.where(free.any(), jnp.argmax(free), jnp.argmax(roomy))
+    return cand[pick], ~free.any()
+
+
 def _in_gk_area(x, y):
     """`tasks._in_gk_area`: inside the +x penalty area."""
     return (x > HALF_X - S.PENALTY_DEPTH) & (jnp.abs(y) < S.PENALTY_HALF_Y)
@@ -107,6 +114,48 @@ class ContestedPossessionEnv(_ShootTask):
 
     def reset_physics(self, d):
         return self.seat_ball(d, self.robots[self.n_blue])
+
+
+class GoToBallShootEnv(_ShootTask):
+    """`tasks.GoToBallShootEnv`: ball and robot uniform in the attacking half, the robot
+    redrawn while it is within `sep` of the ball on both axes."""
+
+    cpu_cls = cpu.GoToBallShootEnv
+    n_uniform = 2 + 2 * SCATTER_CANDIDATES + 1
+
+    def place(self, d, u):
+        k = SCATTER_CANDIDATES
+        lo = jnp.array([0.3, -HALF_Y + 0.1])
+        hi = jnp.array([HALF_X - S.PENALTY_DEPTH - 0.3, HALF_Y - 0.1])
+        ball = lo + u[:2] * (hi - lo)
+        d = self.place_ball(d, ball[0], ball[1])
+        cand = lo + u[2 : 2 + 2 * k].reshape(k, 2) * (hi - lo)
+        cand = cand.at[0, 1].multiply(-1.0)  # the CPU's first y is drawn negated
+        sep = (0.0215 + 0.09) * 1.1  # rSoccer's (ball + robot radius) * 1.1, per axis
+        gap = jnp.abs(cand - ball).max(-1)
+        xy, overlap = first_where(cand, gap >= sep, gap)
+        return self.place_robot(d, self.robots[0], xy[0], xy[1], u[-1] * 2 * jnp.pi), overlap
+
+
+class StaticDefendersEnv(_ShootTask):
+    """`tasks.StaticDefendersEnv`: the robot at the centre, the ball redrawn out of the
+    penalty area, six parked yellow robots scattered over the attacking half."""
+
+    cpu_cls = cpu.StaticDefendersEnv
+    n_uniform = 2 * SCATTER_CANDIDATES + cpu.StaticDefendersEnv.n_yellow * (
+        2 * SCATTER_CANDIDATES + 1)
+
+    def place(self, d, u):
+        k = SCATTER_CANDIDATES
+        lo, hi = jnp.array([0.2, -HALF_Y + 0.1]), jnp.array([HALF_X - 0.1, HALF_Y - 0.1])
+        d = self.place_robot(d, self.robots[0], 0.0, 0.0, 0.0)
+        cand = lo + u[: 2 * k].reshape(k, 2) * (hi - lo)
+        # None free (~1e-7): the candidate nearest the halfway line, the farthest from it.
+        ball, bad = first_where(cand, ~_in_gk_area(cand[:, 0], cand[:, 1]), -cand[:, 0])
+        d = self.place_ball(d, ball[0], ball[1])
+        taken = jnp.stack([ball, jnp.zeros(2)])
+        d, overlap = self.scatter(d, self.n_blue, taken, u[2 * k :], lo, hi)
+        return d, overlap | bad
 
 
 class GoToBallEnv(_BallTask):
