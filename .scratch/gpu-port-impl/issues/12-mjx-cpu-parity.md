@@ -6,11 +6,11 @@ Spec: [port GPU](../../gpu-port/spec.md)
 
 **Blocked by:** 05 (Critérios de aceitação do controlador de navegação), 11 (As quatro tasks restantes no MJX)
 
-**Status:** needs-decision (2 caixas abertas: posse no giro de 2 rad/s no MJX e `test_parity_seeded` instável — ver Comments)
+**Status:** done (a caixa do giro de 2 rad/s no MJX segue no ticket 16)
 
 - [x] `validation_sweep.py --backend mjx --seeds 0-4` roda e grava CSVs com coluna `backend`
-- [ ] Todos os critérios passam no MJX com os limiares da CPU — **todos menos o giro de 2 rad/s com a bola (ver Comments)**
-- [ ] `test_parity_deterministic` e `test_parity_seeded` verdes nesta máquina — **o determinístico sempre; o seeded oscila de run para run (ver Comments)**
+- [ ] Todos os critérios passam no MJX com os limiares da CPU — **todos menos o giro de 2 rad/s com a bola: movido para o ticket 16**
+- [x] `test_parity_deterministic` e `test_parity_seeded` verdes nesta máquina — **seeded com 50 seeds no MJX (ver Comments)**
 - [x] Comandos de teste por camada documentados nos docstrings e no `docs/index.md`
 
 ## Comments
@@ -96,3 +96,40 @@ Spec: [port GPU](../../gpu-port/spec.md)
 ### Decisão do usuário (2026-11-14)
 - Giro de 2 rad/s no MJX: investigar o contato → ticket 16.
 - `test_parity_seeded`: mais seeds só no MJX (mundos extras são baratos), CPU fica em seeds 0-4; fixar o número de seeds pela taxa de falso-negativo simulada.
+
+**`test_parity_seeded` com mais seeds no MJX — 2026-11-14** (branch `gpu-port-16-turn-hold`).
+
+- **Só mais seeds no MJX não basta com a regra antiga.** Simulado (200 000 tentativas, as duas
+  amostras da mesma distribuição contínua): "mediana MJX no [min, max] da CPU de 5 seeds"
+  falha por célula 0.166 / 0.117 / 0.091 / 0.075 / 0.069 com 5 / 10 / 20 / 50 / 100 seeds
+  MJX, e nunca abaixo de 2/32 = 0.0625 (a mediana verdadeira cai fora do intervalo de 5
+  sorteios 2 × 0.5⁵ das vezes) — 82 % de chance de alguma das 24 células falhar mesmo com
+  100 seeds. O gargalo é o intervalo de 5 seeds da CPU, não a mediana do MJX.
+- **Regra trocada de lado**: a **mediana da CPU** (seeds 0-4) dentro do **[min, max] do MJX**
+  (`MJX_SEEDS`). Agora a taxa cai com as seeds do MJX. Simulado, falha por célula / chance de
+  alguma das 24 falhar com distribuições iguais:
+
+  | seeds MJX | célula | família (24) | célula com desvio de 3 σ |
+  |---|---|---|---|
+  | 10 | 0.044 | 0.66 | 0.96 |
+  | 20 | 0.0087 | 0.19 | 0.93 |
+  | 30 | 0.0031 | 0.072 | 0.90 |
+  | 40 | 0.0015 | 0.035 | 0.88 |
+  | **50** | **0.00074** | **0.0175** | **0.86** |
+
+  Alvo: família ≤ 2 % → **50 seeds no MJX (0-49)**, a menor contagem da grade que fica abaixo.
+  Continua sendo checagem de divergência grosseira (um desvio de 3 σ reprova a célula 86 %
+  das vezes, 1 σ só 3 %), não teste de distribuição. Empates só ajudam (intervalo inclusivo).
+- **Código** (`tests/test_validation.py`): `MJX_SEEDS = range(50)`; o fixture `sweep` roda o
+  MJX com `--seeds 0-49` e a CPU com `0-4`; os critérios por seed (`random`, `competent`)
+  continuam em `SEEDS` (0-4) nos dois. `_seeded_parity_ok` é a regra;
+  `test_mjx_seed_count_holds_the_false_failure_rate` refaz a simulação (rápido, < 1 s) e
+  prende `len(MJX_SEEDS)` à menor contagem da grade (10..60) com família ≤
+  `SEEDED_FAMILY_FALSE_FAIL` = 2 %, e exige > 0.8 de detecção a 3 σ. `docs/index.md`
+  atualizado.
+- **Medido**: `-m validation -k "parity_seeded or seed_count"` com o grupo `gpu`: 25 passed
+  (24 células + a simulação). Custo: o sweep MJX passou de ~10 para ~17 min (o laço no
+  host chama a política por mundo a cada passo; Dribbling a 4 800 passos domina), pico de
+  RAM ~5 GB (um env CPU de set-up por mundo), GPU ~0.6 GB.
+- O giro de 2 rad/s (caixa 2) segue no ticket 16 (needs-decision: o giro é caótico também na
+  CPU).

@@ -35,11 +35,11 @@ uv run python -m pytest tests -m validation -q                  # acceptance cri
 uv run python scripts/validation_sweep.py --out runs/validation --seeds 0-4  # the distributions behind them, CSV
 # With the gpu group (uv sync --group gpu) every layer adds MJX, skipped without CUDA; run
 # them under a RAM cap. The default run adds the task-logic parity (JAX-CPU) and the Warp
-# smoke; -m validation adds every criterion on MJX-Warp and the MJX x CPU parity (~13 min).
+# smoke; -m validation adds every criterion on MJX-Warp and the MJX x CPU parity (~19 min).
 systemd-run --user --scope -p MemoryMax=10G uv run python -m pytest tests -q
 systemd-run --user --scope -p MemoryMax=10G uv run python -m pytest tests -m validation -q
 systemd-run --user --scope -p MemoryMax=10G \
-    uv run python scripts/validation_sweep.py --backend mjx --seeds 0-4 --out runs/validation-mjx
+    uv run python scripts/validation_sweep.py --backend mjx --seeds 0-49 --out runs/validation-mjx
 ```
 
 PPO on the GPU (Brax `ppo.train` over `mjsoccer.mjx`, one process per run; checkpoints in
@@ -63,9 +63,10 @@ error under 1 cm and 2.5 deg, settled within 1.05x the analytic trapezoid (3.3 m
 1.30 m/s², down at 1.0), chatter at the target under 0.05 m/s RMS over the last second,
 commanded omega never over `MAX_W`. On top, the MJX x CPU parity: from the same initial
 state, envelope, kick and COR within 2 %, arrival time within 5 %, arrival error within
-1 cm / 1 deg; on the seeded scenarios (seeds 0-4) the MJX median return and possession rate
-inside the CPU's min-max range (a gross-divergence check: 5 seeds have no power for a
-distribution test). `validation_sweep.py --backend {cpu,mjx}` runs the
+1 cm / 1 deg; on the seeded scenarios (seeds 0-4 on the CPU, 0-49 on MJX) the CPU median
+return and possession rate inside the MJX min-max range (a gross-divergence check, ~2 %
+simulated chance that any of the 24 cells fails on equal distributions; not a distribution
+test). `validation_sweep.py --backend {cpu,mjx}` runs the
 same scenarios over seeds 0-4 and writes per-episode, summary, navigation, contact-impulse
 and throughput CSVs, each row tagged with its `backend`; its docstring lists the scenarios.
 MJX throughput is a report (decisions/s), never a criterion.
