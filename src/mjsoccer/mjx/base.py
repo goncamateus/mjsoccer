@@ -120,13 +120,20 @@ def sample_pose(u, taken, margin: float = 0.3, clearance: float = 0.25):
     Returns ((x, y), overlap).
     """
     lo = jnp.array([-scene.FIELD_HALF_X + margin, -scene.FIELD_HALF_Y + margin])
-    hi = -lo
-    cand = lo + u * (hi - lo)
+    return first_free(lo + u * (-2 * lo), taken, clearance, strict=True)
+
+
+def first_free(cand, taken, min_dist: float, strict: bool = False):
+    """The first of the (N, 2) candidates `min_dist` or more (more than, if `strict`) from
+    every row of `taken` (k, 2): a rejection loop's answer when it draws these N in order.
+    None free: the candidate with the largest minimum distance, and `overlap` True.
+
+    Returns ((x, y), overlap)."""
     taken = jnp.asarray(taken, dtype=cand.dtype).reshape(-1, 2)
     if taken.shape[0] == 0:
         return cand[0], jnp.array(False)
     d2 = ((cand[:, None, :] - taken[None, :, :]) ** 2).sum(-1).min(1)
-    free = d2 > clearance**2
+    free = d2 > min_dist**2 if strict else d2 >= min_dist**2
     pick = jnp.where(free.any(), jnp.argmax(free), jnp.argmax(d2))
     return cand[pick], ~free.any()
 
@@ -264,10 +271,10 @@ class MjxEnv(Env):
     def reset(self, rng: jax.Array) -> State:
         rng, key = jax.random.split(rng)
         d = self.make_data()
-        d = self.place(d, jax.random.uniform(key, (self.n_uniform,)))
+        d, overlap = self.place(d, jax.random.uniform(key, (self.n_uniform,)))
         d = mjx.forward(self.sys, d)
         d = self.reset_physics(d)
-        return self.init_state(d, rng)
+        return self.init_state(d, rng, overlap)
 
     def step(self, state: State, action: jax.Array) -> State:
         """One decision: `repeat_action` control steps, rewards summed, cut short when the
@@ -312,8 +319,9 @@ class MjxEnv(Env):
 
     # ---------------------------------------------------------- the 3 pieces
 
-    def init_state(self, data: mjx.Data, rng: jax.Array) -> State:
-        """The first State, from a placed and settled world (`BaseEnv.reset`'s tail)."""
+    def init_state(self, data: mjx.Data, rng: jax.Array, overlap=False) -> State:
+        """The first State, from a placed and settled world (`BaseEnv.reset`'s tail).
+        `overlap`: `place` found no free spot for something, `metrics["reset_overlap"]`."""
         world = dict(
             grace=jnp.zeros(len(self.robots), jnp.int32),
             plunger_lock=jnp.zeros((len(self.robots), 2), jnp.int32),
@@ -325,7 +333,8 @@ class MjxEnv(Env):
         )
         world["grace"] = self._possession(data, world["grace"])
         zero = jnp.zeros(())
-        return State(data, self._obs(data, world), zero, zero, self._metrics(),
+        return State(data, self._obs(data, world), zero, zero,
+                     self._metrics(reset_overlap=overlap),
                      {"world": world, "truncation": zero})
 
     def control(self, state: State, action: jax.Array) -> State:
@@ -391,7 +400,8 @@ class MjxEnv(Env):
     @staticmethod
     def _metrics(diverged=False, overflow=False, reset_overlap=False):
         """The per-step 0/1 counters Brax's `EpisodeWrapper` sums per episode.
-        `reset_overlap` stays 0 until a task places through `sample_pose` (tickets 10-11)."""
+        `reset_overlap` is 1 on the first state of a world whose `place` ran out of free
+        candidates (`first_free`), where the CPU would have kept drawing."""
         def f(x):
             return jnp.asarray(x, jnp.float32)
         return dict(diverged=f(diverged), overflow=f(overflow), reset_overlap=f(reset_overlap))
@@ -441,6 +451,13 @@ class MjxEnv(Env):
         qpos = d.qpos.at[a : a + 3].set(jnp.stack([x - r.xy0[0], y - r.xy0[1], theta]))
         return d.replace(qpos=qpos, qvel=d.qvel.at[v : v + 3].set(0.0))
 
+    def place_ball(self, d, x, y):
+        """`BallIds.place`, at rest."""
+        a, v = self.ball.qpos_adr, self.ball.qvel_adr
+        qpos = d.qpos.at[a : a + 2].set(jnp.stack([x, y]))
+        qpos = qpos.at[a + 3 : a + 7].set(jnp.array([1.0, 0.0, 0.0, 0.0]))
+        return d.replace(qpos=qpos, qvel=d.qvel.at[v : v + 6].set(0.0))
+
     def seat_ball(self, d, r: scene.RobotIds):
         """`BaseEnv.seat_ball`, the same physical loop: roll the ball into the dribbler at
         `speed` from `distance` with the bar spinning, and let it settle."""
@@ -459,8 +476,9 @@ class MjxEnv(Env):
 
     # ------------------------------------------------------ subclass surface
 
-    def place(self, d: mjx.Data, u: jax.Array) -> mjx.Data:
-        """`_place`, with its `n_uniform` draws passed in (`u` in [0, 1))."""
+    def place(self, d: mjx.Data, u: jax.Array) -> tuple[mjx.Data, jax.Array]:
+        """`_place`, with its `n_uniform` draws passed in (`u` in [0, 1)). Returns the
+        placed data and whether anything was left overlapping (`first_free`)."""
         raise NotImplementedError
 
     def reset_physics(self, d: mjx.Data) -> mjx.Data:

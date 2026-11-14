@@ -39,13 +39,14 @@ import mjsoccer  # noqa: E402
 import mjsoccer.mjx  # noqa: E402
 
 SEEDS = range(5)
-TASKS = ["ContestedPossession-v0"]
+TASKS = ["ContestedPossession-v0", "GoToBall-v0"]
 
 # Per task: JAX per-world state key -> the CPU env attribute it mirrors. Every task shares
 # the base entries; a task that adds state on one side must add it here too.
 BASE_STATE = {"grace": "_grace", "steps": "steps", "drive_cmd": "drive_cmd",
               "plunger_lock": "_plunger_lock", "fired": "fired"}
-TASK_STATE = {"ContestedPossession-v0": {"prev": "_prev", "prev_goal": "_prev_goal"}}
+TASK_STATE = {"ContestedPossession-v0": {"prev": "_prev", "prev_goal": "_prev_goal"},
+              "GoToBall-v0": {}}
 
 TOL = dict(rtol=1e-5, atol=1e-5)
 
@@ -56,10 +57,13 @@ _TEMPLATES = {}
 def _put(cpu):
     """`mjx.put_data` of the CPU's current MjData. The full put_data runs once per model
     (~0.2 s: it converts the meshes); later snapshots refresh every public `Data` field the
-    MjData also has, which is all the state put_data would carry over."""
+    MjData also has, which is all the state put_data would carry over. The JAX backend's
+    private half (`_impl`: dense contact and constraint buffers for every geom pair, 0.8 GB
+    with 7 robots) is dropped: the task logic reads only public fields, and a jitted
+    `control`/`settle` would copy it in and out on every call."""
     key = id(cpu.model)
     if key not in _TEMPLATES:
-        _TEMPLATES[key] = mjx.put_data(cpu.model, cpu.data, impl="jax")
+        _TEMPLATES[key] = mjx.put_data(cpu.model, cpu.data, impl="jax").replace(_impl=None)
     t = _TEMPLATES[key]
     fields = {
         f.name: jax.numpy.asarray(getattr(cpu.data, f.name)).reshape(getattr(t, f.name).shape)
@@ -92,6 +96,44 @@ class _Injected:
     def uniform(self, lo=0.0, hi=1.0):
         return lo + self.u.pop(0) * (hi - lo)
 
+    @property
+    def left(self):
+        return self.u
+
+
+class _Scattered(_Injected):
+    """The same for `_scatter`'s rejection loop, which draws a variable number of (x, y)
+    per robot and then its heading in [0, 2 pi): the JAX side lays out a fixed block per
+    robot (`k` candidates, then the heading), so the heading draw skips the rest of the
+    block -- the candidates the CPU never needed."""
+
+    def __init__(self, u, head, k):
+        super().__init__(u[:head])
+        n = 2 * k + 1
+        self.blocks = [list(u[i : i + n]) for i in range(head, len(u), n)]
+
+    def uniform(self, lo=0.0, hi=1.0):
+        if self.u:
+            return super().uniform(lo, hi)
+        if hi == 2 * np.pi:
+            return lo + self.blocks.pop(0)[-1] * (hi - lo)
+        assert len(self.blocks[0]) > 1, "the CPU drew past the JAX side's candidates"
+        return lo + self.blocks[0].pop(0) * (hi - lo)
+
+    @property
+    def left(self):
+        return self.u or self.blocks
+
+
+def _placement_uniforms(env_id, env, seed):
+    """The env's `n_uniform` draws for a seed; for GoToBall the first robot's first two
+    candidates are put on the ball, so the rejection path runs."""
+    u = np.random.default_rng(seed).random(env.n_uniform)
+    if env_id == "GoToBall-v0":
+        u[2:4] = u[4:6] = u[0:2]
+        return u, _Scattered(u, 2, mjsoccer.mjx.tasks.SCATTER_CANDIDATES)
+    return u, _Injected(u)
+
 
 @pytest.mark.parametrize("env_id", TASKS)
 @pytest.mark.parametrize("seed", SEEDS)
@@ -99,15 +141,30 @@ def test_place_matches_cpu_on_the_same_candidates(env_id, seed):
     cpu = gym.make(env_id).unwrapped
     cpu.reset(seed=seed)
     env = mjsoccer.mjx.make(env_id)
-    u = np.random.default_rng(seed).random(env.n_uniform)
+    u, fake = _placement_uniforms(env_id, env, seed)
     mujoco.mj_resetData(cpu.model, cpu.data)
     blank = _put(cpu)
-    cpu._np_random = _Injected(u)
+    cpu._np_random = fake
     cpu._place()
-    assert not cpu.np_random.u, "the JAX side declares fewer uniforms than the CPU draws"
-    d = env.place(blank, u)
+    assert not fake.left, "the JAX side declares fewer uniforms than the CPU draws"
+    d, overlap = env.place(blank, u)
+    assert not bool(overlap)
     np.testing.assert_allclose(np.asarray(d.qpos), cpu.data.qpos, **TOL)
     np.testing.assert_allclose(np.asarray(d.qvel), cpu.data.qvel, **TOL)
+
+
+def test_scatter_with_no_free_candidate_flags_the_overlap():
+    """Every candidate of the first robot on the ball: the CPU would keep drawing, the
+    batch keeps the roomiest and says so."""
+    env = mjsoccer.mjx.make("GoToBall-v0")
+    cpu = gym.make("GoToBall-v0").unwrapped
+    cpu.reset(seed=0)
+    mujoco.mj_resetData(cpu.model, cpu.data)
+    u = np.random.default_rng(0).random(env.n_uniform)
+    k = mjsoccer.mjx.tasks.SCATTER_CANDIDATES
+    u[2 : 2 + 2 * k] = np.tile(u[0:2], k)
+    _, overlap = env.place(_put(cpu), u)
+    assert bool(overlap)
 
 
 def test_sample_pose_takes_the_first_free_candidate_like_the_cpu():

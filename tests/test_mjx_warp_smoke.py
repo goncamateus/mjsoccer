@@ -27,7 +27,7 @@ pytest.importorskip("jax")
 pytest.importorskip("mujoco.mjx")
 pytest.importorskip("brax")
 
-TASKS = ["ContestedPossession-v0"]
+TASKS = ["ContestedPossession-v0", "GoToBall-v0"]
 NWORLD = 4
 SKIP = 77  # the child's exit code for "no CUDA device"
 
@@ -51,9 +51,15 @@ def test_warp_smoke(env_id, repeat_action):
     out = _run("smoke", env_id, repeat_action)
     assert out["finite"], out
     assert out["steps"] == 10, out
-    # The seat_ball loop really ran on Warp: the yellow robot holds the ball at reset,
-    # in every world, as it does on the CPU for every seed.
-    assert all(out["yellow_holds_at_reset"]), out
+    assert out["overflow_bits"] == [0] * NWORLD, out  # check_failures also aborts on these
+    assert out["reset_overlap"] == [0.0] * NWORLD, out
+    if env_id == "ContestedPossession-v0":
+        # The seat_ball loop really ran on Warp: the yellow robot holds the ball at reset,
+        # in every world, as it does on the CPU for every seed.
+        assert all(out["yellow_holds_at_reset"]), out
+    if env_id == "GoToBall-v0":
+        # The scatter: seven robots and the ball, pairwise at least 0.2 m apart.
+        assert min(out["min_spacing_at_reset"]) >= 0.2 - 1e-5, out
     # A decision is repeat_action control steps, cut short only by an ending.
     if repeat_action == 1:
         assert out["control_steps"] == [10] * NWORLD, out
@@ -98,7 +104,7 @@ def test_overflow_world_is_treated_like_nan():
     assert "BROADPHASE" in out["check_failures"], out
 
 
-@pytest.mark.parametrize("env_id", TASKS)
+@pytest.mark.parametrize("env_id", ["ContestedPossession-v0"])
 def test_warp_kick_chip_and_frozen_idle_worlds(env_id):
     """With a ball seated on the blue robot in every world, world 0 kicks, world 1 chips,
     2 and 3 do neither. The kick sends the ball off fast and low, the chip lifts it, the
@@ -194,6 +200,7 @@ def smoke(env_id: str, repeat_action: int) -> dict:
     import numpy as np
 
     import mjsoccer.mjx
+    from mjsoccer.mjx.base import overflow_bits
 
     env = mjsoccer.mjx.make(env_id, nworld=NWORLD, repeat_action=repeat_action)
     keys = jax.random.split(jax.random.PRNGKey(0), NWORLD)
@@ -201,6 +208,12 @@ def smoke(env_id: str, repeat_action: int) -> dict:
     mjsoccer.mjx.check_failures(state)
     # obs: 6 ball entries, then 8 per robot ending in has_ball; robot 1 is the yellow one.
     holds = np.asarray(state.obs[:, 6 + 8 + 7]) > 0
+    xy = np.concatenate([np.asarray(state.pipeline_state.xpos[:, env._body, :2]),
+                         np.asarray(state.pipeline_state.xpos[:, env.ball.body, None, :2])], 1)
+    gaps = np.linalg.norm(xy[:, :, None] - xy[:, None], axis=-1)
+    gaps[:, np.arange(xy.shape[1]), np.arange(xy.shape[1])] = np.inf
+    overlap = np.asarray(state.metrics["reset_overlap"]).tolist()
+    bits = np.zeros(NWORLD, np.int64)
     step = jax.jit(jax.vmap(env.step))
     rng = np.random.default_rng(0)
     finite = bool(np.isfinite(np.asarray(state.obs)).all())
@@ -208,11 +221,13 @@ def smoke(env_id: str, repeat_action: int) -> dict:
     for _ in range(n):
         state = step(state, _actions(rng, env))
         mjsoccer.mjx.check_failures(state)
+        bits |= np.asarray(overflow_bits(state.pipeline_state)).astype(np.int64)
         finite &= bool(np.isfinite(np.asarray(state.obs)).all())
         finite &= bool(np.isfinite(np.asarray(state.pipeline_state.qpos)).all())
     steps = np.asarray(state.info["world"]["steps"])
     return dict(finite=finite, steps=n, yellow_holds_at_reset=holds.tolist(),
-                control_steps=steps.tolist())
+                control_steps=steps.tolist(), reset_overlap=overlap,
+                min_spacing_at_reset=gaps.min((1, 2)).tolist(), overflow_bits=bits.tolist())
 
 
 def _poison(state):
