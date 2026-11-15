@@ -1,5 +1,7 @@
 # Run the GPU port on MJX-Warp only; drop MJX-JAX and the model variant
 
+Superseded by [0003](0003-mjx-warp-and-mjlab.md): mjlab joins MJX-Warp as a third backend.
+
 The GPU port was planned as one MJX implementation switching engines by `impl="jax"` /
 `impl="warp"`, with MJX-JAX running a **model variant** (robot collision meshes replaced by
 convex hulls or primitives) because it cannot compile the base model's mesh pairs (8 GB host OOM

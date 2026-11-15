@@ -43,28 +43,40 @@ _Avoid_: step (alone), action repeat
 
 **Backend**:
 The engine that steps the physics of a task: the **CPU backend** (MuJoCo's C library, the reference
-for what the physics should do) or **MJX-Warp** (MJX's GPU engine). MJX-JAX, MJX's pure-JAX engine,
-is not a backend here (ADR 0002).
+for what the physics should do), **MJX-Warp** (MJX's GPU engine, driven from JAX) or the **mjlab
+backend** (ADR 0003). MJX-JAX, MJX's pure-JAX engine, is not a backend here (ADR 0002).
 _Avoid_: simulator (when the engine is meant), wrapper, impl
 
+**mjlab backend**:
+The six tasks on mjlab's `ManagerBasedRlEnv`, in torch, over MuJoCo Warp on the exact base model,
+trained with RSL-RL (`mjsoccer.mjlab`). The third backend, next to MJX-Warp and not replacing it;
+same ids, spaces and observation layout as the other two.
+_Avoid_: mjlab (alone, when the backend rather than the library is meant), torch backend
+
 **GPU port**:
-Reimplementing the six tasks once on MJX, so they run on MJX-Warp alongside the CPU backend, not
-replacing it.
+Reimplementing the six tasks for a GPU backend (MJX-Warp, then the mjlab backend), so they run
+alongside the CPU backend, not replacing it.
 _Avoid_: transfer, migration
 
 **Parity**:
-Agreement between MJX-Warp and the CPU backend, judged statistically by the acceptance
+Agreement between a GPU backend and the CPU backend, judged statistically by the acceptance
 criteria, not trajectory by trajectory. It is about the physics; the task logic has its own
 **task-logic parity**.
 _Avoid_: equivalence, matching, fidelity, policy transfer
 
 **Task-logic parity**:
-Agreement between the two implementations of a task's logic (observation, reward, termination,
-possession, navigation controller): given the same physical state and action, both give the same
+Agreement between a GPU backend's implementation of a task's logic (JAX or torch) and the CPU's
+(observation, reward, termination, possession, navigation controller): given the same physical state and action, both give the same
 outputs, up to float32 rounding. Judged exactly, state by state, unlike **parity**.
 _Avoid_: parity (alone), consistency
 
 **Domain randomization (DR)**:
-Giving each parallel world on MJX-Warp its own physical model, a **variant** of the nominal one,
-sampled once per world for a whole training run. The CPU backend always runs the nominal model.
+Giving each parallel world on a GPU backend its own physical model, a **variant** of the nominal
+one, sampled once per world for a whole training run. The CPU backend always runs the nominal model.
 _Avoid_: noise (observation noise and action latency belong to the task, not the model), variation
+
+**Pool of first states**:
+One placed, ball-seated world per slot of a mjlab batch, built in one batched physics loop and
+copied back into a world when it resets. It stands in for seating the ball at every reset, which
+mjlab cannot do because its step advances every world at once; it is rebuilt each epoch.
+_Avoid_: reset cache, initial-state buffer

@@ -6,7 +6,7 @@ Spec: [backend mjlab](../spec.md)
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] ADR 0003 escrita, citando decisões 1-16 e os resultados do protótipo; a 0002 marcada como substituída
-- [ ] `CONTEXT.md` define backend mjlab e pool de primeiros estados, sem conflitar com termos existentes
+- [x] ADR 0003 escrita, citando decisões 1-16 e os resultados do protótipo; a 0002 marcada como substituída
+- [x] `CONTEXT.md` define backend mjlab e pool de primeiros estados, sem conflitar com termos existentes
