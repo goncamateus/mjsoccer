@@ -149,12 +149,13 @@ class TaskLogic:
     """N robots and a ball, batched over a leading world axis. Subclass per task.
 
     A task names the CPU class it mirrors (`cpu_cls`) and every config number comes off
-    it. It supplies `place` (+ `n_uniform`, the uniforms it draws), optionally
+    it. It supplies `place` (+ `n_uniform`, the uniforms it draws), optionally `seat_robot`,
     `shape_drive`/`script`, `init_task`, `task_obs` and `reward_done`.
     """
 
     cpu_cls: type[cpu_base.BaseEnv] = cpu_base.BaseEnv
     n_uniform = 0
+    seat_robot: int | None = None  # the robot `_reset_task` seats a ball on (the env's job)
 
     def __init__(self, horizon_s: float = 30.0, repeat_action: int = 1,
                  device: str | torch.device = "cpu") -> None:
@@ -169,16 +170,24 @@ class TaskLogic:
         self.act_dim, self.obs_size = cpu.act_dim, cpu.observation_space.shape[0]
         cpu.close()
         self.device = torch.device(device)
+        self._kick_ms = [self._t(ms, torch.float64) for ms in scene.KICK_TABLE_MS]
+        self._kick_n = self._t(scene.KICK_TABLE_N, torch.float64)
+        self._index()
 
-        def t(x, dtype=torch.long):
-            return torch.as_tensor(np.asarray(x), dtype=dtype, device=self.device)
+    def _t(self, x, dtype=torch.long):
+        return torch.as_tensor(np.asarray(x), dtype=dtype, device=self.device)
 
+    def _index(self) -> None:
         r = self.robots
-        self._body = t([x.body for x in r])
-        self._qvel = t([x.qvel_adr for x in r])
-        self._touch = t([x.touch_adr for x in r])
-        self._kick_ms = [t(ms, torch.float64) for ms in scene.KICK_TABLE_MS]
-        self._kick_n = t(scene.KICK_TABLE_N, torch.float64)
+        self._body = self._t([x.body for x in r])
+        self._qvel = self._t([x.qvel_adr for x in r])
+        self._touch = self._t([x.touch_adr for x in r])
+
+    def bind(self, model) -> None:
+        """Take the robot and ball ids from another compilation of the same scene: mjlab's
+        has an extra body (the action term's anchor), so every body id moves."""
+        self.robots, self.ball = scene.resolve(model, self.n_blue, len(self.robots) - self.n_blue)
+        self._index()
 
     @property
     def action_size(self) -> int:

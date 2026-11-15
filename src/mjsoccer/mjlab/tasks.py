@@ -77,6 +77,7 @@ class ContestedPossessionEnv(_ShootTask):
 
     cpu_cls = cpu.ContestedPossessionEnv
     n_uniform = 2
+    seat_robot = 1  # the yellow robot (n_blue = 1) sits on the ball
 
     def place(self, qpos, qvel, u):
         qpos, qvel = qpos.clone(), qvel.clone()

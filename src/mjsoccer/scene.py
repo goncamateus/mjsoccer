@@ -83,6 +83,24 @@ KICK_TABLE_MS = (
 # with exactly this scheme -- recalibrate if either number changes.
 FIRING_SUBSTEPS = 4
 FIRING_FINE_STEPS = 32
+
+
+def firing_schedule(decimation: int, dt: float) -> tuple[list[float], list[float]]:
+    """One control step's (firing, idle) physics timesteps for the GPU backends, the same
+    length so a batch runs one loop: the CPU's firing step (FIRING_FINE_STEPS at
+    dt / FIRING_SUBSTEPS, the rest at dt), and `decimation` at dt padded with 0."""
+    fine = min(FIRING_FINE_STEPS, decimation * FIRING_SUBSTEPS)
+    firing = [dt / FIRING_SUBSTEPS] * fine + [dt] * (decimation - fine // FIRING_SUBSTEPS)
+    idle = [dt] * decimation
+    pad = max(len(firing), len(idle))
+    return firing + [0.0] * (pad - len(firing)), idle + [0.0] * (pad - len(idle))
+
+# Warp's contact buffer, per world, on both GPU backends. It has to hold every broadphase
+# *candidate*, not just the contacts the CPU ends up with: ~35 per world with 2 robots and
+# ~120 with 7, parked 0.5 m apart (.scratch/gpu-port/issues/04-mjx-install-smoke.md).
+NACON_PER_ROBOT = 24
+NACON_MIN = 64
+NJMAX_PER_CONTACT = 4
 assert all(np.all(np.diff(v) > 0) for v in KICK_TABLE_MS), "np.interp needs it rising"
 
 # RoboCup SSL Division A, from the rulebook. Asserted against the CAD in `_check_field`
@@ -239,6 +257,14 @@ def build(
     model = build_spec(n_blue, n_yellow, possession_sensors).compile()
     if not possession_sensors:
         return model, (), None
+    robots, ball = resolve(model, n_blue, n_yellow)
+    _check_field(model)
+    return model, robots, ball
+
+
+def resolve(model: mujoco.MjModel, n_blue: int, n_yellow: int) -> tuple[tuple[RobotIds, ...], BallIds]:
+    """The robots' and the ball's ids in a compiled `build_spec(n_blue, n_yellow)`, by name:
+    also right in a model that compiled it with more around it (mjlab's adds a body)."""
     teams = _teams(n_blue, n_yellow)
     robots = tuple(_robot_ids(model, prefix, team) for team, prefix in teams)
     body = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "ball")
@@ -250,8 +276,7 @@ def build(
         qvel_adr=int(model.jnt_dofadr[model.body_jntadr[body]]),
         radius=float(model.geom_size[geom][0]),
     )
-    _check_field(model)
-    return model, robots, ball
+    return robots, ball
 
 
 def build_spec(n_blue: int, n_yellow: int, possession_sensors: bool = True) -> mujoco.MjSpec:

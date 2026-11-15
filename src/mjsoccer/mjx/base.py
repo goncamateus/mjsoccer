@@ -53,14 +53,9 @@ from mujoco import mjx
 from .. import base as cpu_base
 from .. import navigation as nav
 from .. import scene
+from ..scene import NACON_MIN, NACON_PER_ROBOT, NJMAX_PER_CONTACT
 
 GRAPH_MODES = ("WARP", "WARP_STAGED")
-# Warp's contact buffer, per world. It has to hold every broadphase *candidate*, not just
-# the contacts the CPU ends up with: ~35 per world with 2 robots and ~120 with 7, parked
-# 0.5 m apart (.scratch/gpu-port/issues/04-mjx-install-smoke.md).
-NACON_PER_ROBOT = 24
-NACON_MIN = 64
-NJMAX_PER_CONTACT = 4
 
 
 # ------------------------------------------------------------ navigation controller
@@ -260,13 +255,7 @@ class MjxEnv(Env):
         """One control step's physics schedule for a world, (L,) timesteps: if `fire`, the
         CPU's firing step (`BaseEnv._control_step`), else `decimation` at dt padded with 0.
         L is the same either way, so a batch runs one loop."""
-        n, dt = self.decimation, float(self.mj_model.opt.timestep)
-        fine = min(scene.FIRING_FINE_STEPS, n * scene.FIRING_SUBSTEPS)
-        firing = [dt / scene.FIRING_SUBSTEPS] * fine + [dt] * (n - fine // scene.FIRING_SUBSTEPS)
-        idle = [dt] * n
-        pad = max(len(firing), len(idle))
-        firing += [0.0] * (pad - len(firing))
-        idle += [0.0] * (pad - len(idle))
+        firing, idle = scene.firing_schedule(self.decimation, float(self.mj_model.opt.timestep))
         return jnp.where(fire, jnp.array(firing), jnp.array(idle))
 
     def substep(self, data: mjx.Data, timestep: jax.Array) -> mjx.Data:
