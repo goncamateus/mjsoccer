@@ -14,3 +14,12 @@ Spec: [backend mjlab](../spec.md) — Fase 2, Testing Decisions (seam 1)
 - [ ] Mundo ocioso bit a bit (`qpos`, `qvel`, `act`, `time`, `ctrl`) nas iterações a `timestep = 0`
 - [ ] Lote misto com buffers subdimensionados em parte dos mundos: só esses terminam; o reset limpa só os bits deles
 - [ ] Decisões/s ponta a ponta registradas contra o MJX-Warp (relatório)
+
+## Comments
+
+Hand-offs from 03 (`mjsoccer.mjlab.base`/`tasks`), left to the env:
+
+- Per-world RNG: the logic takes `place`'s uniforms as an argument; the env owns the generator.
+- `reset_overlap` on the first decision (`MjxEnv._first_decision`): `init_state` returns it in the reset metrics only.
+- `seat_ball` (the pool of first states) and the firing schedule (`MjxEnv.timesteps`) are not in the logic.
+- The task-logic parity runs in float64; the env will feed float32 from Warp. The controller's lateral sign at rest is rounding noise there, as on MJX.

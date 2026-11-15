@@ -6,9 +6,9 @@ Spec: [backend mjlab](../spec.md) — Fase 1, Testing Decisions (seam 3)
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `import mjsoccer` não importa torch nem mjlab
-- [ ] Task-logic parity: snapshots CPU seeds 0-4, mesma ação, compara saída do controlador, obs, recompensa, término, posse e estado por mundo na tolerância de float32
-- [ ] Cobre `_place` com candidatos injetados e `plunger_lock`/`fired`/cooldown 10
-- [ ] Aborta se algum contador de falha for > 0; pula sem o grupo `mjlab`
+- [x] `import mjsoccer` não importa torch nem mjlab
+- [x] Task-logic parity: snapshots CPU seeds 0-4, mesma ação, compara saída do controlador, obs, recompensa, término, posse e estado por mundo na tolerância de float32
+- [x] Cobre `_place` com candidatos injetados e `plunger_lock`/`fired`/cooldown 10
+- [x] Aborta se algum contador de falha for > 0; pula sem o grupo `mjlab`
