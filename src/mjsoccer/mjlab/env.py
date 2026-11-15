@@ -32,6 +32,13 @@
   on torch's default stream is still safe (Warp's stream is blocking, so the legacy null
   stream orders them implicitly), but one on a side stream races Warp's graph and corrupts
   every world; the wrapper costs no decisions/s, so it stays.
+- DR (`randomize=`): a startup event before the pool runs the sampler on the CPU model
+  per world (`mjsoccer.randomize.variants`, MJX's code, CPU `mj_setConst` included) and
+  writes what changed into Warp's model, per world: mjlab's `set_const` events are not
+  used, so a sampler means the same on both GPU backends, `<pair>` fields (the ball's
+  contacts) included. Observation noise is mjlab's noise model on the obs term
+  (`SeededNoiseCfg`); action latency is the task logic's queue, run by the action term
+  before the controller (mjlab's own delay is the actuator's, in physics steps).
 - Warp's EPA scratch (`naccdmax`) is sized by `scene.NACCD_PER_ROBOT`
   (`_put_data_with_naccdmax`), not Warp's default: that was 80 % of the device at 16 384
   worlds.
@@ -40,6 +47,7 @@
 from __future__ import annotations
 
 import contextlib
+import dataclasses
 import functools
 import inspect
 from dataclasses import dataclass
@@ -60,9 +68,11 @@ from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.termination_manager import TerminationTermCfg
 from mjlab.scene import SceneCfg
 from mjlab.sim import MujocoCfg, SimulationCfg
+from mjlab.utils.noise import GaussianNoiseCfg, NoiseModel, NoiseModelCfg
 from mjlab.utils.spec import attach_unprefixed
 
 from .. import base as cpu_base
+from .. import randomize as dr
 from .. import scene
 from .base import TaskLogic
 
@@ -94,6 +104,20 @@ def _put_data_with_naccdmax(naccdmax: int):
         mjwarp.put_data = put
 
 
+def variable_fields(m: mujoco.MjModel) -> tuple[list[str], list[str]]:
+    """(model fields, `opt` fields) a DR sampler may change on `m`: the ones Warp batches per
+    world (`array("*", ...)` in `mujoco_warp`'s types, MJX-Warp's `_BATCH_DIM` too) that
+    `m` has; never `opt.timestep`."""
+    from mujoco_warp._src import types as wt
+
+    def batched(cls):
+        return [f.name for f in dataclasses.fields(cls)
+                if getattr(f.type, "shape", None) and f.type.shape[0] == "*"]
+
+    return ([a for a in batched(wt.Model) if hasattr(m, a)],
+            [a for a in batched(wt.Option) if hasattr(m.opt, a) and a != "timestep"])
+
+
 def mujoco_cfg(opt) -> MujocoCfg:
     """The `MujocoCfg` that reproduces an `MjOption` (the CPU's `<option>`)."""
     def name(enum, v):
@@ -122,8 +146,9 @@ class SoccerEnv(ManagerBasedRlEnv):
     raw = False
 
     def __init__(self, cfg: ManagerBasedRlEnvCfg, logic: TaskLogic, device: str,
-                 seed: int | None = None, naccdmax: int | None = None) -> None:
-        self.logic, self._seed = logic, seed
+                 seed: int | None = None, naccdmax: int | None = None,
+                 randomize=None) -> None:
+        self.logic, self._seed, self.randomize = logic, seed, randomize
         n = cfg.scene.num_envs
         naccdmax = naccdmax or n * scene.NACCD_PER_ROBOT * len(logic.robots)
         with _put_data_with_naccdmax(min(n * cfg.sim.nconmax, naccdmax)):
@@ -185,6 +210,46 @@ class SoccerEnv(ManagerBasedRlEnv):
         d = self.sim.data
         return SimpleNamespace(qpos=d.qpos[:], qvel=d.qvel[:], xpos=d.xpos[:], xmat=d.xmat[:],
                                sensordata=d.sensordata[:], ctrl=d.ctrl[:])
+
+    # ------------------------------------------------- domain randomization
+
+    def apply_randomization(self) -> None:
+        """The startup DR event, before the pool: `randomize(mj_model, rng)` once per world
+        on the cached CPU model (`mjsoccer.randomize.variants`, as MJX), with world i's rng
+        spawned from (`seed`, i), so its variant depends on those alone. What it changed,
+        derived fields included, is written per world into Warp's model; the rows of the
+        `body_*` fields are put on the bodies of the same name (mjlab's anchor shifts every
+        body id). For the whole run, as on MJX."""
+        if self.randomize is None:
+            return
+        sim, cpu, mj, n = self.sim, self.logic.mj_model, self.sim.mj_model, self.num_envs
+        rngs = [np.random.default_rng(s) for s in np.random.SeedSequence(self._seed).spawn(n)]
+        stacks = dr.variants(cpu, self.randomize, rngs, *variable_fields(cpu))
+        rows = [mujoco.mj_name2id(mj, mujoco.mjtObj.mjOBJ_BODY, cpu.body(b).name)
+                for b in range(cpu.nbody)]
+
+        def per_world(name, v):
+            nominal = np.asarray(getattr(mj.opt, name[4:]) if name.startswith("opt.")
+                                 else getattr(mj, name))
+            full = np.repeat(nominal[None], n, 0)
+            if name.startswith("body_"):
+                full[:, rows] = v
+            else:
+                full[...] = v  # same shape on both compilations: only the anchor body is new
+            return full
+
+        top = [a for a in stacks if not a.startswith("opt.")]
+        sim.expand_model_fields(tuple(top))
+        for a, v in stacks.items():
+            full = per_world(a, v)
+            if a in top:
+                arr = getattr(sim.wp_model, a)
+                arr.assign(wp.array(full, dtype=arr.dtype, device=arr.device))
+            else:  # opt: per world as opt.timestep is, graph recaptured below
+                old = getattr(sim.wp_model.opt, a[4:])
+                setattr(sim.wp_model.opt, a[4:], wp.array(full, dtype=old.dtype, device=old.device))
+        sim.model.clear_cache()
+        sim.create_graph()
 
     # ------------------------------------------------------- first states
 
@@ -275,8 +340,11 @@ class SoccerEnv(ManagerBasedRlEnv):
     def _control(self) -> None:
         d, keep = self._view(), self._ended
         lg = self.logic
-        a = self._action[:, : lg.n_controlled * 6] if self.raw else self._action
-        ctrl, w = lg.control(d, self.world, a, self.raw)
+        if self.raw:  # raw actions skip the latency queue, as MjxEnv._delay
+            a, w = self._action[:, : lg.n_controlled * 6], self.world
+        else:
+            a, w = lg.delay(self.world, self._action)
+        ctrl, w = lg.control(d, w, a, self.raw)
         self.world = {k: _where(keep, self.world[k], v) for k, v in w.items()}
         self.sim.data.ctrl[:] = _where(keep, d.ctrl, ctrl)
         row = torch.where(keep, FROZEN, torch.where(self.world["fired"].any(-1), FIRING, IDLE))
@@ -306,6 +374,29 @@ class SoccerEnv(ManagerBasedRlEnv):
 
 
 # ------------------------------------------------------------- manager terms
+
+
+class _SeededNoise(NoiseModel):
+    """mjlab's noise model, drawn from its own generator (seeded by the env's `seed`, apart
+    from the pool's): the same seed gives the same noise, whatever else draws from torch."""
+
+    def __init__(self, cfg, num_envs, device):
+        super().__init__(cfg, num_envs, device)
+        self._gen = torch.Generator(device=device)
+        if cfg.seed is None:
+            self._gen.seed()
+        else:
+            # (seed, 15): apart from the pool's stream, as MJX folds 15 into the reset key.
+            self._gen.manual_seed(int(np.random.SeedSequence((cfg.seed, 15)).generate_state(1)[0]))
+
+    def __call__(self, data):
+        eps = torch.randn(data.shape, generator=self._gen, device=data.device, dtype=data.dtype)
+        return data + self._noise_model_cfg.noise_cfg.std * eps
+
+
+@dataclass(kw_only=True)
+class SeededNoiseCfg(NoiseModelCfg, class_type=_SeededNoise):
+    seed: int | None = None
 
 
 class SoccerAction(ActionTerm):
@@ -359,6 +450,10 @@ def _metric(env: SoccerEnv, name: str):
     return env.metrics[name]
 
 
+def _randomize(env: SoccerEnv, env_ids):
+    env.apply_randomization()
+
+
 def _pool(env: SoccerEnv, env_ids):
     env.refill_pool()
 
@@ -368,7 +463,8 @@ def _restore(env: SoccerEnv, env_ids):
 
 
 def make_cfg(logic: TaskLogic, nworld: int, nconmax: int | None = None,
-             njmax: int | None = None) -> ManagerBasedRlEnvCfg:
+             njmax: int | None = None, obs_noise: float = 0.0,
+             seed: int | None = None) -> ManagerBasedRlEnvCfg:
     n_yellow = len(logic.robots) - logic.n_blue
     opt = scene.build(logic.n_blue, n_yellow)[0].opt
     iters = len(scene.firing_schedule(logic.decimation, float(opt.timestep))[0])
@@ -383,9 +479,16 @@ def make_cfg(logic: TaskLogic, nworld: int, nconmax: int | None = None,
                        spec_fn=spec_fn),
         sim=SimulationCfg(nconmax=nconmax, njmax=njmax or scene.NJMAX_PER_CONTACT * nconmax,
                           mujoco=mujoco_cfg(opt)),
-        observations={"actor": ObservationGroupCfg(terms={"obs": ObservationTermCfg(func=_obs)})},
+        # `obs_noise`: the `ObsNoiseWrapper`'s N(0, sigma^2) on every returned obs, the reset's
+        # and an ended world's fresh first one included; `env.obs` and the physics stay clean.
+        observations={"actor": ObservationGroupCfg(
+            terms={"obs": ObservationTermCfg(func=_obs, noise=SeededNoiseCfg(
+                noise_cfg=GaussianNoiseCfg(std=obs_noise), seed=seed) if obs_noise else None)},
+            enable_corruption=bool(obs_noise))},
         actions={"task": SoccerActionCfg()},
-        events={"pool": EventTermCfg(func=_pool, mode="startup"),
+        # In this order: the pool is seated on the randomized model.
+        events={"randomize": EventTermCfg(func=_randomize, mode="startup"),
+                "pool": EventTermCfg(func=_pool, mode="startup"),
                 "restore": EventTermCfg(func=_restore, mode="reset")},
         rewards={"task": RewardTermCfg(func=_reward, weight=1.0)},
         terminations={"settle": TerminationTermCfg(func=_settle),

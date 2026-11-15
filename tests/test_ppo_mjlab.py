@@ -71,6 +71,28 @@ def test_flags_reach_the_config():
     assert (args.num_envs, args.repeat_action) == (64, 2)
 
 
+def test_noise_latency_and_dr_flags_reach_the_envs():
+    """ppo_mjx's semantics: `--obs-noise` and `--action-latency` (off by default) apply to
+    the train env and the per-epoch eval, never to `--eval`; `--randomize module:sampler`
+    to the train env, the eval env only with `--eval-randomize`, which needs it."""
+    import operator
+
+    mod = _script()
+    args = mod.parse_args(["--env", ENV])
+    assert (args.obs_noise, args.action_latency, args.randomize) == (0.0, 0, None)
+    train, ev = mod.env_kwargs(args)
+    assert train == ev == {"obs_noise": 0.0, "action_latency": 0, "randomize": None}
+    with pytest.raises(SystemExit):
+        mod.parse_args(["--eval-randomize"])  # nothing to randomize with
+    args = mod.parse_args(["--env", ENV, "--obs-noise", "0.01", "--action-latency", "2",
+                           "--randomize", "operator:is_"])
+    train, ev = mod.env_kwargs(args)
+    assert train == {"obs_noise": 0.01, "action_latency": 2, "randomize": operator.is_}
+    assert ev == {**train, "randomize": None}
+    args = mod.parse_args(["--env", ENV, "--randomize", "operator:is_", "--eval-randomize"])
+    assert mod.env_kwargs(args)[1]["randomize"] is operator.is_
+
+
 def test_an_epoch_is_one_episode_per_world_unless_a_budget_is_given():
     """ContestedPossession: 1 200 decisions, 20-step unrolls -> 60 iterations an epoch. An
     explicit `--timesteps` is split over the epochs, at least one iteration each."""
@@ -91,12 +113,17 @@ def test_train_eval_play_smoke(tmp_path):
     if not torch.cuda.is_available():
         pytest.skip("no CUDA device")
     save = tmp_path / "run"
+    # With noise, latency and DR on (a sampler that changes nothing: the plumbing only;
+    # tests/test_mjlab_randomize.py checks DR itself).
     p = run(SCRIPT, "--env", ENV, "--save", save, "--num-envs", "64", "--num-eval-envs", "4",
             "--epochs", "2", "--timesteps", "1", "--unroll-length", "4",
-            "--num-minibatches", "2", timeout=3600)
+            "--num-minibatches", "2", "--obs-noise", "0.05", "--action-latency", "2",
+            "--randomize", "operator:is_", "--eval-randomize", timeout=3600)
     assert p.returncode == 0, p.stdout[-3000:] + p.stderr[-4000:]
     out = p.stdout
     assert out.count("epoch") >= 2 and "dps" in out and "eval return" in out, out[-3000:]
+    assert "DR operator:is_ (eval too)" in out and "obs noise 0.05" in out, out[-3000:]
+    assert "action latency 2" in out, out[-3000:]
     for k in ("diverged", "overflow", "reset_overlap"):
         assert k in out
     assert json.loads((save / "args.json").read_text())["env"] == ENV

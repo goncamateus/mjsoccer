@@ -28,8 +28,13 @@ The default budget (`--timesteps` unset) gives an epoch the iterations one episo
 `--timesteps` is split over the epochs. Per epoch the log has the decisions so far,
 decisions/s, the eval return and the eval episodes' rate of the three failure counters.
 
-Not yet here: `--obs-noise`, `--action-latency`, `--randomize`, `--eval-randomize` (ticket
-10); `--num-envs`'s defaults are ppo_mjx's until ticket 11 measures mjlab's.
+`--randomize module:sampler` trains under domain randomization: the same sampler as
+`ppo_mjx`'s, each world its own variant for the run, drawn from `--seed`. The per-epoch eval
+runs on the nominal model unless `--eval-randomize`. `--obs-noise` and `--action-latency`
+(both off by default) apply to training and the per-epoch eval; `--eval` and `--play` run
+without them, nominal (as `ppo_mjx`).
+
+Not yet here: `--num-envs`'s defaults are ppo_mjx's until ticket 11 measures mjlab's.
 """
 
 from __future__ import annotations
@@ -80,6 +85,15 @@ def parse_args(argv=None) -> argparse.Namespace:
     ap.add_argument("--timesteps", type=int, default=None,
                     help="decisions in all (default: one episode per world per epoch)")
     ap.add_argument("--num-eval-envs", type=int, default=128)
+    ap.add_argument("--obs-noise", type=float, default=0.0,
+                    help="std of Gaussian noise on the (normalised) obs, train and eval; 0 off")
+    ap.add_argument("--action-latency", type=int, default=0,
+                    help="delay each action by this many control steps; 0 off")
+    ap.add_argument("--randomize", default=None, metavar="MODULE:SAMPLER",
+                    help="domain randomization: a sampler(mj_model, rng) -> None, imported "
+                         "by name (mjsoccer.randomize); each world gets its variant")
+    ap.add_argument("--eval-randomize", action="store_true",
+                    help="evaluate under the same sampler, own variants (default: the nominal model)")
     hp = ap.add_argument_group("PPO (ppo_mjx's flags, on RSL-RL)")
     hp.add_argument("--learning-rate", type=float, default=3e-4)
     hp.add_argument("--entropy-cost", type=float, default=1e-2)
@@ -91,6 +105,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     hp.add_argument("--num-updates-per-batch", type=int, default=4)
     hp.add_argument("--max-grad-norm", type=float, default=0.5)
     args = ap.parse_args(argv)
+    if args.eval_randomize and not args.randomize:
+        ap.error("--eval-randomize needs --randomize")
     if args.num_envs is None:
         args.num_envs = NUM_ENVS[_n_robots(args.env)]
     if args.save is None:
@@ -190,10 +206,22 @@ def run_episodes(env, act, check: bool = False) -> dict:
             "length": length.mean().item(), **{k: v.mean().item() for k, v in failed.items()}}
 
 
-def _make(env_id, nworld, repeat_action, seed):
+def env_kwargs(args) -> tuple[dict, dict]:
+    """(train env, per-epoch eval env) `mjsoccer.mjlab.make` kwargs: noise and latency on
+    both, the sampler on the eval env only with `--eval-randomize`."""
+    import pkgutil
+
+    sampler = pkgutil.resolve_name(args.randomize) if args.randomize else None
+    train = {"obs_noise": args.obs_noise, "action_latency": args.action_latency,
+             "randomize": sampler}
+    return train, {**train, "randomize": sampler if args.eval_randomize else None}
+
+
+def _make(env_id, nworld, repeat_action, seed, **kw):
     import mjsoccer.mjlab
 
-    return mjsoccer.mjlab.make(env_id, nworld=nworld, repeat_action=repeat_action, seed=seed)
+    return mjsoccer.mjlab.make(env_id, nworld=nworld, repeat_action=repeat_action, seed=seed,
+                               **kw)
 
 
 def train(args) -> int:
@@ -223,8 +251,9 @@ def train(args) -> int:
             return {"run_path": run_name, "env": args.env, "repeat_action": args.repeat_action}
 
     torch.manual_seed(args.seed)
-    env = _make(args.env, args.num_envs, args.repeat_action, args.seed)
-    eval_env = _make(args.env, args.num_eval_envs, args.repeat_action, args.seed + 1)
+    train_kw, eval_kw = env_kwargs(args)
+    env = _make(args.env, args.num_envs, args.repeat_action, args.seed, **train_kw)
+    eval_env = _make(args.env, args.num_eval_envs, args.repeat_action, args.seed + 1, **eval_kw)
     eval_env.cfg.auto_reset = False
     run = Path(args.save).resolve()
     run.mkdir(parents=True, exist_ok=True)
@@ -236,7 +265,9 @@ def train(args) -> int:
     runner = Runner(vec, train_cfg(args), str(run), device=env.device)
     print(f"{args.env} on {env.device}: {args.num_envs} worlds, repeat_action "
           f"{args.repeat_action}, {args.epochs} epochs x {iters} iterations x {per_iter:,} "
-          f"decisions -> {run}", flush=True)
+          f"decisions, DR {args.randomize or 'off'}"
+          f"{' (eval too)' if args.eval_randomize else ''}, obs noise {args.obs_noise}, "
+          f"action latency {args.action_latency} -> {run}", flush=True)
     t0, decisions = time.perf_counter(), 0
     for epoch in range(1, args.epochs + 1):
         if epoch > 1:  # the startup event drew the first pool

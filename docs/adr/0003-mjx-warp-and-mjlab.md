@@ -51,3 +51,9 @@ So mjlab becomes the **third backend**: the CPU backend, MJX-Warp (with Brax) an
 - Open risks: mjlab #1263 (ITERATIONS overflow) on the 7-robot scenes; mjlab has no release
   on mujoco 4.x (git pin); observation freshness (mjlab calls `forward` before observing; measured in mjlab-port
   ticket 07, left uncompensated).
+- DR, observation noise and action latency mean the same on both GPU backends, so not all
+  of mjlab's native pieces are used (mjlab-port ticket 10). DR runs MJX's sampler on the CPU
+  model (`mjsoccer.randomize`) and writes the variants into Warp's model per world, instead
+  of mjlab's `set_const` events. The latency is per decision, counted in control steps,
+  because mjlab's own delay acts on the actuator in physics steps. Only the noise uses
+  mjlab's noise model, with its own seed.

@@ -11,7 +11,8 @@ vmapped. Each control step is the same three pieces, with the physics left to th
 (N, nbody, 3), `xmat` (N, nbody, 3, 3) and `sensordata` (N, nsensordata). `world` is a dict
 of per-world tensors: `grace` (N, n_robots) int32, `plunger_lock` (N, n_robots, 2) int32,
 `fired` (N, n_robots) bool, `steps` (N,) int32 in control steps, `drive_cmd`
-(N, n_controlled, 3), `overlap` (N,) bool and the task's own entries. Every function returns
+(N, n_controlled, 3), `overlap` (N,) bool, with `action_latency` N > 0 `action_queue`
+(N, N, action_size), and the task's own entries. Every function returns
 new tensors and leaves its inputs alone. Randomness comes in as arguments (`place`'s
 uniforms), so the per-world RNG, like the physics, lives with the env.
 """
@@ -158,9 +159,13 @@ class TaskLogic:
     seat_robot: int | None = None  # the robot `_reset_task` seats a ball on (the env's job)
 
     def __init__(self, horizon_s: float = 30.0, repeat_action: int = 1,
-                 device: str | torch.device = "cpu") -> None:
+                 device: str | torch.device = "cpu", action_latency: int = 0) -> None:
+        if action_latency < 0:
+            raise ValueError(f"action_latency={action_latency}; expected >= 0")
+        self.action_latency = int(action_latency)
         cpu = self.cpu_cls(repeat_action=repeat_action, horizon_s=horizon_s)
-        self.robots, self.ball = cpu.robots, cpu.ball
+        # The cached CPU model (shared with the CPU backend): what DR samplers run on.
+        self.mj_model, self.robots, self.ball = cpu.model, cpu.robots, cpu.ball
         self.nu = cpu.model.nu
         self.n_blue, self.n_controlled = cpu.n_blue, cpu.n_controlled
         self.decimation, self.dt = cpu.decimation, cpu.dt
@@ -212,7 +217,32 @@ class TaskLogic:
             **self.init_task(d),
         )
         world["grace"] = self.possession(d, world["grace"])
+        if self.action_latency:
+            world["action_queue"] = self.hold_action(d)[:, None].repeat(1, self.action_latency, 1)
         return self.obs(d, world), world, self.metrics(n, reset_overlap=overlap)
+
+    def delay(self, world, action):
+        """`MjxEnv._delay`: with `action_latency` N > 0 the action applied on this control
+        step is the one given N control steps ago, and this one joins the end of
+        `world["action_queue"]`. Returns (action, world)."""
+        if not self.action_latency:
+            return action, world
+        q = world["action_queue"]
+        q_new = torch.cat([q[:, 1:], action[:, None].to(q.dtype)], 1)
+        return q[:, 0], {**world, "action_queue": q_new}
+
+    def hold_action(self, d):
+        """`MjxEnv._hold_action`: (N, action_size), every controlled robot held at its pose,
+        plungers and dribblers off; what the latency queue starts with."""
+        a = []
+        for r in self.robots[: self.n_controlled]:
+            p, R = d.xpos[:, r.body], d.xmat[:, r.body]
+            th = torch.atan2(R[:, 1, 0], R[:, 0, 0])
+            pose = torch.stack([p[:, 0] / scene.FIELD_HALF_X, p[:, 1] / scene.FIELD_HALF_Y,
+                                torch.sin(th), torch.cos(th)], -1)
+            off = -torch.ones_like(pose[:, :1]).expand(-1, self.act_dim - 4)
+            a.append(torch.cat([pose, off], -1))
+        return torch.cat(a, -1).float()
 
     def control(self, d, world, action, raw: bool = False):
         """`BaseEnv._apply` + `_script`: the controlled robots' target poses through the
