@@ -214,11 +214,10 @@ class SoccerEnv(ManagerBasedRlEnv):
         settle = _default(seat, "settle")
         sim, d, ball = self.sim, self.sim.data, self.logic.ball
         f, p = d.xmat[:, r.body, :, 0], d.xpos[:, r.body]
-        a, v = ball.qpos_adr, ball.qvel_adr
+        v = ball.qvel_adr
         qpos, qvel = d.qpos[:].clone(), d.qvel[:].clone()
-        qpos[:, a : a + 2] = p[:, :2] + f[:, :2] * dist
-        qpos[:, a + 3 : a + 7] = torch.tensor([1.0, 0.0, 0.0, 0.0], device=self.device)
-        qvel[:, v : v + 6] = 0.0
+        xy = p[:, :2] + f[:, :2] * dist
+        self.logic.place_ball(qpos, qvel, xy[:, 0], xy[:, 1])
         qvel[:, v : v + 2] = -f[:, :2] * speed
         d.qpos[:], d.qvel[:] = qpos, qvel
         sim.forward()

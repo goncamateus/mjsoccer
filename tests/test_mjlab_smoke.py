@@ -1,4 +1,5 @@
-"""mjlab smoke: `mjsoccer.mjlab.make` makes, resets and steps ContestedPossession on the GPU.
+"""mjlab smoke: `mjsoccer.mjlab.make` makes, resets and steps ContestedPossession (2 robots)
+and GoToBall (7) on the GPU.
 
 Not a physics check (the parity against the CPU is statistical, `-m validation`): this proves
 the env runs end to end -- the first-state pool and its seat_ball loop, the controller, the
@@ -25,6 +26,7 @@ pytest.importorskip("torch")
 pytest.importorskip("mjlab")
 
 ENV = "ContestedPossession-v0"
+PORTED = [ENV, "GoToBall-v0"]
 NWORLD = 4
 
 
@@ -38,8 +40,8 @@ def _run(*args) -> dict:
 def test_make_rejects_ids_not_ported_or_unknown():
     import mjsoccer.mjlab
 
-    with pytest.raises(NotImplementedError, match="GoToBall-v0"):
-        mjsoccer.mjlab.make("GoToBall-v0", nworld=1)
+    with pytest.raises(NotImplementedError, match="GoToBallShoot-v0"):
+        mjsoccer.mjlab.make("GoToBallShoot-v0", nworld=1)
     with pytest.raises(KeyError):
         mjsoccer.mjlab.make("Nope-v0", nworld=1)
 
@@ -77,9 +79,10 @@ def test_firing_schedule_is_the_cpu_firing_step_and_idle_padded_with_zero():
 # ---------------------------------------------------------------- GPU children
 
 
+@pytest.mark.parametrize("env_id", PORTED)
 @pytest.mark.parametrize("repeat_action", [1, 2])
-def test_mjlab_smoke(repeat_action):
-    out = _run("smoke", repeat_action)
+def test_mjlab_smoke(env_id, repeat_action):
+    out = _run("smoke", repeat_action, env_id)
     # The CPU's spaces, layout and model, plus the action term's anchor body.
     assert out["obs_dim"] == out["cpu_obs_dim"] and out["act_dim"] == out["cpu_act_dim"], out
     assert out["sizes"] == out["cpu_sizes"], out  # nq, nv, nu, nsensordata
@@ -87,8 +90,12 @@ def test_mjlab_smoke(repeat_action):
     assert out["opt"] == out["cpu_opt"], out
     assert out["decimation"] == 48 * repeat_action, out
     assert out["max_steps"] == out["cpu_max_steps"], out
-    # The seat_ball loop really ran: the yellow robot holds the ball at reset, every world.
-    assert all(out["robot1_holds_at_reset"]), out
+    assert out["n_robots"] == out["cpu_n_robots"], out
+    if env_id == ENV:  # the seat_ball loop really ran: the yellow robot holds the ball
+        assert all(out["robot1_holds_at_reset"]), out
+    else:  # GoToBall seats none: the ball starts placed, at rest
+        assert all(out["ball_at_rest"]), out
+    assert out["reset_overlap"] == 0, out
     # Every world kicked on the first control step (its lock counted down since).
     assert out["kick_lock"] == [out["cooldown"] - repeat_action] * NWORLD, out
     assert out["finite"], out
@@ -158,11 +165,11 @@ def test_a_caller_on_a_side_stream_does_not_race_warp():
 # ------------------------------------------------------------------ the children
 
 
-def _make(repeat_action=1, **kw):
+def _make(repeat_action=1, env_id=ENV, **kw):
     import mjsoccer.mjlab
 
     kw.setdefault("nworld", NWORLD)
-    return mjsoccer.mjlab.make(ENV, repeat_action=repeat_action, seed=0, **kw)
+    return mjsoccer.mjlab.make(env_id, repeat_action=repeat_action, seed=0, **kw)
 
 
 def _hold(env, robot=0):
@@ -178,15 +185,16 @@ def _hold(env, robot=0):
                         torch.sin(th), torch.cos(th), *[-torch.ones_like(th)] * 3], -1)
 
 
-def smoke(repeat_action: int) -> dict:
+def smoke(repeat_action: int, env_id: str) -> dict:
+    import gymnasium as gym
     import torch
 
-    from mjsoccer import tasks
-
-    env = _make(repeat_action)
+    env = _make(repeat_action, env_id)
     obs, _ = env.reset()
     obs = obs["actor"]
-    cpu = tasks.ContestedPossessionEnv(repeat_action=repeat_action)
+    cpu = gym.make(env_id, repeat_action=repeat_action).unwrapped
+    lg = env.logic
+    v = lg.ball.qvel_adr
     m, cm = env.sim.mj_model, cpu.model
     opt_fields = ("timestep", "integrator", "cone", "solver", "jacobian", "iterations",
                   "tolerance", "ls_iterations", "ls_tolerance", "ccd_iterations", "impratio",
@@ -201,9 +209,12 @@ def smoke(repeat_action: int) -> dict:
         "sizes": [m.nq, m.nv, m.nu, m.nsensordata], "cpu_sizes": [cm.nq, cm.nv, cm.nu, cm.nsensordata],
         "nbody": m.nbody, "cpu_nbody": cm.nbody, "opt": opt(m.opt), "cpu_opt": opt(cm.opt),
         "decimation": env.cfg.decimation, "max_steps": env.logic.max_steps,
-        "cpu_max_steps": cpu.max_steps,
+        "cpu_max_steps": cpu.max_steps, "n_robots": len(lg.robots),
+        "cpu_n_robots": len(cpu.robots),
         # obs: 6 ball entries, then 8 per robot ending in has_ball.
         "robot1_holds_at_reset": (obs[:, 6 + 8 + 7] > 0).tolist(),
+        "ball_at_rest": (env.sim.data.qvel[:, v : v + 6] == 0).all(-1).tolist(),
+        "reset_overlap": int(env.pool["world"]["overlap"].sum()),
     }
     cpu.close()
     g = torch.Generator(device=env.device).manual_seed(0)
@@ -358,7 +369,7 @@ def streams(_: int) -> dict:
     return {"checked": int((~ended).sum()), "time_off": int(off.sum())}
 
 
-def main(mode: str, repeat_action: int) -> None:
+def main(mode: str, repeat_action: int, *args) -> None:
     try:
         import mjlab  # noqa: F401
         import torch
@@ -371,9 +382,9 @@ def main(mode: str, repeat_action: int) -> None:
     run = {"smoke": smoke, "idle": idle, "mixed": mixed, "nan": nan, "streams": streams}[mode]
     # The test's own reads and writes on Warp's stream too, ordered with the env's.
     with torch.cuda.stream(torch.cuda.ExternalStream(wp.get_stream("cuda:0").cuda_stream)):
-        out = run(repeat_action)
+        out = run(repeat_action, *args)
     print(json.dumps(out))
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], int(sys.argv[2]))
+    main(sys.argv[1], int(sys.argv[2]), *sys.argv[3:])

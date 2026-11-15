@@ -337,6 +337,15 @@ class TaskLogic:
         qpos[:, a + 2] = theta
         qvel[:, v : v + 3] = 0.0
 
+    def place_ball(self, qpos, qvel, x, y):
+        """`BallIds.place`, at rest, in place on (N, nq)/(N, nv)."""
+        a, v = self.ball.qpos_adr, self.ball.qvel_adr
+        qpos[:, a] = x
+        qpos[:, a + 1] = y
+        qpos[:, a + 3 : a + 7] = torch.tensor([1.0, 0.0, 0.0, 0.0], dtype=qpos.dtype,
+                                              device=qpos.device)
+        qvel[:, v : v + 6] = 0.0
+
     # ------------------------------------------------------ subclass surface
 
     def place(self, qpos, qvel, u):
