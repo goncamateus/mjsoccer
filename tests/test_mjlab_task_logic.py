@@ -38,7 +38,11 @@ TOL = {"rtol": 1e-5, "atol": 1e-5}
 BASE_STATE = {"grace": "_grace", "steps": "steps", "drive_cmd": "drive_cmd",
               "plunger_lock": "_plunger_lock", "fired": "fired"}
 TASK_STATE = {"ContestedPossession-v0": {"prev": "_prev", "prev_goal": "_prev_goal"},
-              "GoToBall-v0": {}}
+              "GoToBall-v0": {},
+              "GoToBallShoot-v0": {"prev": "_prev", "prev_goal": "_prev_goal"},
+              "StaticDefenders-v0": {"prev": "_prev", "prev_goal": "_prev_goal"},
+              "Dribbling-v0": {"count": "_count", "last_ball": "_last_ball"},
+              "PassEndurance-v0": {"prev": "_prev", "stopped": "_stopped"}}
 TASKS = list(TASK_STATE)
 
 
@@ -93,10 +97,19 @@ class _Scattered(_Injected):
     robot (`k` candidates, then the heading), so the heading draw skips the rest of the
     block -- the candidates the CPU never needed."""
 
-    def __init__(self, u, head, k):
+    def __init__(self, u, head, k, lead=()):
         super().__init__(u[:head])
         n = 2 * k + 1
-        self.blocks = [list(u[i : i + n]) for i in range(head, len(u), n)]
+        # `lead`: sizes of headless candidate blocks before the per-robot ones (a ball
+        # redrawn until free), each ended by `end_block` once the CPU accepts a draw.
+        self.blocks = []
+        for size in lead:
+            self.blocks.append(list(u[head : head + size]))
+            head += size
+        self.blocks += [list(u[i : i + n]) for i in range(head, len(u), n)]
+
+    def end_block(self):
+        self.blocks.pop(0)
 
     def uniform(self, lo=0.0, hi=1.0):
         if self.u:
@@ -112,13 +125,23 @@ class _Scattered(_Injected):
 
 
 def _placement_uniforms(env_id, logic, seed):
-    """The task's `n_uniform` draws for a seed and the CPU's stand-in RNG over them; for
-    GoToBall the first robot's first two candidates are put on the ball, so the rejection
-    path runs."""
+    """The task's `n_uniform` draws for a seed and the CPU's stand-in RNG over them, each
+    redraw loop's first candidate rigged to be rejected, so the rejection path runs."""
     u = np.random.default_rng(seed).random(logic.n_uniform)
-    if env_id == "GoToBall-v0":
+    k = tasks.SCATTER_CANDIDATES
+    if env_id == "GoToBall-v0":  # the first robot's first two candidates on the ball
         u[2:4] = u[4:6] = u[0:2]
-        return u, _Scattered(u, 2, tasks.SCATTER_CANDIDATES)
+        return u, _Scattered(u, 2, k)
+    if env_id == "GoToBallShoot-v0":
+        # The robot's first candidate (whose y the CPU negates) right on the ball.
+        u[2], u[3] = u[0], 1 - u[1]
+        return u, _Scattered(u, 2, k)
+    if env_id == "StaticDefenders-v0":  # the ball's first candidate in the penalty area
+        u[0:2] = 0.99, 0.5
+        return u, _Scattered(u, 0, k, lead=(2 * k,))
+    if env_id == "PassEndurance-v0":  # the receiver's first x on the ball's
+        u[2] = u[0]
+        return u, _Scattered(u, 2, 0, lead=(tasks.PASS_CANDIDATES,))
     return u, _Injected(u)
 
 
@@ -154,6 +177,14 @@ def _logic(env_id, cpu):
     return cls(horizon_s=mjsoccer.ENV_IDS[env_id][1])
 
 
+def test_every_env_id_is_ported_and_covered():
+    """Every id the CPU registers has its torch task, and every one is in this file's parity
+    runs."""
+    assert sorted(TASKS) == sorted(mjsoccer.ENV_IDS)
+    for cls_name, _ in mjsoccer.ENV_IDS.values():
+        assert getattr(tasks, cls_name).cpu_cls.__name__ == cls_name
+
+
 def test_logic_has_the_cpu_spaces_and_horizon():
     for env_id in TASKS:
         cpu = gym.make(env_id).unwrapped
@@ -173,7 +204,24 @@ def test_place_matches_cpu_on_the_same_candidates(env_id, seed):
     mujoco.mj_resetData(cpu.model, cpu.data)
     blank = _snap(cpu)
     cpu._np_random = fake
-    cpu._place()
+    if env_id == "StaticDefenders-v0":
+        # The CPU's ball loop ends on the first draw out of the penalty area: end the
+        # injected ball block there too.
+        in_gk = mjsoccer.tasks._in_gk_area
+
+        def hooked(x, y):
+            inside = in_gk(x, y)
+            if not inside:
+                fake.end_block()
+            return inside
+
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(mjsoccer.tasks, "_in_gk_area", hooked)
+            cpu._place()
+    else:
+        cpu._place()
+    if env_id == "PassEndurance-v0":
+        fake.end_block()  # the receiver's x was accepted; the rest are spares
     assert not fake.left, "the torch side declares fewer uniforms than the CPU draws"
     qpos, qvel, overlap = logic.place(blank.qpos, blank.qvel, _t(u))
     assert not overlap.any()
@@ -297,7 +345,10 @@ def test_control_steps_match_cpu(env_id, seed):
             break
     assert terminated or truncated, "the rollout should reach an ending"
     assert fires > 0 and blocked > 0, f"kick barely exercised: {fires} fired, {blocked} blocked"
-    assert logic.kick_cooldown == 10 and rearmed > 0, "no plunger re-armed after cooldown 10"
+    assert logic.kick_cooldown == 10
+    # PassEndurance's first kick sends the ball out of the box, ending it within the
+    # cooldown; the re-arm is the shared base's, exercised by the other five.
+    assert rearmed > 0 or env_id == "PassEndurance-v0", "no plunger re-armed after cooldown 10"
 
 
 @pytest.mark.parametrize("env_id", TASKS)
@@ -318,6 +369,78 @@ def test_raw_control_matches_cpu(env_id):
         cpu._control_step(a, raw=True)
         np.testing.assert_allclose(ctrl[0].numpy(), cpu.data.ctrl, **TOL, err_msg=f"step {t}")
         np.testing.assert_allclose(world["drive_cmd"][0].numpy(), cpu.drive_cmd, **TOL)
+
+
+def _ball_walk(env_id, cpu, logic, path, robot_xy=None, holds=None):
+    """Teleport the ball (and robot 0) along `path` and compare each step's reward, ending
+    and task state with the CPU's `_reward_done` on the same world. `holds[i]`: robot 1 has
+    the ball at point i (its possession grace, set by hand). Yields (reward, done, the
+    CPU's per-world state) after each point; an ending resets the task."""
+    a = np.zeros(cpu.action_space.shape)
+    _, world, _ = logic.init_state(_snap(cpu))
+    for i, (bx, by) in enumerate(path):
+        if robot_xy is not None:
+            cpu.robots[0].place(cpu.data, *robot_xy[i], np.pi)
+        if holds is not None:
+            cpu._grace[1] = cpu._grace_steps if holds[i] else 0
+        cpu.ball.place(cpu.data, bx, by)
+        mujoco.mj_forward(cpu.model, cpu.data)
+        r, done, w = logic.reward_done(_snap(cpu), _with_cpu_world(env_id, world, cpu))
+        want_r, want_done, _ = cpu._reward_done(a)
+        when = f"point {i} ({bx:.2f}, {by:.2f})"
+        np.testing.assert_allclose(float(r[0]), want_r, **TOL, err_msg=when)
+        assert bool(done[0]) == want_done, when
+        _assert_world(env_id, w, cpu, when)
+        yield want_r, want_done, _world_from_cpu(env_id, cpu)
+        if want_done:
+            cpu._reset_task()
+
+
+def test_dribbling_checkpoints_match_cpu():
+    """The zigzag, which a random rollout never gets far into: all seven checkpoints, a
+    backwards crossing of the last gap, then random ball and robot positions around the
+    nodes, each against the CPU's own `_reward_done`."""
+    env_id = "Dribbling-v0"
+    cpu = gym.make(env_id).unwrapped
+    cpu.reset(seed=0)
+    logic = _logic(env_id, cpu)
+    zigzag = [(-0.75, 0.1), (-0.75, -0.1), (-1.25, 0.1), (-1.75, 0.1), (-1.75, -0.1),
+              (-2.5, -0.1), (-2.5, 0.1), (-1.75, -0.1), (-2.5, 0.1), (-1.75, -0.1)]
+    out = list(_ball_walk(env_id, cpu, logic, zigzag))
+    assert [w["count"] for _, _, w in out] == [0, 1, 2, 2, 3, 3, 4, 5, 6, 7]
+    assert out[-1][1] and not any(d for _, d, _ in out[:-1])
+    backwards = [(-0.75, 0.1), (-0.75, -0.1), (-1.25, 0.1), (-1.25, -0.1), (-1.75, 0.1)]
+    out = list(_ball_walk(env_id, cpu, logic, backwards))
+    assert [d for _, d, _ in out] == [False] * 4 + [True] and out[-1][2]["count"] == 2
+    rng = np.random.default_rng(0)
+    n = 600
+    path = np.stack([rng.uniform(-3.2, 0.2, n), rng.uniform(-0.3, 0.3, n)], 1)
+    robot = np.where(rng.random((n, 1)) < 0.05,
+                     np.stack([rng.uniform(-4.5, 1.5, n), rng.uniform(-1.5, 1.5, n)], 1), 0.0)
+    counts = [w["count"] for _, _, w in _ball_walk(env_id, cpu, logic, path, robot)]
+    assert max(counts) >= 3
+
+
+def test_pass_endurance_endings_match_cpu():
+    """The two endings a random rollout never reaches (it always knocks the ball out of
+    the box first): a ball that stops short, for over `stopped_limit` steps, and one the
+    receiver holds; then a ball out of the box. Each against the CPU's `_reward_done`."""
+    env_id = "PassEndurance-v0"
+    cpu = gym.make(env_id).unwrapped
+    cpu.reset(seed=0)
+    logic = _logic(env_id, cpu)
+    shoot, recv = cpu._xy(0), cpu._xy(1)
+    between = [tuple(shoot + t * (recv - shoot)) for t in np.linspace(0.2, 0.8, 7)]
+    out = list(_ball_walk(env_id, cpu, logic, [between[3]] * 25))
+    ends = [i for i, (_, d, _) in enumerate(out) if d]
+    assert ends and out[ends[0]][0] <= -1.0 and out[ends[0] - 1][2]["stopped"] == 20
+    held = [False] * 6 + [True]
+    out = list(_ball_walk(env_id, cpu, logic, between, holds=held))
+    assert [d for _, d, _ in out] == held and out[-1][0] == 1.0
+    assert all(0 < r < 1 for r, _, _ in out[1:-1])  # closing in on the receiver
+    away = 2 * recv - shoot  # past the receiver, out of the box
+    out = list(_ball_walk(env_id, cpu, logic, [between[0], tuple(away)], holds=[False] * 2))
+    assert [d for _, d, _ in out] == [False, True] and out[-1][0] < -1.0
 
 
 # ------------------------------------------------------------------ per-world failures

@@ -41,9 +41,7 @@ def make(env_id: str, *, nworld: int, repeat_action: int = 1, randomize=None,
         from . import tasks
     except ImportError as e:
         raise ImportError("mjsoccer.mjlab needs the mjlab group: uv sync --group mjlab") from e
-    cls = getattr(tasks, cls_name, None)
-    if cls is None:
-        raise NotImplementedError(f"{env_id} is not ported to the mjlab backend yet")
+    cls = getattr(tasks, cls_name)
     if randomize is not None:
         raise NotImplementedError("domain randomization is not ported to the mjlab backend yet")
     if not torch.cuda.is_available():

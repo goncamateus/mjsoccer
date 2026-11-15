@@ -9,8 +9,7 @@ deselected by default:
         uv run python -m pytest tests -m validation                   # CPU + MJX + mjlab
 
 Every criterion runs on every backend with the same threshold (`backend` parameter); a GPU
-backend's cases skip without its group or a CUDA device, and mjlab's seeded ones on an env
-it has not ported yet. The scenarios live in scripts/validation_sweep.py. Each backend's
+backend's cases skip without its group or a CUDA device. The scenarios live in scripts/validation_sweep.py. Each backend's
 whole sweep (`--seeds 0-4` on the CPU, `0-49` on a GPU backend) runs once per session, in a
 subprocess (a GPU one must not inherit the JAX-CPU of tests/test_mjx_task_logic.py, and
 gives the GPU back on exit), and the tests read its episodes.csv.
@@ -110,11 +109,7 @@ def sweep(tmp_path_factory):
 
 
 def _row(sweep, backend, scenario, env_id, param, seed=0):
-    rows = sweep(backend)
-    key = (scenario, env_id, "" if param is None else str(param), seed)
-    if backend == "mjlab" and SCENARIOS[scenario][3] and key not in rows:  # sweep leaves these out
-        pytest.skip(f"{env_id} is not ported to mjlab")
-    return rows[key]
+    return sweep(backend)[(scenario, env_id, "" if param is None else str(param), seed)]
 
 
 SCRIPTED = [(n, e, p) for n in ("spin", "kick_recoil") for e, p in SCENARIOS[n][1]]
@@ -276,8 +271,7 @@ DETERMINISTIC = (
                          ids=[f"{s}-{p}-{c}" for s, _, p, c, _, _ in DETERMINISTIC])
 def test_parity_deterministic(sweep, gpu, scenario, env_id, param, column, kind, tol):
     """The same scripted scenario from the same initial qpos/qvel on both backends: each
-    scalar within the cross-backend tolerance. (mjlab runs a scenario whose env is not
-    ported in another scene, robot 0 and the ball in the same state: `transplant`.)"""
+    scalar within the cross-backend tolerance."""
     mjx = _row(sweep, gpu, scenario, env_id, param)[column]
     cpu = _row(sweep, "cpu", scenario, env_id, param)[column]
     err = abs(mjx - cpu) / abs(cpu) if kind == "rel" else abs(mjx - cpu)
@@ -333,7 +327,7 @@ def test_parity_seeded(sweep, gpu, scenario, env_id, column):
     3-sigma shift fails a cell > 0.8 of the time), not a test of equal distributions.
 
     The mjlab backend is held to the same rule and seed count (mjlab-port ticket 07, whose "mjlab median
-    in the CPU's [p25, p75]" is the rule ticket 12 retired), on the envs it has ported."""
+    in the CPU's [p25, p75]" is the rule ticket 12 retired)."""
     mjx = [_row(sweep, gpu, scenario, env_id, None, s)[column] for s in MJX_SEEDS]
     cpu = [_row(sweep, "cpu", scenario, env_id, None, s)[column] for s in SEEDS]
     assert _seeded_parity_ok(cpu, mjx), (

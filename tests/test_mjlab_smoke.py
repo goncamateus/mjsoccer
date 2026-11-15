@@ -1,5 +1,5 @@
-"""mjlab smoke: `mjsoccer.mjlab.make` makes, resets and steps ContestedPossession (2 robots)
-and GoToBall (7) on the GPU.
+"""mjlab smoke: `mjsoccer.mjlab.make` makes, resets and steps every id of `ENV_IDS` (2 to 7
+robots) on the GPU.
 
 Not a physics check (the parity against the CPU is statistical, `-m validation`): this proves
 the env runs end to end -- the first-state pool and its seat_ball loop, the controller, the
@@ -22,11 +22,12 @@ import sys
 import pytest
 from _gpu import SKIP, run_json
 
+import mjsoccer
+
 pytest.importorskip("torch")
 pytest.importorskip("mjlab")
 
 ENV = "ContestedPossession-v0"
-PORTED = [ENV, "GoToBall-v0"]
 NWORLD = 4
 
 
@@ -37,11 +38,9 @@ def _run(*args) -> dict:
 # ------------------------------------------------------------------ in-process
 
 
-def test_make_rejects_ids_not_ported_or_unknown():
+def test_make_rejects_unknown_ids():
     import mjsoccer.mjlab
 
-    with pytest.raises(NotImplementedError, match="GoToBallShoot-v0"):
-        mjsoccer.mjlab.make("GoToBallShoot-v0", nworld=1)
     with pytest.raises(KeyError):
         mjsoccer.mjlab.make("Nope-v0", nworld=1)
 
@@ -79,7 +78,7 @@ def test_firing_schedule_is_the_cpu_firing_step_and_idle_padded_with_zero():
 # ---------------------------------------------------------------- GPU children
 
 
-@pytest.mark.parametrize("env_id", PORTED)
+@pytest.mark.parametrize("env_id", list(mjsoccer.ENV_IDS))  # all ported: none raises
 @pytest.mark.parametrize("repeat_action", [1, 2])
 def test_mjlab_smoke(env_id, repeat_action):
     out = _run("smoke", repeat_action, env_id)
@@ -91,19 +90,24 @@ def test_mjlab_smoke(env_id, repeat_action):
     assert out["decimation"] == 48 * repeat_action, out
     assert out["max_steps"] == out["cpu_max_steps"], out
     assert out["n_robots"] == out["cpu_n_robots"], out
-    if env_id == ENV:  # the seat_ball loop really ran: the yellow robot holds the ball
-        assert all(out["robot1_holds_at_reset"]), out
-    else:  # GoToBall seats none: the ball starts placed, at rest
+    if out["seat_robot"] is not None:  # the seat_ball loop really ran: that robot holds it
+        assert all(out["seated_holds_at_reset"]), out
+    else:  # no seat: the ball starts placed, at rest
         assert all(out["ball_at_rest"]), out
     assert out["reset_overlap"] == 0, out
-    # Every world kicked on the first control step (its lock counted down since).
-    assert out["kick_lock"] == [out["cooldown"] - repeat_action] * NWORLD, out
+    # Every world kicked on the first control step (its lock counted down since, unless an
+    # ending reset it to its first state's 0).
+    assert out["fired_first"] == [True] * NWORLD, out
+    assert all(k == (0 if e else out["cooldown"] - repeat_action)
+               for k, e in zip(out["kick_lock"], out["ended_first"])), out
     assert out["finite"], out
     assert out["overflow_bits"] == [0] * NWORLD, out
     assert out["diverged"] == 0 and out["overflow"] == 0, out
-    # A decision is repeat_action control steps, cut short only by an ending.
-    assert all(10 <= k <= 10 * repeat_action for k in out["control_steps"]), out
-    assert max(out["control_steps"]) > 10 or repeat_action == 1, out
+    # A decision is repeat_action control steps, cut short only by an ending (which resets
+    # the count: Dribbling and PassEndurance end often under random actions).
+    assert all(k == 10 * repeat_action for k, e in zip(out["control_steps"], out["ended"])
+               if not e), out
+    assert all(k <= 10 * repeat_action for k in out["control_steps"]), out
 
 
 def test_idle_worlds_are_frozen_bitwise_at_timestep_zero():
@@ -212,27 +216,40 @@ def smoke(repeat_action: int, env_id: str) -> dict:
         "cpu_max_steps": cpu.max_steps, "n_robots": len(lg.robots),
         "cpu_n_robots": len(cpu.robots),
         # obs: 6 ball entries, then 8 per robot ending in has_ball.
-        "robot1_holds_at_reset": (obs[:, 6 + 8 + 7] > 0).tolist(),
+        "seat_robot": lg.seat_robot,
+        "seated_holds_at_reset": (obs[:, 6 + 8 * (lg.seat_robot or 0) + 7] > 0).tolist(),
         "ball_at_rest": (env.sim.data.qvel[:, v : v + 6] == 0).all(-1).tolist(),
         "reset_overlap": int(env.pool["world"]["overlap"].sum()),
     }
     cpu.close()
     g = torch.Generator(device=env.device).manual_seed(0)
     finite, bits, diverged, overflow = True, 0, 0.0, 0.0
+    ended = torch.zeros(NWORLD, dtype=torch.bool, device=env.device)
+    control, fired = lg.control, []
+
+    def recorded(*args):  # each control step's `fired`, before any reset clears it
+        ctrl, w = control(*args)
+        fired.append(w["fired"].any(-1).tolist())
+        return ctrl, w
+
+    lg.control = recorded
     for i in range(10):
         a = torch.rand(NWORLD, env.logic.action_size, device=env.device, generator=g) * 2 - 1
         if i == 0:
             a[:, 4] = 1.0  # kick on the first decision, every plunger armed
-        obs, _, _, _, _ = env.step(a)
+        obs, _, term, trunc, _ = env.step(a)
+        ended |= term | trunc
         if i == 0:
             out["kick_lock"] = env.world["plunger_lock"][:, 0, 0].tolist()
+            out["ended_first"] = ended.tolist()
+            out["fired_first"] = fired[0]
         bits = torch.as_tensor(bits) | env.sim.data.overflow[:].cpu()
         diverged += float(env.metrics["diverged"].sum())
         overflow += float(env.metrics["overflow"].sum())
         finite &= bool(torch.isfinite(obs["actor"]).all() and torch.isfinite(env.sim.data.qpos[:]).all())
     return {**out, "finite": finite, "cooldown": env.logic.kick_cooldown, "overflow_bits": bits.tolist(),
             "diverged": diverged, "overflow": overflow,
-            "control_steps": env.world["steps"].tolist()}
+            "control_steps": env.world["steps"].tolist(), "ended": ended.tolist()}
 
 
 def idle(_: int) -> dict:

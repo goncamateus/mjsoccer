@@ -44,11 +44,8 @@ is lazy, in that branch only. MJX rows have no impulse hook, no `success` (the j
 returns no `info`), and `reason` is only terminated/truncated.
 
 The mjlab backend batches like MJX (`run_mjlab`), the scripted state carried over by joint and body
-name (`transplant`). Until an env is ported to mjlab, its scripted scenarios run in
-MJLAB_HOST's scene (robot 0, the ball and the yellows it shares in the same state; the
-`sim_env` column says which scene ran, the host task's endings are off and `ret` is NaN)
-and its seeded ones are left out. The seeded worlds start from the env's pool of first
-states, one generator for the batch.
+name (`transplant`: mjlab's model has one extra body). The seeded worlds start from the env's
+pool of first states, one generator for the batch.
 
 Writes into --out (every row carries `backend`):
     episodes.csv   one row per episode
@@ -57,7 +54,6 @@ Writes into --out (every row carries `backend`):
     navigation.csv one row per navigate episode: final error, settle time against the
                    analytic trapezoid, chatter RMS, the controller's peak omega
     impulse.csv    per-step contact impulse on the controlled robot, by contact pair (CPU)
-                   (mjlab rows also carry `sim_env`, the scene that ran)
     throughput.csv steps/s per env, one process, no impulse hook (CPU, with --scenario random)
 """
 
@@ -646,8 +642,6 @@ def _mjx_batch(env_id: str, raw: bool, group: list[tuple]) -> list[dict]:
 
 # ---------------------------------------------------------------------- mjlab
 
-# The scene a scripted scenario borrows while its env is not ported to mjlab.
-MJLAB_HOST = "ContestedPossession-v0"
 _NQV = {int(mujoco.mjtJoint.mjJNT_FREE): (7, 6), int(mujoco.mjtJoint.mjJNT_BALL): (4, 3)}
 
 
@@ -691,42 +685,21 @@ def mjlab_unavailable() -> str | None:
     return None
 
 
-def mjlab_ported(env_id: str) -> bool:
-    from mjsoccer.mjlab import tasks
-
-    return hasattr(tasks, mjsoccer.ENV_IDS[env_id][0])
-
-
-def mjlab_env(unit: tuple) -> str | None:
-    """The env mjlab simulates `unit` in: its own once ported; until then, for a scripted
-    scenario, MJLAB_HOST's scene, and for a seeded one None (not run)."""
-    scenario, env_id = unit[:2]
-    if mjlab_ported(env_id):
-        return env_id
-    return None if SCENARIOS[scenario][3] else MJLAB_HOST
-
-
 def run_mjlab(us: list[tuple]) -> list[dict]:
-    """Every unit as one world of an mjlab batch, one batch per (simulated env, raw path,
-    borrowed scene). Same return as `episode`, one per unit, in order; a seeded unit on an
-    env mjlab has not ported raises."""
+    """Every unit as one world of an mjlab batch, one batch per (env, raw path). Same return
+    as `episode`, one per unit, in order."""
     groups = collections.defaultdict(list)
     for u in us:
-        sim = mjlab_env(u)
-        if sim is None:
-            raise NotImplementedError(f"{u[1]} is not ported to the mjlab backend yet")
-        groups[(sim, SCENARIOS[u[0]][4], sim != u[1])].append(u)
+        groups[(u[1], SCENARIOS[u[0]][4])].append(u)
     out = {}
-    for (sim, raw, borrowed), group in groups.items():
-        out.update(zip(group, _mjlab_batch(sim, raw, borrowed, group)))
+    for (env_id, raw), group in groups.items():
+        out.update(zip(group, _mjlab_batch(env_id, raw, group)))
     return [out[u] for u in us]
 
 
-def _mjlab_batch(sim_env: str, raw: bool, borrowed: bool, group: list[tuple]) -> list[dict]:
+def _mjlab_batch(env_id: str, raw: bool, group: list[tuple]) -> list[dict]:
     """`_mjx_batch` on mjlab. A scripted world starts from its CPU set-up state, carried
-    over by `transplant` (into `sim_env`'s scene when `borrowed`, where the host task's
-    endings are switched off and its return is NaN: they are not the scenario's). A
-    seeded world starts from the env's own pool of first states (`make(seed=0)`, one
+    over by `transplant`. A seeded world starts from the env's own pool of first states (`make(seed=0)`, one
     generator for the batch: no seed-by-seed pairing). The env does not auto-reset, so an
     ended world's last state is still there to record; it is reset after."""
     import torch
@@ -739,24 +712,13 @@ def _mjlab_batch(sim_env: str, raw: bool, borrowed: bool, group: list[tuple]) ->
     # The sweep's own reads and writes on Warp's stream too, ordered with the env's.
     stream = torch.cuda.ExternalStream(wp.get_stream("cuda:0").cuda_stream)
     with torch.cuda.stream(stream):
-        env = mjsoccer.mjlab.make(sim_env, nworld=n, seed=0)
+        env = mjsoccer.mjlab.make(env_id, nworld=n, seed=0)
         env.cfg.auto_reset = False
         env.raw = raw
         lg, dev = env.logic, env.device
-        if borrowed:
-            # ponytail: patches this env's logic in place; the host's horizon still truncates,
-            # so a borrowed scenario must end on its own cap first.
-            assert max(SCENARIOS[u[0]][2] for u in group) < lg.max_steps, sim_env
-            reward_done = lg.reward_done
-
-            def no_endings(d, w):
-                reward, done, w = reward_done(d, w)
-                return reward, torch.zeros_like(done), w
-
-            lg.reward_done = no_endings
         cpus, policies, caps, seeded_, state = [], [], [], [], []
         m = env.sim.mj_model
-        for scenario, env_id, param, seed in group:
+        for scenario, _, param, seed in group:
             setup, _, max_steps, seeded, _ = SCENARIOS[scenario]
             cpu = gym.make(env_id).unwrapped
             cpu.reset(seed=seed)
@@ -821,10 +783,9 @@ def _mjlab_batch(sim_env: str, raw: bool, borrowed: bool, group: list[tuple]) ->
     results = []
     for i, (scenario, env_id, param, seed) in enumerate(group):
         tr = {k: np.array(v) for k, v in rec[i].items()}
-        tr.update(steps=int(steps[i]), ret=np.nan if borrowed else float(total[i]),
+        tr.update(steps=int(steps[i]), ret=float(total[i]),
                   reason=ends[i], success="", wall_s=wall_s / n, ball_beta=beta)
         row = _row(scenario, env_id, param, seed, "mjlab", dt, policies[i], tr)
-        row["sim_env"] = sim_env
         results.append({"row": row, "yaws": np.abs(tr["vel0"][:, 2]), "runs": _runs(tr["held"]),
                         "impulses": {}})
         cpus[i].close()
@@ -834,12 +795,11 @@ def _mjlab_batch(sim_env: str, raw: bool, borrowed: bool, group: list[tuple]) ->
 def run(us: list[tuple], backend: str = "cpu", jobs: int | None = None,
         progress: bool = False) -> list[dict]:
     """`episode` over every unit, in order: a process pool on the CPU, batches on MJX and
-    the mjlab backend. There, the seeded units of an env not ported yet are left out, so the
-    list is shorter than `us`; every row names its unit."""
+    the mjlab backend; every row names its unit."""
     if backend == "mjx":
         return run_mjx(us)
     if backend == "mjlab":
-        return run_mjlab([u for u in us if mjlab_env(u)])
+        return run_mjlab(us)
     jobs = jobs or max(1, multiprocessing.cpu_count() - 1)
     # Longest first, so the 7-robot episodes do not start last.
     order = sorted(range(len(us)), key=lambda i: us[i][1] == "StaticDefenders-v0", reverse=True)
