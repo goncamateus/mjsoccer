@@ -101,6 +101,12 @@ def firing_schedule(decimation: int, dt: float) -> tuple[list[float], list[float
 NACON_PER_ROBOT = 24
 NACON_MIN = 64
 NJMAX_PER_CONTACT = 4
+# Warp's EPA scratch (`naccdmax`, all worlds): one slot per convex pair GJK finds
+# penetrating, ~7 KB each, captured into the step graph. Warp defaults it to naconmax, 7 GB
+# at 16 384 worlds; with blue driven into yellow in every world the peak was 0.08 per world
+# (.scratch/mjlab-port/research/04-streams-and-memory.md). Shared like the broadphase: an
+# overflow sets OverflowType.CCD on whichever worlds came last, and they end.
+NACCD_PER_ROBOT = 1
 assert all(np.all(np.diff(v) > 0) for v in KICK_TABLE_MS), "np.interp needs it rising"
 
 # RoboCup SSL Division A, from the rulebook. Asserted against the CAD in `_check_field`

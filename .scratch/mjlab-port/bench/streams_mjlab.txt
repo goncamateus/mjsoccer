@@ -1,0 +1,4 @@
+{"torch_stream": 0, "warp_stream": 270837008}
+RESULT {"mode": "warp", "nworld": 4096, "decisions": 200, "dps": 16407, "checked": 4093, "time_off": 0, "max_err": 0.0}
+RESULT {"mode": "default", "nworld": 4096, "decisions": 200, "dps": 15934, "checked": 4092, "time_off": 0, "max_err": 0.0}
+RESULT {"mode": "side", "nworld": 4096, "decisions": 200, "dps": 15408, "checked": 1313, "time_off": 1313, "max_err": 2.7746200561523438}

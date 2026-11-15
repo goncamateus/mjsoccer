@@ -23,14 +23,15 @@ __all__ = ["ENV_IDS", "make"]
 
 def make(env_id: str, *, nworld: int, repeat_action: int = 1, randomize=None,
          device: str = "cuda:0", seed: int | None = None, nconmax: int | None = None,
-         njmax: int | None = None):
+         njmax: int | None = None, naccdmax: int | None = None):
     """The mjlab twin of `gymnasium.make(env_id)`: same ids, horizons, spaces and obs/action
     layout (`ENV_IDS`), `nworld` worlds batched on `device`. Returns a `SoccerEnv` (mjlab's
     `ManagerBasedRlEnv`); call `reset()` before stepping.
 
     `seed` seeds the generator the first states are drawn with. `nconmax`/`njmax` override
-    Warp's per-world contact and constraint buffers (default: the MJX sizing); undersizing
-    them overflows, and an overflowed world ends, zeroed.
+    Warp's per-world contact and constraint buffers (default: the MJX sizing), `naccdmax`
+    its EPA scratch for the whole batch (default `scene.NACCD_PER_ROBOT` per robot per
+    world, capped at `nworld * nconmax`); undersizing them overflows, and an overflowed world ends, zeroed.
     """
     cls_name, horizon_s = ENV_IDS[env_id]
     try:
@@ -49,4 +50,4 @@ def make(env_id: str, *, nworld: int, repeat_action: int = 1, randomize=None,
         raise RuntimeError("mjsoccer.mjlab steps on a CUDA GPU and torch sees none")
     logic = cls(horizon_s=horizon_s, repeat_action=repeat_action, device=device)
     cfg = mjlab_env.make_cfg(logic, nworld, nconmax=nconmax, njmax=njmax)
-    return mjlab_env.SoccerEnv(cfg, logic, device, seed=seed)
+    return mjlab_env.SoccerEnv(cfg, logic, device, seed=seed, naccdmax=naccdmax)

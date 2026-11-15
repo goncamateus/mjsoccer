@@ -24,18 +24,26 @@
 - a world that diverged or overflowed Warp's buffers is terminated with obs and reward 0
   (`TaskLogic.settle`); mjlab's masked `reset_data` clears its overflow bits only.
   `diverged`, `overflow`, `reset_overlap` are metrics (episode sums, in `extras["log"]`).
-- torch runs on Warp's stream inside `step`/`reset`/`refill_pool`, ordered against the
-  caller's stream at entry and exit (the prototype's default; ticket 05 measures it).
+- streams: torch runs on Warp's stream inside `step`/`reset`/`refill_pool`, ordered
+  against the caller's stream at entry and exit. Measured (ticket 05): without it, a caller
+  on torch's default stream is still safe (Warp's stream is blocking, so the legacy null
+  stream orders them implicitly), but one on a side stream races Warp's graph and corrupts
+  every world; the wrapper costs no decisions/s, so it stays.
+- Warp's EPA scratch (`naccdmax`) is sized by `scene.NACCD_PER_ROBOT`
+  (`_put_data_with_naccdmax`), not Warp's default: that was 80 % of the device at 16 384
+  worlds.
 """
 
 from __future__ import annotations
 
 import contextlib
+import functools
 import inspect
 from dataclasses import dataclass
 from types import SimpleNamespace
 
 import mujoco
+import mujoco_warp as mjwarp
 import numpy as np
 import torch
 import warp as wp
@@ -68,6 +76,21 @@ def _default(fn, name):
     return inspect.signature(fn).parameters[name].default
 
 
+@contextlib.contextmanager
+def _put_data_with_naccdmax(naccdmax: int):
+    """mjlab's `put_data` with Warp's EPA scratch sized (`scene.NACCD_PER_ROBOT`). mjlab
+    doesn't expose it, and Warp's default (naconmax) puts 7 GB into the step graph at 16 384
+    worlds and fails mjlab's first capture at 32 768."""
+    # ponytail: patches the module global mjlab's Simulation calls (`mjwarp.put_data(`);
+    # breaks silently if mjlab imports put_data by name. Drop when SimulationCfg grows naccdmax.
+    put = mjwarp.put_data
+    mjwarp.put_data = functools.partial(put, naccdmax=naccdmax)
+    try:
+        yield
+    finally:
+        mjwarp.put_data = put
+
+
 def mujoco_cfg(opt) -> MujocoCfg:
     """The `MujocoCfg` that reproduces an `MjOption` (the CPU's `<option>`)."""
     def name(enum, v):
@@ -93,9 +116,12 @@ class SoccerEnv(ManagerBasedRlEnv):
     counters; `pool` the first states the reset copies from."""
 
     def __init__(self, cfg: ManagerBasedRlEnvCfg, logic: TaskLogic, device: str,
-                 seed: int | None = None) -> None:
+                 seed: int | None = None, naccdmax: int | None = None) -> None:
         self.logic, self._seed = logic, seed
-        super().__init__(cfg, device=device)
+        n = cfg.scene.num_envs
+        naccdmax = naccdmax or n * scene.NACCD_PER_ROBOT * len(logic.robots)
+        with _put_data_with_naccdmax(min(n * cfg.sim.nconmax, naccdmax)):
+            super().__init__(cfg, device=device)
 
     # ------------------------------------------------------------- set up
 
@@ -134,6 +160,7 @@ class SoccerEnv(ManagerBasedRlEnv):
 
     @contextlib.contextmanager
     def _on_warp_stream(self):
+        # Load-bearing for callers on a non-default stream: tests/test_mjlab_smoke.py.
         prev = torch.cuda.current_stream()
         self._stream.wait_stream(prev)
         with torch.cuda.stream(self._stream):

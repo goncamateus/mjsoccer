@@ -1,0 +1,10 @@
+# epa_slots.py, Warp's default naccdmax (HEAD 6a88c79), eager. Value = max over the decision's
+# iterations of the per-pair-type `nccd` counter (wp.zeros of collision_convex, shape (66,)).
+# uniform actions (an earlier variant of the script, random actions instead of the drive):
+1024 worlds x 60 decisions: peak 0 slots, overflow bits 0
+# blue driven at yellow, every world (epa_slots.py 512 120):
+RESULT nworld 512 peak 39 peak/world 0.076   (nonzero in most decisions 60-119: 1-39 slots)
+# jam (epa_slots.py 256 8 jam): decision 0
+0 epa slots 4442 per world 17.352 overflowed worlds 256
+# the 1024-world allocation trace (array._init_new hooked, one mjwarp.step / forward):
+TOTAL MB 452 (step), 451 (forward): all in collision_convex.convex_narrowphase

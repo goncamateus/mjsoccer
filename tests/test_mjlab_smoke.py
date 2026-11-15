@@ -146,13 +146,23 @@ def test_nan_world_ends_zeroed_and_resets_alone(repeat_action):
     assert out["restored"] and out["after_finite"], out
 
 
+def test_a_caller_on_a_side_stream_does_not_race_warp():
+    """The caller steps from a non-blocking torch stream. Every world's `data.time` is then
+    exactly the float32 sum of the per-iteration timesteps torch wrote: nothing torch wrote
+    was read late or early by Warp's graph. Without the env's stream ordering it is off in
+    every world (.scratch/mjlab-port/research/04-streams-and-memory.md)."""
+    out = _run("streams", 1)
+    assert out["checked"] > 0 and out["time_off"] == 0, out
+
+
 # ------------------------------------------------------------------ the children
 
 
 def _make(repeat_action=1, **kw):
     import mjsoccer.mjlab
 
-    return mjsoccer.mjlab.make(ENV, nworld=NWORLD, repeat_action=repeat_action, seed=0, **kw)
+    kw.setdefault("nworld", NWORLD)
+    return mjsoccer.mjlab.make(ENV, repeat_action=repeat_action, seed=0, **kw)
 
 
 def _hold(env, robot=0):
@@ -258,7 +268,7 @@ def mixed(_: int) -> dict:
     import torch
     from mujoco_warp import OverflowType
 
-    env = _make(nconmax=512, njmax=64)
+    env = _make(nconmax=512, njmax=64, naccdmax=NWORLD * 512)  # EPA room: NEFC overflows
     env.reset()
     d, (blue, yellow) = env.sim.data, env.logic.robots
     q = d.qpos[:].clone()
@@ -325,6 +335,29 @@ def nan(repeat_action: int) -> dict:
     return out
 
 
+def streams(_: int) -> dict:
+    import torch
+
+    n = 256  # enough work in flight for a race to show
+    env = _make(nworld=n)
+    side = torch.cuda.Stream()
+    plans, ended = [], torch.zeros(n, dtype=torch.bool, device=env.device)
+    with torch.cuda.stream(side):
+        env.reset()
+        t = env.sim.data.time[:].clone()
+        for _ in range(20):
+            a = torch.rand(n, env.logic.action_size, device=env.device) * 2 - 1
+            _, _, term, trunc, _ = env.step(a)
+            plans.append(env._plan.clone())
+            ended |= term | trunc
+        for plan in plans:
+            for dt in plan.unbind(1):
+                t = t + dt
+        off = (env.sim.data.time[:] != t) & ~ended
+        side.synchronize()
+    return {"checked": int((~ended).sum()), "time_off": int(off.sum())}
+
+
 def main(mode: str, repeat_action: int) -> None:
     try:
         import mjlab  # noqa: F401
@@ -335,7 +368,7 @@ def main(mode: str, repeat_action: int) -> None:
         sys.exit(SKIP)
     import warp as wp
 
-    run = {"smoke": smoke, "idle": idle, "mixed": mixed, "nan": nan}[mode]
+    run = {"smoke": smoke, "idle": idle, "mixed": mixed, "nan": nan, "streams": streams}[mode]
     # The test's own reads and writes on Warp's stream too, ordered with the env's.
     with torch.cuda.stream(torch.cuda.ExternalStream(wp.get_stream("cuda:0").cuda_stream)):
         out = run(repeat_action)
