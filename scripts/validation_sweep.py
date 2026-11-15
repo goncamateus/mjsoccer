@@ -1,5 +1,5 @@
 """Ticket 14's validation harness: the §13.2 scenarios, the §13.1 metrics, written to CSV,
-on either backend (gpu-port ticket 12).
+on any backend (gpu-port ticket 12, mjlab-port ticket 07).
 
 Every scenario is a scripted sequence against the unwrapped env, no wrappers and no
 trained policy. `tests/test_validation.py` asserts the acceptance criteria and the MJX x CPU
@@ -11,6 +11,10 @@ parity on the same scenarios; this script produces the distributions behind them
     systemd-run --user --scope -p MemoryMax=10G \\
         uv run --group gpu python scripts/validation_sweep.py --backend mjx --seeds 0-4 \\
         --out runs/validation-mjx
+    # the mjlab backend (needs `uv sync --group mjlab` and a CUDA GPU; exit 77 without):
+    systemd-run --user --scope -p MemoryMax=10G \\
+        uv run --group mjlab python scripts/validation_sweep.py --backend mjlab --seeds 0-49 \\
+        --out runs/validation-mjlab
 
     scenario      env              parameter
     spin          GoToBall         raw yaw command k in 0.2..1.0, 7.5 s
@@ -39,6 +43,13 @@ JAX's RNG is not NumPy's) and the policy acts on the world's own observations. T
 is lazy, in that branch only. MJX rows have no impulse hook, no `success` (the jitted step
 returns no `info`), and `reason` is only terminated/truncated.
 
+The mjlab backend batches like MJX (`run_mjlab`), the scripted state carried over by joint and body
+name (`transplant`). Until an env is ported to mjlab, its scripted scenarios run in
+MJLAB_HOST's scene (robot 0, the ball and the yellows it shares in the same state; the
+`sim_env` column says which scene ran, the host task's endings are off and `ret` is NaN)
+and its seeded ones are left out. The seeded worlds start from the env's pool of first
+states, one generator for the batch.
+
 Writes into --out (every row carries `backend`):
     episodes.csv   one row per episode
     summary.csv    one row per (backend, scenario, env, param): yaw percentiles, possession,
@@ -46,6 +57,7 @@ Writes into --out (every row carries `backend`):
     navigation.csv one row per navigate episode: final error, settle time against the
                    analytic trapezoid, chatter RMS, the controller's peak omega
     impulse.csv    per-step contact impulse on the controlled robot, by contact pair (CPU)
+                   (mjlab rows also carry `sim_env`, the scene that ran)
     throughput.csv steps/s per env, one process, no impulse hook (CPU, with --scenario random)
 """
 
@@ -58,6 +70,7 @@ import multiprocessing
 import os
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import gymnasium as gym
 import mujoco
@@ -68,8 +81,8 @@ from mjsoccer import scene
 from mjsoccer.base import MAX_V, MAX_W
 from mjsoccer.tasks import goto_ball_policy
 
-BACKENDS = ("cpu", "mjx")
-NO_MJX = 77  # main()'s exit code when the MJX backend cannot run here (pytest's "skipped")
+BACKENDS = ("cpu", "mjx", "mjlab")
+NO_MJX = 77  # main()'s exit code when a GPU backend cannot run here (pytest's "skipped")
 
 
 # ------------------------------------------------------------------ scenario set-up
@@ -434,9 +447,11 @@ def _row(scenario, env_id, param, seed, backend, dt, policy, tr) -> dict:
 
 def episode(scenario: str, env_id: str, param, seed: int, backend: str = "cpu") -> dict:
     """Run one episode and return its row plus the per-step arrays the summary pools.
-    `backend="mjx"` runs it as a batch of one world (`run_mjx`)."""
+    `backend="mjx"`/`"mjlab"` runs it as a batch of one world (`run_mjx`/`run_mjlab`)."""
     if backend == "mjx":
         return run_mjx([(scenario, env_id, param, seed)])[0]
+    if backend == "mjlab":
+        return run_mjlab([(scenario, env_id, param, seed)])[0]
     global _ctx
     setup, _, max_steps, _, raw = SCENARIOS[scenario]
     env = gym.make(env_id).unwrapped
@@ -629,11 +644,202 @@ def _mjx_batch(env_id: str, raw: bool, group: list[tuple]) -> list[dict]:
     return results
 
 
+# ---------------------------------------------------------------------- mjlab
+
+# The scene a scripted scenario borrows while its env is not ported to mjlab.
+MJLAB_HOST = "ContestedPossession-v0"
+_NQV = {int(mujoco.mjtJoint.mjJNT_FREE): (7, 6), int(mujoco.mjtJoint.mjJNT_BALL): (4, 3)}
+
+
+def transplant(src, m, robots) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """The set-up CPU env `src`'s state as (qpos, qvel, xfrc_applied) of the model `m`
+    (another scene, or the same one compiled with more around it), by joint and body name.
+    `robots`: m's RobotIds. A robot's slides are relative to where its scene built it, so
+    they are re-based to keep its world pose. Every joint of `m` must exist in `src`."""
+    sm, sd, J, B = src.model, src.data, mujoco.mjtObj.mjOBJ_JOINT, mujoco.mjtObj.mjOBJ_BODY
+    qpos, qvel, xfrc = m.qpos0.copy(), np.zeros(m.nv), np.zeros((m.nbody, 6))
+    for j in range(m.njnt):
+        name = mujoco.mj_id2name(m, J, j)
+        k = mujoco.mj_name2id(sm, J, name)
+        assert k >= 0, name
+        nq, nv = _NQV.get(int(m.jnt_type[j]), (1, 1))
+        a, sa = m.jnt_qposadr[j], sm.jnt_qposadr[k]
+        qpos[a : a + nq] = sd.qpos[sa : sa + nq]
+        a, sa = m.jnt_dofadr[j], sm.jnt_dofadr[k]
+        qvel[a : a + nv] = sd.qvel[sa : sa + nv]
+    xy0 = {r.prefix: r.xy0 for r in src.robots}
+    for r in robots:
+        qpos[r.qpos_adr : r.qpos_adr + 2] += np.subtract(xy0[r.prefix], r.xy0)
+    for b in range(1, m.nbody):
+        k = mujoco.mj_name2id(sm, B, mujoco.mj_id2name(m, B, b) or "")
+        if k >= 0:
+            xfrc[b] = sd.xfrc_applied[k]
+    return qpos, qvel, xfrc
+
+
+def mjlab_unavailable() -> str | None:
+    """Why the mjlab backend cannot run here (no `mjlab` group, no CUDA device), or None."""
+    try:
+        import mjlab  # noqa: F401
+        import torch
+
+        import mjsoccer.mjlab.env  # noqa: F401
+    except ImportError as e:
+        return f"the mjlab group is not installed ({e})"
+    if not torch.cuda.is_available():
+        return "no CUDA device"
+    return None
+
+
+def mjlab_ported(env_id: str) -> bool:
+    from mjsoccer.mjlab import tasks
+
+    return hasattr(tasks, mjsoccer.ENV_IDS[env_id][0])
+
+
+def mjlab_env(unit: tuple) -> str | None:
+    """The env mjlab simulates `unit` in: its own once ported; until then, for a scripted
+    scenario, MJLAB_HOST's scene, and for a seeded one None (not run)."""
+    scenario, env_id = unit[:2]
+    if mjlab_ported(env_id):
+        return env_id
+    return None if SCENARIOS[scenario][3] else MJLAB_HOST
+
+
+def run_mjlab(us: list[tuple]) -> list[dict]:
+    """Every unit as one world of an mjlab batch, one batch per (simulated env, raw path,
+    borrowed scene). Same return as `episode`, one per unit, in order; a seeded unit on an
+    env mjlab has not ported raises."""
+    groups = collections.defaultdict(list)
+    for u in us:
+        sim = mjlab_env(u)
+        if sim is None:
+            raise NotImplementedError(f"{u[1]} is not ported to the mjlab backend yet")
+        groups[(sim, SCENARIOS[u[0]][4], sim != u[1])].append(u)
+    out = {}
+    for (sim, raw, borrowed), group in groups.items():
+        out.update(zip(group, _mjlab_batch(sim, raw, borrowed, group)))
+    return [out[u] for u in us]
+
+
+def _mjlab_batch(sim_env: str, raw: bool, borrowed: bool, group: list[tuple]) -> list[dict]:
+    """`_mjx_batch` on mjlab. A scripted world starts from its CPU set-up state, carried
+    over by `transplant` (into `sim_env`'s scene when `borrowed`, where the host task's
+    endings are switched off and its return is NaN: they are not the scenario's). A
+    seeded world starts from the env's own pool of first states (`make(seed=0)`, one
+    generator for the batch: no seed-by-seed pairing). The env does not auto-reset, so an
+    ended world's last state is still there to record; it is reset after."""
+    import torch
+    import warp as wp
+
+    import mjsoccer.mjlab
+    from mjsoccer.mjlab.base import check_failures
+
+    n = len(group)
+    # The sweep's own reads and writes on Warp's stream too, ordered with the env's.
+    stream = torch.cuda.ExternalStream(wp.get_stream("cuda:0").cuda_stream)
+    with torch.cuda.stream(stream):
+        env = mjsoccer.mjlab.make(sim_env, nworld=n, seed=0)
+        env.cfg.auto_reset = False
+        env.raw = raw
+        lg, dev = env.logic, env.device
+        if borrowed:
+            # ponytail: patches this env's logic in place; the host's horizon still truncates,
+            # so a borrowed scenario must end on its own cap first.
+            assert max(SCENARIOS[u[0]][2] for u in group) < lg.max_steps, sim_env
+            reward_done = lg.reward_done
+
+            def no_endings(d, w):
+                reward, done, w = reward_done(d, w)
+                return reward, torch.zeros_like(done), w
+
+            lg.reward_done = no_endings
+        cpus, policies, caps, seeded_, state = [], [], [], [], []
+        m = env.sim.mj_model
+        for scenario, env_id, param, seed in group:
+            setup, _, max_steps, seeded, _ = SCENARIOS[scenario]
+            cpu = gym.make(env_id).unwrapped
+            cpu.reset(seed=seed)
+            cpu.action_space.seed(seed)
+            policies.append(setup(cpu, param))
+            cpus.append(cpu)
+            caps.append(max_steps or np.inf)
+            seeded_.append(seeded)
+            state.append(transplant(cpu, m, lg.robots))
+        dt = cpus[0].dt
+        # Robot 0's slides back in its own scene's frame (navigate adds that scene's xy0).
+        shift = np.array([[*np.subtract(lg.robots[0].xy0, c.robots[0].xy0), 0.0] for c in cpus])
+        t0 = time.perf_counter()
+        env.reset()
+        env.set_state(torch.tensor(seeded_, device=dev),
+                      *(torch.as_tensor(np.array(x), device=dev) for x in zip(*state)))
+        d, r, b = env.sim.data, lg.robots[0], lg.ball
+        dim = 6 if raw else lg.act_dim
+        rec = [collections.defaultdict(list) for _ in range(n)]
+        total, steps, ends = np.zeros(n), np.zeros(n, int), [""] * n
+        active = np.ones(n, bool)
+        obs = env.obs.cpu().numpy()
+        t = 0
+        while active.any():
+            a = np.zeros((n, lg.action_size), np.float32)
+            for i in np.flatnonzero(active):
+                a[i, : lg.n_controlled * dim] = policies[i](obs[i], t)
+            a = torch.as_tensor(a, device=dev)
+            cmd_w = (torch.zeros(n, device=dev) if raw
+                     else lg._navigate(env._view(), 0, a[:, :4].to(d.qpos.dtype))[:, 2])
+            _, reward, term, trunc, _ = env.step(a)
+            out = {k: v.cpu().numpy() for k, v in {
+                "reward": reward, "term": term, "trunc": trunc,
+                "held": env.world["grace"][:, 0] > 0,
+                "qpos0": d.qpos[:, r.qpos_adr : r.qpos_adr + 3],
+                "vel0": d.qvel[:, r.qvel_adr : r.qvel_adr + 3],
+                "ball_v": d.qvel[:, b.qvel_adr : b.qvel_adr + 3], "cmd_w": cmd_w,
+                "diverged": env.metrics["diverged"], "overflow": env.metrics["overflow"],
+            }.items()}
+            obs = env.obs.cpu().numpy()
+            if (active & ((out["diverged"] > 0) | (out["overflow"] > 0))).any():
+                check_failures(env.metrics, d.overflow[:])  # an ended world may wander off
+            out["qpos0"] += shift
+            for i in np.flatnonzero(active):
+                for k in ("held", "qpos0", "vel0", "ball_v", "cmd_w"):
+                    rec[i][k].append(out[k][i])
+                total[i] += out["reward"][i]
+                steps[i] += 1
+                if out["term"][i] or out["trunc"][i]:
+                    ends[i] = "truncated" if out["trunc"][i] else "terminated"
+                    active[i] = False
+                elif steps[i] >= caps[i]:
+                    ends[i] = "scripted_end"
+                    active[i] = False
+            if (done := term | trunc).any():  # recorded; mjlab steps no ended world
+                env.reset(env_ids=done.nonzero()[:, 0])
+            t += 1
+        wall_s = time.perf_counter() - t0
+        wm = env.sim.model  # the ball's inertia as Warp holds it
+        beta = _ball_beta(SimpleNamespace(body_inertia=wm.body_inertia.reshape(-1, m.nbody, 3)[0].cpu(),
+                                          body_mass=wm.body_mass.reshape(-1, m.nbody)[0].cpu()), b)
+    results = []
+    for i, (scenario, env_id, param, seed) in enumerate(group):
+        tr = {k: np.array(v) for k, v in rec[i].items()}
+        tr.update(steps=int(steps[i]), ret=np.nan if borrowed else float(total[i]),
+                  reason=ends[i], success="", wall_s=wall_s / n, ball_beta=beta)
+        row = _row(scenario, env_id, param, seed, "mjlab", dt, policies[i], tr)
+        row["sim_env"] = sim_env
+        results.append({"row": row, "yaws": np.abs(tr["vel0"][:, 2]), "runs": _runs(tr["held"]),
+                        "impulses": {}})
+        cpus[i].close()
+    return results
+
+
 def run(us: list[tuple], backend: str = "cpu", jobs: int | None = None,
         progress: bool = False) -> list[dict]:
-    """`episode` over every unit, in order: a process pool on the CPU, batches on MJX."""
+    """`episode` over every unit, in order: a process pool on the CPU, batches on MJX and
+    the mjlab backend. There, the seeded units of an env not ported yet are left out, so the
+    list is shorter than `us`; every row names its unit."""
     if backend == "mjx":
         return run_mjx(us)
+    if backend == "mjlab":
+        return run_mjlab([u for u in us if mjlab_env(u)])
     jobs = jobs or max(1, multiprocessing.cpu_count() - 1)
     # Longest first, so the 7-robot episodes do not start last.
     order = sorted(range(len(us)), key=lambda i: us[i][1] == "StaticDefenders-v0", reverse=True)
@@ -745,8 +951,9 @@ def main(argv=None) -> int:
                     help="CPU worker processes")
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args(argv)
-    if args.backend == "mjx" and (why := mjx_unavailable()):
-        print(f"MJX backend unavailable: {why}")
+    unavailable = {"mjx": mjx_unavailable, "mjlab": mjlab_unavailable}.get(args.backend)
+    if unavailable and (why := unavailable()):
+        print(f"{args.backend} backend unavailable: {why}")
         return NO_MJX
     args.out.mkdir(parents=True, exist_ok=True)
 

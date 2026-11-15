@@ -16,8 +16,11 @@
 - obs, reward and endings are computed on the data as the last iteration left it, before
   mjlab's `forward()`, like `MjxEnv.settle`; a reset world's obs is its pooled first obs.
   The controller of a decision's first control step does read the kinematics that
-  `forward()` refreshed (on CPU/MJX, one substep stale; the same in idle worlds, whose
-  timestep-0 iterations refresh them too): the seeded parity (ticket 07) judges it.
+  `forward()` refreshed. Measured and left alone (ticket 07,
+  .scratch/mjlab-port/bench/obs_freshness.py): in an idle world `forward()` changes
+  nothing (its timestep-0 iterations refreshed them already, as on MJX); after a firing
+  step the controller's yaw is at most 0.0056 rad (mean 0.0013) fresher than MJX's: 0.6 %
+  of the drive command, one control step per shot, below what the parity can resolve.
 - reset: a pool of first states, placed and seated in one batched loop (`refill_pool`,
   the `seat_ball` loop), made at startup; the reset event copies a world's slot back.
   Remake it per epoch with `refill_pool()` + `reset()`.
@@ -113,7 +116,10 @@ class SoccerEnv(ManagerBasedRlEnv):
 
     After `reset()`: `obs` (N, obs_size), `reward` (N,), `terminated`/`truncated` (N,) of the
     last decision; `world` the per-world task state; `metrics` the last decision's 0/1
-    counters; `pool` the first states the reset copies from."""
+    counters; `pool` the first states the reset copies from. `raw` True makes every action
+    `TaskLogic.control`'s raw one (the first `n_controlled * 6` entries; `BaseEnv.step_raw`)."""
+
+    raw = False
 
     def __init__(self, cfg: ManagerBasedRlEnvCfg, logic: TaskLogic, device: str,
                  seed: int | None = None, naccdmax: int | None = None) -> None:
@@ -232,6 +238,20 @@ class SoccerEnv(ManagerBasedRlEnv):
             v[env_ids] = p["world"][k][env_ids]
         self.obs[env_ids] = p["obs"][env_ids]
 
+    def set_state(self, keep, qpos, qvel, xfrc_applied) -> None:
+        """Worlds not in `keep` (N,) bool start over from the given (N, ...) state: written,
+        forwarded, and their task state, obs and step count made afresh (`init_state`).
+        Right after `reset()` only: the last decision's reward, endings and metrics stay."""
+        with self._on_warp_stream():
+            d = self.sim.data
+            for name, v in (("qpos", qpos), ("qvel", qvel), ("xfrc_applied", xfrc_applied)):
+                old = getattr(d, name)[:]
+                getattr(d, name)[:] = _where(keep, old, v.to(old.dtype))
+            self.sim.forward()
+            obs, world, _ = self.logic.init_state(self._view())
+            self.world = {k: _where(keep, self.world[k], world[k]) for k in world}
+            self.obs = _where(keep, self.obs, obs)
+
     # ----------------------------------------------------------- stepping
 
     def decide(self, action) -> None:
@@ -255,7 +275,9 @@ class SoccerEnv(ManagerBasedRlEnv):
 
     def _control(self) -> None:
         d, keep = self._view(), self._ended
-        ctrl, w = self.logic.control(d, self.world, self._action)
+        lg = self.logic
+        a = self._action[:, : lg.n_controlled * 6] if self.raw else self._action
+        ctrl, w = lg.control(d, self.world, a, self.raw)
         self.world = {k: _where(keep, self.world[k], v) for k, v in w.items()}
         self.sim.data.ctrl[:] = _where(keep, d.ctrl, ctrl)
         row = torch.where(keep, FROZEN, torch.where(self.world["fired"].any(-1), FIRING, IDLE))

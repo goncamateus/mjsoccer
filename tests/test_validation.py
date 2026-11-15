@@ -1,26 +1,27 @@
 """Ticket 14's acceptance criteria (§13.5 of
 .scratch/physics-fidelity/research/rsoccer-vs-mjsoccer.md) on the §13.2 scenarios, gpu-port
-ticket 05's for the navigation controller (`navigate`), and gpu-port ticket 12's MJX-Warp x
-CPU parity. Slow, so deselected by default:
+ticket 05's for the navigation controller (`navigate`), and the GPU backends' parity with
+the CPU (gpu-port ticket 12 for MJX-Warp, mjlab-port ticket 07 for mjlab). Slow, so
+deselected by default:
 
-    uv run python -m pytest tests -m validation                       # CPU; MJX skipped
-    uv sync --group gpu && systemd-run --user --scope -p MemoryMax=10G \\
-        uv run python -m pytest tests -m validation                   # CPU + MJX + parity
+    uv run python -m pytest tests -m validation                       # CPU; GPU skipped
+    uv sync --group gpu --group mjlab && systemd-run --user --scope -p MemoryMax=12G \\
+        uv run python -m pytest tests -m validation                   # CPU + MJX + mjlab
 
-Every criterion runs on both backends with the same threshold (`backend` parameter); the
-MJX cases skip without the `gpu` group or a CUDA device. The scenarios live in
-scripts/validation_sweep.py. Each backend's whole sweep (`--seeds 0-4` on the CPU, `0-49` on
-MJX) runs once per session, in a subprocess (the MJX one must not inherit the JAX-CPU of
-tests/test_mjx_task_logic.py, and gives the GPU back on exit), and the tests read its
-episodes.csv.
+Every criterion runs on every backend with the same threshold (`backend` parameter); a GPU
+backend's cases skip without its group or a CUDA device, and mjlab's seeded ones on an env
+it has not ported yet. The scenarios live in scripts/validation_sweep.py. Each backend's
+whole sweep (`--seeds 0-4` on the CPU, `0-49` on a GPU backend) runs once per session, in a
+subprocess (a GPU one must not inherit the JAX-CPU of tests/test_mjx_task_logic.py, and
+gives the GPU back on exit), and the tests read its episodes.csv.
 
 Parity (spec, Testing Decisions; .scratch/gpu-port/issues/09-acceptance-and-parity.md):
-  deterministic -- same initial qpos/qvel on both: |MJX - CPU| / CPU <= 2 % on the envelope,
+  deterministic -- same initial qpos/qvel on both: |GPU - CPU| / CPU <= 2 % on the envelope,
                    the kick and the COR, <= 5 % on the arrival time; arrival error within
                    1 cm / 1 deg absolute;
   seeded        -- `random` and `competent` on every env, seeds 0-4 on the CPU and 0-49
-                   on MJX (one episode / one world per seed), the CPU median of the return
-                   and of the possession rate inside the MJX range (min-max; the planned
+                   on the GPU (one episode / one world per seed), the CPU median of the return
+                   and of the possession rate inside the GPU range (min-max; the planned
                    [p25, p75] rejects identical distributions half the time, see
                    `test_parity_seeded`). No seed-by-seed pairing, no distribution test.
 """
@@ -57,15 +58,17 @@ from validation_sweep import (
     NAV_YAW_ERR_DEG,
     NO_MJX,
     SCENARIOS,
+    transplant,
     trapezoid_time,
 )
 
 pytestmark = pytest.mark.validation
 
-BACKENDS = ["cpu", "mjx"]
-SEEDS = range(5)  # the CPU's, and the per-seed criteria's on both backends
-# MJX's for the seeded parity only (extra worlds of the batch are cheap): the smallest count
-# that keeps the simulated false-failure rate under target, see
+BACKENDS = ["cpu", "mjx", "mjlab"]
+GPU = ["mjx", "mjlab"]  # each held to the CPU by the parity tests
+SEEDS = range(5)  # the CPU's, and the per-seed criteria's on every backend
+# A GPU backend's for the seeded parity only (extra worlds of the batch are cheap): the
+# smallest count that keeps the simulated false-failure rate under target, see
 # test_mjx_seed_count_holds_the_false_failure_rate.
 MJX_SEEDS = range(50)
 
@@ -82,17 +85,17 @@ def _value(v: str):
 @pytest.fixture(scope="session")
 def sweep(tmp_path_factory):
     """backend -> {(scenario, env, str(param), seed): row}, each backend's whole sweep run
-    once in a subprocess. The MJX one skips (exit NO_MJX) without the gpu group or CUDA."""
+    once in a subprocess. A GPU one skips (exit NO_MJX) without its group or CUDA."""
     cache = {}
 
     def get(backend):
         if backend not in cache:
             out = tmp_path_factory.mktemp(f"sweep-{backend}")
-            seeds = MJX_SEEDS if backend == "mjx" else SEEDS
+            seeds = MJX_SEEDS if backend in GPU else SEEDS
             p = _gpu.run(SCRIPTS / "validation_sweep.py", "--backend", backend,
                          "--seeds", f"{seeds[0]}-{seeds[-1]}", "--out", out, timeout=None)
             if p.returncode == NO_MJX:
-                cache[backend] = p.stdout.strip() or "MJX unavailable"
+                cache[backend] = p.stdout.strip() or f"{backend} unavailable"
             else:
                 assert p.returncode == 0, p.stdout[-2000:] + p.stderr[-4000:]
                 with open(out / "episodes.csv") as f:
@@ -107,7 +110,11 @@ def sweep(tmp_path_factory):
 
 
 def _row(sweep, backend, scenario, env_id, param, seed=0):
-    return sweep(backend)[(scenario, env_id, "" if param is None else str(param), seed)]
+    rows = sweep(backend)
+    key = (scenario, env_id, "" if param is None else str(param), seed)
+    if backend == "mjlab" and SCENARIOS[scenario][3] and key not in rows:  # sweep leaves these out
+        pytest.skip(f"{env_id} is not ported to mjlab")
+    return rows[key]
 
 
 SCRIPTED = [(n, e, p) for n in ("spin", "kick_recoil") for e, p in SCENARIOS[n][1]]
@@ -211,6 +218,34 @@ def test_navigation(sweep, backend, param):
     assert row["nav_cmd_w_max"] <= MAX_W, row
 
 
+def test_transplant_keeps_the_scenario_state_in_another_scene():
+    """A scripted scenario set up on GoToBall (7 robots), moved into ContestedPossession's
+    scene (2) by joint and body name: the blue robot, the yellow it shares and the ball sit
+    at the same world poses with the same velocities, and the applied force follows the
+    ball, although every robot was built somewhere else in the smaller scene."""
+    import gymnasium as gym
+    import mujoco
+
+    src = gym.make("GoToBall-v0").unwrapped
+    src.reset(seed=0)
+    SCENARIOS["bounce"][0](src, ("wall", 6.5))  # ball moving, xfrc on it, yellows lined up
+    src.robots[0].place(src.data, -3.0, 1.0, 0.7)
+    src.data.qvel[src.robots[0].qvel_adr : src.robots[0].qvel_adr + 3] = (0.3, -0.2, 1.5)
+    host = gym.make("ContestedPossession-v0").unwrapped
+    assert host.robots[0].xy0 != src.robots[0].xy0  # the slides must be re-based
+    d = host.data
+    d.qpos[:], d.qvel[:], d.xfrc_applied[:] = transplant(src, host.model, host.robots)
+    mujoco.mj_forward(src.model, src.data)
+    mujoco.mj_forward(host.model, d)
+    for a, b in ((src.robots[0], host.robots[0]), (src.robots[1], host.robots[1])):
+        np.testing.assert_allclose(b.pose(d), a.pose(src.data), atol=1e-12)
+        np.testing.assert_allclose(b.velocity(d), a.velocity(src.data), atol=1e-12)
+    np.testing.assert_allclose(host.ball.pos(d), src.ball.pos(src.data), atol=1e-12)
+    np.testing.assert_allclose(host.ball.vel(d), src.ball.vel(src.data), atol=1e-12)
+    np.testing.assert_array_equal(d.xfrc_applied[host.ball.body],
+                                  src.data.xfrc_applied[src.ball.body])
+
+
 def test_trapezoid_time():
     """The analytic profile the time criterion compares against: 3.3 m/s, up at 1.30 m/s^2,
     down at 1.0. Worked by hand: 6 m never reaches 3.3 m/s, peaks at sqrt(12 / (1/1.3 + 1))."""
@@ -236,15 +271,17 @@ DETERMINISTIC = (
 )
 
 
+@pytest.mark.parametrize("gpu", GPU)
 @pytest.mark.parametrize("scenario,env_id,param,column,kind,tol", DETERMINISTIC,
                          ids=[f"{s}-{p}-{c}" for s, _, p, c, _, _ in DETERMINISTIC])
-def test_parity_deterministic(sweep, scenario, env_id, param, column, kind, tol):
+def test_parity_deterministic(sweep, gpu, scenario, env_id, param, column, kind, tol):
     """The same scripted scenario from the same initial qpos/qvel on both backends: each
-    scalar within the cross-backend tolerance."""
-    mjx = _row(sweep, "mjx", scenario, env_id, param)[column]
+    scalar within the cross-backend tolerance. (mjlab runs a scenario whose env is not
+    ported in another scene, robot 0 and the ball in the same state: `transplant`.)"""
+    mjx = _row(sweep, gpu, scenario, env_id, param)[column]
     cpu = _row(sweep, "cpu", scenario, env_id, param)[column]
     err = abs(mjx - cpu) / abs(cpu) if kind == "rel" else abs(mjx - cpu)
-    assert err <= tol, f"{column}: MJX {mjx} vs CPU {cpu} ({kind} {err:.4g} > {tol})"
+    assert err <= tol, f"{column}: {gpu} {mjx} vs CPU {cpu} ({kind} {err:.4g} > {tol})"
 
 
 SEEDED = [(s, e, c) for s in ("random", "competent") for e in mjsoccer.ENV_IDS
@@ -279,8 +316,9 @@ def test_mjx_seed_count_holds_the_false_failure_rate():
     assert family_fail(len(MJX_SEEDS), shift=3.0)[1] > 0.8
 
 
+@pytest.mark.parametrize("gpu", GPU)
 @pytest.mark.parametrize("scenario,env_id,column", SEEDED)
-def test_parity_seeded(sweep, scenario, env_id, column):
+def test_parity_seeded(sweep, gpu, scenario, env_id, column):
     """Seeds 0-4 on the CPU, MJX_SEEDS on MJX (one episode / one world apiece): the CPU
     median inside the MJX range (min to max), see `_seeded_parity_ok`.
 
@@ -292,9 +330,12 @@ def test_parity_seeded(sweep, scenario, env_id, column):
     it did fail (`competent` StaticDefenders' return, MJX-Warp being non-deterministic run to
     run). So the roles swap: the 5 CPU seeds give the median, the many cheap MJX worlds the
     range, and the false-failure rate falls with MJX_SEEDS. A check for gross divergence (a
-    3-sigma shift fails a cell > 0.8 of the time), not a test of equal distributions."""
-    mjx = [_row(sweep, "mjx", scenario, env_id, None, s)[column] for s in MJX_SEEDS]
+    3-sigma shift fails a cell > 0.8 of the time), not a test of equal distributions.
+
+    The mjlab backend is held to the same rule and seed count (mjlab-port ticket 07, whose "mjlab median
+    in the CPU's [p25, p75]" is the rule ticket 12 retired), on the envs it has ported."""
+    mjx = [_row(sweep, gpu, scenario, env_id, None, s)[column] for s in MJX_SEEDS]
     cpu = [_row(sweep, "cpu", scenario, env_id, None, s)[column] for s in SEEDS]
     assert _seeded_parity_ok(cpu, mjx), (
-        f"{column}: CPU median {np.median(cpu):.4g} {cpu} outside MJX "
+        f"{column}: CPU median {np.median(cpu):.4g} {cpu} outside {gpu} "
         f"[{min(mjx):.4g}, {max(mjx):.4g}] (median {np.median(mjx):.4g}, {len(mjx)} seeds)")

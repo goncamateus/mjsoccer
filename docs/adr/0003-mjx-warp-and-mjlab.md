@@ -49,4 +49,5 @@ So mjlab becomes the **third backend**: the CPU backend, MJX-Warp (with Brax) an
   there. The optional `mjlab` group (mjlab pinned on git, torch ≥ 2.14 cu130, onnxruntime)
   shares the lock with `gpu`. The universal lock also moves the `rl` group's torch.
 - Open risks: mjlab #1263 (ITERATIONS overflow) on the 7-robot scenes; mjlab has no release
-  on mujoco 4.x (git pin); observation freshness (mjlab calls `forward` before observing).
+  on mujoco 4.x (git pin); observation freshness (mjlab calls `forward` before observing; measured in mjlab-port
+  ticket 07, left uncompensated).
