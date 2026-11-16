@@ -71,7 +71,8 @@ systemd-run --user --scope -p MemoryMax=10G \
 - **Epoch**: `refill_pool()`, then the PPO iterations, then an eval on `--num-eval-envs`
   worlds. Without `--timesteps`, an epoch gets the iterations one episode takes.
 - **`--num-envs`** defaults by robot count (`NUM_ENVS` in the script), measured in long
-  training runs.
+  training runs. A robot count without a measured default takes the next larger measured
+  count's.
 - **PPO flags** keep `ppo_mjx`'s names, mapped onto RSL-RL (`--unroll-length` is
   `num_steps_per_env`, and so on). Not carried over: `--batch-size` (an RSL-RL iteration is
   one unroll of every world), `--reward-scaling`, the tanh-squashed policy (RSL-RL clips its

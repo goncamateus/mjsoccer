@@ -8,12 +8,26 @@ without reshaping its heads.
 The package is standalone: it depends on `gymnasium`, `mujoco` and `numpy`, and carries its
 own MJCF and meshes in `models/`.
 
+## Documentation map
+
+| page | covers |
+|---|---|
+| this page | install, quickstart, environments, action and observation spaces, timing, field, rendering |
+| [`environments/`](environments/go_to_ball.md) | one page per task: reward, endings, reset layout |
+| [`physics.md`](physics.md) | chassis, drive envelope, kicker, dribbler, possession, contact parameters, multi-robot build |
+| [`validation.md`](validation.md) | acceptance criteria, GPU × CPU parity, the tests that pin them |
+| [`backends/`](backends/index.md) | the MJX-Warp and mjlab GPU backends: APIs, training, parity, domain randomization |
+
 ## Install
 
 ```bash
-uv sync
-uv sync --group gpu      # optional: the MJX-Warp backend, mjsoccer.mjx (needs a CUDA GPU to step)
+uv sync                  # the CPU backend
+uv sync --group rl       # optional: SB3 / CleanRL for the CPU examples
+uv sync --group gpu      # optional: the MJX-Warp backend, mjsoccer.mjx (CUDA GPU)
+uv sync --group mjlab    # optional: the mjlab backend, mjsoccer.mjlab (CUDA GPU, driver >= 580)
 ```
+
+Details per backend: [`backends/`](backends/index.md).
 
 ## Quickstart
 
@@ -30,51 +44,12 @@ env.close()
 ```bash
 uv run python examples/random.py --env GoToBall-v0
 uv run python examples/random.py --list
-uv run python -m pytest tests -q                                 # base layer
-uv run python -m pytest tests -m validation -q                  # acceptance criteria, CPU, ~1 min
-uv run python scripts/validation_sweep.py --out runs/validation --seeds 0-4  # the distributions behind them, CSV
-# With the gpu group (uv sync --group gpu) every layer adds MJX, skipped without CUDA; run
-# them under a RAM cap. The default run adds the task-logic parity (JAX-CPU) and the Warp
-# smoke; -m validation adds every criterion on MJX-Warp and the MJX x CPU parity (~19 min).
-systemd-run --user --scope -p MemoryMax=10G uv run python -m pytest tests -q
-systemd-run --user --scope -p MemoryMax=10G uv run python -m pytest tests -m validation -q
-systemd-run --user --scope -p MemoryMax=10G \
-    uv run python scripts/validation_sweep.py --backend mjx --seeds 0-49 --out runs/validation-mjx
+uv run python -m pytest tests -q                 # default suite
+uv run python -m pytest tests -m validation -q   # physics acceptance criteria, CPU, ~1 min
 ```
 
-The GPU backends (MJX-Warp and mjlab), their APIs, training, parity and domain
-randomization: [`backends/`](backends/index.md).
-
-PPO on the GPU (Brax `ppo.train` over `mjsoccer.mjx`, one process per run; checkpoints in
-`runs/ppo_mjx_<env>/`, see the script's docstring for the flags):
-
-```bash
-systemd-run --user --scope -p MemoryMax=10G uv run --group gpu examples/ppo_mjx.py --env GoToBall-v0
-uv run --group gpu examples/ppo_mjx.py --eval runs/ppo_mjx_GoToBall-v0   # MJX, aborts on a failed world
-uv run --group gpu examples/ppo_mjx.py --play runs/ppo_mjx_GoToBall-v0   # CPU backend, Studio viewer
-```
-
-The `validation` suite is excluded from the default run (`pyproject.toml`). It is the
-regression check for the physics acceptance criteria, each on both backends with the same
-threshold: yaw p99 under `MAX_W` in every scripted scenario, in the random-action and the
-`goto_ball_policy` episodes; the chassis envelope through the raw velocity path (1.30 m/s²
-to 3.30 m/s on the slides, 55 rad/s² to 37.1 rad/s on the hinge, within 3 %); kick and chip
-exit speed by `KICK_TABLE_MS` to 0.1 m/s; ball COR 0.47-0.56 off carpet and wall at 1 and
-6.5 m/s, and its inertia; a seated ball through a 2 rad/s turn (74/120 on the CPU's exact
-trajectory; on both backends, the median over 64 copies with 1e-5 of qvel noise at least
-69/120 -- the turn is chaotic, and MJX-Warp is float32); and the navigation
-controller's, from rest to target poses 0.5 / 2 / 6 m away turned 0 / 90 / 180 deg: final
-error under 1 cm and 2.5 deg, settled within 1.05x the analytic trapezoid (3.3 m/s, up at
-1.30 m/s², down at 1.0), chatter at the target under 0.05 m/s RMS over the last second,
-commanded omega never over `MAX_W`. On top, the MJX x CPU parity: from the same initial
-state, envelope, kick and COR within 2 %, arrival time within 5 %, arrival error within
-1 cm / 1 deg; on the seeded scenarios (seeds 0-4 on the CPU, 0-49 on MJX) the CPU median
-return and possession rate inside the MJX min-max range (a gross-divergence check, ~2 %
-simulated chance that any of the 24 cells fails on equal distributions; not a distribution
-test). `validation_sweep.py --backend {cpu,mjx}` runs the
-same scenarios over seeds 0-4 and writes per-episode, summary, navigation, contact-impulse
-and throughput CSVs, each row tagged with its `backend`; its docstring lists the scenarios.
-MJX throughput is a report (decisions/s), never a criterion.
+The acceptance criteria and how to run them on every backend: [`validation.md`](validation.md).
+GPU training and tests: [`backends/`](backends/index.md).
 
 ## Environment index
 
@@ -89,8 +64,7 @@ MJX throughput is a report (decisions/s), never a criterion.
 
 Rewards, endings and reset layouts are robocin/rSoccer's, ported task by task on our Div A
 field (each env page says what could not be literal). Every environment truncates at its
-horizon. All six control exactly
-one blue robot; the remaining robots are scripted or idle.
+horizon. All six control exactly one blue robot; the remaining robots are scripted or idle.
 
 ## Action space
 
@@ -106,9 +80,9 @@ kick, chip, dribble                                  (3)
 ```
 
 so `act_dim` is 7 for all six environments, with `kick`, `chip` and `dribble` at indices 4,
-5 and 6. Every robot always exposes
-every control it physically has. A task that does not care about one simply does not reward
-it, which is what keeps a single action head transferable across the suite.
+5 and 6. Every robot always exposes every control it physically has. A task that does not
+care about one simply does not reward it, which keeps a single action head transferable
+across the suite.
 
 | control | commanded |
 |---|---|
@@ -132,81 +106,24 @@ onto the robot→target line. Only the controlled robots go through it; scripted
 driven in `_script`. In PassEndurance the controller runs whole and then `vx, vy` go to 0:
 the passer only turns, and `x, y` of the action mean nothing.
 
-The chassis servos it drives:
+The controller's output goes to the chassis velocity servos (3.3 m/s, 37.1 rad/s), rotated
+from body to world frame: [Chassis](physics.md#chassis).
 
-| servo | actuator | ctrlrange |
-|---|---|---|
-| `vx` | `vel_x` | -3.3 .. 3.3 m/s, ±3.51 N |
-| `vy` | `vel_y` | -3.3 .. 3.3 m/s, ±3.51 N |
-| `omega` | `vel_yaw` | -37.1 .. 37.1 rad/s, ±0.526 N·m |
+**Kick and chip.** Half range: `a <= 0` never fires, and `a in (0, 1]` asks for an exit
+speed of `KICK_SPEED_MAX * a` = `6.5 * a` m/s, the SSL §8.4.2 cap at `a = 1`. That is what
+SSL firmware takes: a speed, not a trigger. Speeds are relative to a standing robot; a moving
+robot adds its own. After a shot that plunger is locked for 250 ms (10 control steps); the
+kicker and chipper locks are independent. Mechanism: [Kicker and chipper](physics.md#kicker-and-chipper).
 
-`BaseEnv.step_raw` is an internal path outside the action space, for the envelope tests:
-its slice is `(vx, vy, omega, kick, chip, dribble)`, the drive scaled by `ctrlrange` and
-written straight to the servos.
-
-**Hardware wheel geometry.** The chassis has no wheels to command, but its envelope is
-derived from the real robot's four omni-wheels, mounted at `a_i = 60, 135, 225, 300` deg from
-+x, `R = 0.0796` m from the centre, rolling on an effective radius `r_eff = 0.030089` m.
-The geometry also fixes how much of the four wheels' force a translation can use. A
-forward push projects each wheel by `|sin a|` and a sideways one by `|cos a|`, so the sums
-are **`Σ|sin a| = 3.14626` forward** and **`Σ|cos a| = 2.41421` lateral**, not 4 (the
-force-maximising sign pattern has `Σ f_i = 0`, so it costs no yaw). Every acceleration
-quoted for this robot, or for rSim's, is the per-wheel force times these factors.
-
-**Drive envelope.** The chassis limits in the action table come from a motor, not a guess (tickets
-01, 04, 05, 16; development in `.scratch/physics-fidelity/research/01-drivetrain-envelope.md`).
-The robot is a Maxon EC 45 flat 50 W (winding 251601, 24 V, `k_M` 33.5 mN·m/A) in **direct
-drive** on a ~60 mm wheel — the CAD's hubs are `Direct_Transmission_*`, and rSim's
-`0.070 N·m`/`1557 rpm` describe the team's earlier geared robot.
-
-| | forward (x) | lateral (y) | yaw | binding limit |
-|---|---|---|---|---|
-| wheel torque | ±0.078 N·m | | | `I_nom · k_M`, the motor's continuous rating (VENDOR) |
-| wheel speed | ±95 rad/s | | | a design choice: 25 % under the spin tip-over rate `ω_tip = 47.7` rad/s, far under the motor's ~702 rad/s no-load (DELIBERATE APPROXIMATION) |
-| acceleration | **1.95** m/s² (torque alone: 2.98) | **1.30** m/s² (torque alone: 2.30) | **55.0** rad/s² | wheel friction `μ = 0.25`: each wheel pushes along its own tangent (`μ Σ N cos / m`); lateral, no moment about the CoM puts the lighter rear wheels at their grip first; yaw `μ Σ N d / I_zz` about the CoM |
-| speed | **3.30** m/s | **4.04** m/s | **37.1** rad/s | wheel speed through the matrix; yaw about the CoM, 3.45 mm behind the wheel centre (35.9 about the centre) |
-
-**Body frame.** SSL firmware is commanded in the *body* frame, but the chassis joints are
-*world*-axis slides, so `base._drive_robot` rotates the controller's `vx, vy, omega` command through the
-chassis orientation before writing it. A diagonal command can therefore ask for
-`3.3 * sqrt(2)` on one world axis; MuJoCo clamps it to `ctrlrange`, exactly as a real servo
-would.
-
-**Kicker and chipper.** Half range, like the dribbler: `a <= 0` never fires, and
-`a in (0, 1]` asks for an exit speed of `KICK_SPEED_MAX * a` = `6.5 * a` m/s, the §8.4.2 cap
-at `a = 1`. That is what SSL firmware takes, a speed, not a trigger. The plunger is still a
-force actuator against its return spring: a per-plunger table
-(`scene.KICK_TABLE_MS`) turns the asked-for speed into a one-step force, the way the
-firmware's calibration table turns it into a pulse width, measured at 40 Hz on mujoco 4.0. The cap takes ~295-315 N. Speeds
-are relative to a standing robot with the ball settled in the mouth (within ±4 % across
-seatings); a moving robot adds its own speed, as a real one does. The control step a
-plunger fires on opens with 32 physics steps at a quarter of the timestep
-(`scene.FIRING_FINE_STEPS` at `scene.FIRING_SUBSTEPS`, ~0.26 ms each, 8.3 ms that cover the
-stroke and the hit) and runs the rest at the timestep: at 2 ms the plate closed ~9 mm per step
-and the exit speed swung ±35 % with force, 1 ms still saws, and 32 is the smallest count whose
-curve is monotone for both plungers. At 40 Hz that is 48 iterations instead of 24, which costs
-throughput under random actions, which fire at every re-arm, and nothing for a policy that
-kicks rarely. Each shot is followed by a 250 ms lockout on that plunger, a deliberate
-approximation (no capacitor recharge time is known). Held continuously the plunger pins against its 30 mm stop and never releases the
-ball, so the lockout is what makes the mechanism usable at all. The two locks are
-independent — a kick must not be able to block a chip. At the default control rate the
-lockout is 15 control steps.
-
-**Dribbler.** `a <= 0` is off and `(0, 1]` maps to `(0, DRIBBLER_OMEGA]` = `(0, 314] rad/s`,
-so a zero action does not dribble and `action_space.sample()` dribbles half the time, at a
-mean of 157 rad/s when on, instead of always. It stays a
-speed rather than a switch because the robot's firmware takes a speed. It is never driven
-backwards: a reversed bar throws the ball out of the mouth. 314 rad/s is an assumption
-(about 3000 rpm), not a team firmware setpoint. It stands in for the bar's
-design operating point, not the actuator's `ctrlrange`, which is deliberately about
-5x larger to leave room for the speed feedforward a real controller adds on top. Scaling
-the action by `ctrlrange` here would command a bar speed the mechanism was never
-characterised at.
+**Dribble.** `a <= 0` is off and `(0, 1]` maps to `(0, 314]` rad/s, so a zero action does
+not dribble and `action_space.sample()` dribbles half the time, at a mean of 157 rad/s when
+on. It is a speed rather than a switch because the robot's firmware takes a speed. It is
+never driven backwards. Why 314 and not the `ctrlrange`: [Dribbler](physics.md#dribbler).
 
 ## Observation space
 
-Flat `Box((6 + 8 * n_robots + extra_obs,), float32)`, bounded per channel below, where `n_robots` is every
-robot in the model, controlled or not.
+Flat `Box((6 + 8 * n_robots + extra_obs,), float32)`, bounded per channel below, where
+`n_robots` is every robot in the model, controlled or not.
 
 ```
 [0:6]                       ball    x, y, z, vx, vy, vz
@@ -219,8 +136,8 @@ order `scene.build` attaches them in, so the observation index of `b0_robot` is 
 every environment.
 
 Robot linear velocity is world-frame (it is read straight off `qvel`), unlike the drive
-command, which is body-frame. `has_ball` is `1.0` while
-the robot is inside the possession grace window (see below) and `0.0` otherwise.
+command, which is body-frame. `has_ball` is `1.0` while the robot is inside the possession
+grace window and `0.0` otherwise: [Possession](physics.md#possession).
 
 Every entry is normalised by a constant from `base.py` or `scene.py`:
 
@@ -232,6 +149,9 @@ Every entry is normalised by a constant from `base.py` or `scene.py`:
 | ball vx, vy, vz | `base.MAX_BALL_V` | 8.0 m/s (kicks are capped at 6.5 off a standing robot) |
 | robot vx, vy | `base.MAX_V` | 3.3 m/s (the chassis servo ctrlrange) |
 | robot omega | `base.MAX_W` | 37.1 rad/s (likewise) |
+
+`MAX_V` and `MAX_W` are pinned to the servo `ctrlrange` by
+`test_velocity_normalisers_are_the_chassis_servo_range`.
 
 Nothing clips these. The declared `Box` is finite only where the simulator guarantees a
 bound, so `observation_space.contains` is true of every observation:
@@ -246,156 +166,34 @@ bound, so `observation_space.contains` is true of every observation:
 | every velocity | `inf` | collisions have no ceiling |
 | Dribbling checkpoints | -1 to 4/3 | rSoccer's `(count / 6) * 2 - 1`, count 0-7 |
 
-Measured under random action, seeds 0-19, six envs: robot `|v|` peaks at 0.30 and
-`|omega|` at 0.43 of their divisors. `MAX_V` and `MAX_W` are the servo `ctrlrange`, pinned by
-`test_velocity_normalisers_are_the_chassis_servo_range`. The channels that do leave `[-1, 1]` are physical: a chipped
-ball reads up to ~3 in height, a kick off a moving robot reaches ~8.5 m/s (1.06 of
-`MAX_BALL_V`), and a robot behind the goal line or by the side wall reads up to ~1.05.
+Measured under random actions (seeds 0-4, six envs, up to 400 control steps each): robot
+`|v|` peaks at 0.33 and `|omega|` at 0.14 of their divisors, ball speed at 0.56, and a
+chipped ball reads up to ~2.3 in height. A robot behind the goal line or by the side wall
+can read past 1 in x or y.
 
-## Chassis
+## Timing
 
-The robot is a kinematic chassis (slide-x / slide-y / hinge-z, 3 velocity servos) driven by
-a body-frame `vx, vy, omega` (ADR 0001). Measured by
-`scripts/validation_sweep.py --scenario random`, one process, random actions, at the
-1/960 s default (`.scratch/physics-fidelity/candidate-14/throughput.csv`):
+The physics step is 1/960 s (~1.04 ms) and the control step is a fixed 25 ms (40 Hz,
+`decimation = 24`, `dt = 0.025` s), rSoccer's step and the rate the navigation controller
+was written for. Every step count quoted in these docs is in control steps:
+`max_steps = round(horizon_s / dt)`. A policy decides every `repeat_action` control steps
+(kwarg, default 1); one `step` call is one decision, its rewards summed over the control
+steps and cut short when the episode ends.
 
-| env | steps/s |
-|---|---|
-| `GoToBall-v0` | ~1 500 |
-| `Dribbling-v0` | ~1 200 |
-| `StaticDefenders-v0` (7 robots) | ~360 |
+The control step is the controller's and the firmware's tick; the decision
+(`repeat_action` control steps) is the policy's rate. The 24 physics steps inside a control
+step are the integration: the chassis velocity servos act on every one of them. So
+`repeat_action` is a policy setting, and the timestep is a resolution setting. Why 1/960 s:
+[Contact and body parameters](physics.md#contact-and-body-parameters).
 
-The 1/960 s step costs about half the throughput of the old 2 ms one: the price of
-resolving the contacts (see Timing). The validation criterion is "within 10 % of that file on the same machine".
+Seconds are the contract. Horizons, the 250 ms plunger lock (10 control steps) and the
+50 ms possession grace (2 control steps) are declared in seconds and converted with
+`round(seconds / dt)`. Per-step rewards are rSoccer's, per control step, and match it at
+40 Hz. Horizons are rSoccer's (robocin/rSoccer). `test_horizon_is_seconds_at_exactly_40_hz`
+pins each env's step count, so a change of rate is never silent.
 
-**The hardware envelope, not the hardware mechanism.** The servos carry the four per-axis
-limits of the derived envelope above, each isotropic at the smaller of the forward and
-lateral value:
-
-| limit | chassis | from |
-|---|---|---|
-| `v_max` | 3.30 m/s (`ctrlrange`) | forward speed |
-| `a_max` | 1.30 m/s² (`forcerange` ±3.5129 N = m·a) | lateral, friction-bound acceleration |
-| `ω_max` | 37.1 rad/s (`ctrlrange`) | the ceiling of a spin about the CoM |
-| `α_max` | 55.0 rad/s² (`forcerange` ±0.5263 N·m = `I_zz`·α) | friction-limited yaw |
-
-Isotropic because the slides are world axes: a body-frame limit would need a clip in
-the Python, and the limits come from the model. The chassis joint damping is 0, so nothing
-else eats the thrust. `test_chassis_has_the_hardware_envelope` pins the step response to 3 %.
-
-**What is deliberately not modelled**: slip, traction, weight transfer, and the coupling
-between axes. The envelope is a box — it can reach all three limits at once, and along a
-world diagonal up to `√2 ×` its `v` and `a`. The real robot's is a polytope: at full
-forward speed no wheel is left over for yaw. The chassis slides on the carpet and cannot tip.
-
-## Possession
-
-Possession is ball/dribbler **contact**, not the arm-deflection sensor the hardware uses.
-On this model a ball parked square in the mouth deflects the arm the *wrong way* — measured
--0.003 to -0.015 rad with the ball at (94, 0, 21) mm — so any positive threshold on
-`dribbler_arm_pos` reports "no ball" forever. Contact is unambiguous, and it is what the
-mjssl retention benchmarks score against.
-
-`BaseEnv._update_possession` makes one pass over `data.contact` per step and marks every
-dribbler body currently touching the ball, which is cheaper than asking per robot.
-
-A spinning bar does not touch the ball every step either; it sticks, slips and re-grips. So
-contact is held over a `POSSESSION_GRACE = 0.05 s` window — 3 control steps at the default
-rate — the same criterion the retention sweeps use before calling a ball lost. Without it,
-"carry the ball for N seconds" never terminates successfully. `BaseEnv.holds(i)` reads that
-window, not the raw contact.
-
-That distinction is worth a number. A ball seated
-in the mouth for 120 idle steps (no drive, `dribble = 0.5`, i.e. 157 rad/s), measured on `Dribbling-v0` over 8 seeds:
-
-| raw ball/dribbler contact | `holds()` |
-|---|---|
-| 97% of steps | 98% |
-
-Before ticket 22 these read 74 % / 99 %: the old ball↔bar contact was
-underdamped and ~10× stiffer than the bar's PU sleeve, so the bar hammered the ball (normal
-force p10/p90 0.44 / 11 N) and was genuinely off it on a third of the steps. With the
-PU 65A contact it stays on, and the grace window only covers the odd re-grip.
-
-Counting `holds()` steps out of 120 idle ones over 8 seeds — the robot seated on the ball,
-no drive command given, bar at `dribble = 0.5` — `ContestedPossession-v0` holds 120 / 120 and
-`Dribbling-v0` 118 / 120, every seed alike.
-
-These numbers are from after ticket 05's contact changes (ball β 0.5), ticket 12's
-envelope, ticket 13's 1/960 s step, ticket 21's ball bounce and ticket 22's PU 65A
-ball↔bar contact (before it: 120 and 117). On the old 2 ms step
-`ContestedPossession-v0` scattered 69-95 and looked chaotic; it was the step under-resolving the ball/dribbler contact (120 at 0.5 ms,
-87 at 2 ms, 0 at 4 ms). Before ticket 05 `Dribbling-v0` held 120
-and `ContestedPossession-v0` 96-103; the 5% retention budget ticket 05 was allowed
-is enforced by `test_seated_ball_is_possessed`.
-
-`Dribbling-v0` and `ContestedPossession-v0` start with the ball already in a mouth, seated
-the way the mechanism actually takes one: `BaseEnv.seat_ball` spins the bar up, rolls a
-ball in at 1 m/s from 200 mm, and lets it be caught over 0.35 s of physics. Not faster: with
-the measured ball inertia (β = 0.5) a ball arriving at 2 m/s from 200 mm rebounds off the
-bar and rolls out of reach — at 1.0-1.5 m/s it is caught. Placing the ball
-at the sphere/bar tangency instead is a launcher, not a seat — the contact needs a few
-tenths of a millimetre of overlap to exist at all, and on a 46 g ball that overlap is a
-compressed spring worth several newtons. Below ~0.1 mm MuJoCo stops generating the contact
-at all, so there is no overlap that works.
-
-**Turning with the ball loses it past ~2 rad/s.** Bar at full speed (`dribble = 1`), robot
-spinning in place, `holds()` steps out of 120, worst of seeds 0-2 (ticket 22):
-
-| yaw | 0.5 rad/s | 1 rad/s | 2 rad/s | 3 rad/s |
-|---|---|---|---|---|
-| `holds()` | 107 | 100 | 81 | 11 |
-
-Before ticket 22 the hammering bar dropped it from ~1 rad/s (13-14 of 120 at 2 rad/s);
-`test_seated_ball_survives_a_2_rad_s_turn` pins the new numbers. More bar speed does not
-help: the faster the bar, the more of the friction cone goes along the spin. 3 rad/s is an
-open fidelity gap, not a target — published SSL dribblers hold 3-7 rad/s, by contact area
-(soft or split bars) rather than friction (`.scratch/physics-fidelity/research/03-dribbler-material.md`).
-A task that needs a turn in possession has to keep it under ~2 rad/s.
-
-## Contact and body parameters
-
-Every number below either has a source or is recorded as a deliberate approximation. The
-classes rank RULEBOOK > MEASURED > VENDOR > DELIBERATE APPROXIMATION (development in
-`.scratch/physics-fidelity/research/02-physical-constants.md` and ticket 05).
-
-| parameter | value | class | source / reason |
-|---|---|---|---|
-| ball mass, radius | 0.046 kg, 0.0215 m | RULEBOOK | SSL rules §2.2 |
-| kick and chip speed cap | 6.5 m/s | RULEBOOK | SSL rules §8.4.2 |
-| ball inertia | `diaginertia` for β = 0.5 (`I = β m r²`), not MuJoCo's solid-sphere 0.4 | MEASURED | `models/ball.xml` |
-| ball ↔ floor sliding μ | 0.35 | MEASURED | ER-Force's empirical μ_k |
-| ball rolling μ | 0.0009 → 0.293 m/s² rolling deceleration | MEASURED | measured range 0.26-0.31 m/s² |
-| ball ↔ floor, ball ↔ wall restitution | COR 0.48-0.55 floor, 0.49-0.53 wall (normal impacts, 0.5-6.5 m/s): `<pair>` `solref="0.012 0.225"` on the carpet, `"0.012 0.25"` on the 12 wall hulls, both in `models/ball.xml` | MEASURED | target 0.50, measured 0.47-0.56 on carpet. MuJoCo has no restitution coefficient, so the `solref` was found by measurement (tickets 17, 21); 0.012 s is the shortest time constant whose COR holds within 5 % between 1/960 s and 0.5 ms from 1 m/s up (the floor at 0.5 m/s is 6 % off). MuJoCo's COR rises with speed where the real ball's falls, but stays in the band up to the 6.5 m/s kick. Oblique impacts are not calibrated: a backspinning chip's first landing reads 0.59-0.60. The goalposts stay critically damped |
-| chassis ↔ floor | collided (floor `contype/conaffinity` 5), no proxy | — | ticket 06 |
-| collision hulls | per robot, 16 buried hulls pruned | — | ticket 07 |
-| ball ↔ kicker/chipper plates | μ 0.4 (geom-mixed with the ball's 0.35) | DELIBERATE APPROXIMATION | no source |
-| ball ↔ dribbler | μ 2.5, `solref="0.008 1"` | μ: DELIBERATE APPROXIMATION; solref: VENDOR (derived) | μ above 1 so the bar can hold the ball, no source measures it against a golf ball. solref from the bar's PU 65A sleeve (RobôCIn ETDP 2026): Shore→modulus and Hertz give ~0.2 mm of sink at 3 N, i.e. timeconst 7-9 ms critically damped (ticket 22, research 03 §5.5) |
-| walls, bumpers | `solref="0.004 1"` (the ball has its own pairs with the walls) | DELIBERATE APPROXIMATION | neither this nor MuJoCo's `0.02 1` has a source |
-| robot ↔ robot, robot ↔ wall μ | 0.5, 0.6 | DELIBERATE APPROXIMATION | no source |
-| `impratio` | 1 | DELIBERATE APPROXIMATION | no ODE/rSim counterpart; revisit if slip turns abrupt |
-| dribbler bar speed | 314 rad/s at `a = 1` | DELIBERATE APPROXIMATION | assumed, not a firmware setpoint (see Dribbler) |
-| plunger lockout | 250 ms | DELIBERATE APPROXIMATION | no capacitor recharge time is known |
-
-## Multi-robot
-
-`scene.py` attaches the one-robot MJCF N times with `mujoco.MjSpec.attach(prefix=)`, which
-namespaces every body, joint, actuator, sensor and geom (`b0_robot`, `b0_vel_x`,
-`b0_r_col_barDribbler`, ...). The parent is `scene.xml` itself with its one robot
-**deleted**, so the `<option>` block, the `<visual>` block, the lights, the cameras, the
-ball and its floor and wall contact pairs are exactly what the model ships with — there is no
-second copy of those numbers to drift out of sync. `MjSpec.delete` on the robot body
-cascades to its actuators, its sensors and its two dribbler contact pairs.
-
-Those dribbler pairs — the ones the delete removes; the floor and wall pairs stay — are then
-re-emitted once per robot, copied off the originals **before** the delete rather than retyped. Skipping the step compiles fine and silently discards the
-ball/bar contact tuning: MuJoCo would fall back to the elementwise max of the two geoms' own
-friction, which is not what the model was tuned against.
-
-The compiled `MjModel` is cached per `(n_blue, n_yellow)` and shared by every env of
-the same shape; each env owns its own `MjData`. That is safe only while nothing mutates the
-model, so the first caller that wants domain randomisation has to drop the cache and pay the
-~0.2 s compile.
+Throughput: `scripts/validation_sweep.py --scenario random` writes steps/s per env to
+`throughput.csv` on the machine it runs on.
 
 ## Field constants
 
@@ -413,14 +211,25 @@ not a geometric fact.
 | `FLOOR_Z` | 0.02 m | the carpet plane's world z; every "height" subtracts it |
 | `WALL_HALF_X`, `WALL_HALF_Y` | 6.3, 4.8 m | the inner wall faces; they bound the robot position observations |
 
-`scene._check_field` asserts every one of them against the CAD at build time, by taking the
-world-space AABB of the line meshes and the goalpost collision geoms. It is cheap, and it is
-the one thing that poisons every reward at once: an env that believes the goal is at
-x = 6.0 on a field whose goal is elsewhere trains a policy to shoot at nothing, and every
-check downstream still passes.
+`scene._check_field` checks them against the CAD at build time, from world-space AABBs of
+the mesh geoms:
+
+| constant | checked against | tolerance |
+|---|---|---|
+| `FIELD_HALF_X`, `FIELD_HALF_Y` | the `f_lines` meshes | 25 mm |
+| `FIELD_HALF_X` (goal line) | the near face of the `f_goalpost_1` collision hulls | 10 mm |
+| `GOAL_DEPTH` | the depth of those hulls | 30 mm |
+| `GOAL_HALF_Y` | under the posts' outer edge, which must lie within 60 mm of it | — |
+| `WALL_HALF_X`, `WALL_HALF_Y` | the outer faces of the `col_f_walls` hulls, within 25 mm outside (the wall is 20 mm thick) | 25 mm |
+| `FLOOR_Z` | the `floor` geom's z | exact |
+
+`GOAL_HEIGHT` is not checked. The check is cheap, and the error it catches poisons every
+reward at once: an env that believes the goal is at x = 6.0 on a field whose goal is
+elsewhere trains a policy to shoot at nothing, and every check downstream still passes.
 
 `scene.in_field(x, y)` and `scene.in_goal(pos, sign=1.0)` are derived from these. A ball is
-in the goal when its centre is past the goal line, inside the mouth and under the crossbar, its centre height measured from the carpet.
+in the goal when its centre is past the goal line, inside the mouth and under the crossbar,
+its centre height measured from the carpet.
 
 ## Rendering
 
@@ -435,7 +244,7 @@ The `viewer_gfx` kwarg picks how it draws:
   blits it, the one native mode that runs under Wayland here.
 - `web`: no window and no GPU on the host. The URL is printed on launch, and the browser
   draws the scene (e.g. over `ssh -L`). **It listens on all interfaces with no
-  authentication**, so use it only on a trusted network or behind a tunnel. In mujoco 4.0.0
+  authentication**, so use it only on a trusted network or behind a tunnel. In mujoco 4.0.x
   only one web viewer works per process; a second one raises.
 
 The view starts on the whole field — south side, both goals in frame, `+x` on the right —
@@ -459,33 +268,8 @@ The GIFs on the environment pages are regenerated by:
 MUJOCO_GL=egl uv run --group dev python scripts/make_gifs.py
 ```
 
-That script builds its own smaller renderer (480x270 by default) rather than the 720x1280
-one `BaseEnv.render` hardcodes, and drives the clips with the repo's scripted
-`goto_ball_policy` so the documentation shows a robot doing the task rather than a robot
-twitching at random. `pillow` is a dev-only dependency and nothing in `mjsoccer` imports it.
-
-## Timing
-
-The physics step is 1/960 s (~1.04 ms) and the control step is a fixed 25 ms (40 Hz,
-`decimation = 24`, `dt = 0.025` s), rSoccer's step and the rate the navigation controller
-was written for. Every step count quoted in these docs is in control steps:
-`max_steps = round(horizon_s / dt)`. A policy decides every `repeat_action` control steps
-(kwarg, default 1); one `step` call is one decision, its rewards summed over the control
-steps and cut short when the episode ends.
-
-**What the rates mean.** The control step is the controller's and the firmware's tick; the
-decision (`repeat_action` control steps) is the policy's rate. The 24 physics steps inside a
-control step stand for the integration: the chassis velocity servos act on every one of
-them. So `repeat_action` is a policy setting, and the timestep is a resolution setting.
-
-**Seconds are the contract.** Horizons, the 250 ms plunger lock and the 50 ms possession
-grace are declared in seconds and converted. Per-step rewards are rSoccer's, per control
-step, and match it at 40 Hz. Horizons are rSoccer's (robocin/rSoccer).
-`test_horizon_is_seconds_at_exactly_40_hz` pins each env's step count, so a change of rate
-is never silent.
-
-**Why 1/960 s.** The contact time constants are 4-6 ms (`solref`), and 2 ms resolved them in
-two steps. Measured against a 0.25 ms reference, 2 ms carried 11-24 % errors in possession
-retention and chip speed, and possession scattered 69-95 of 120. At ~1 ms they are within
-5 %, for half the throughput. Numbers in
-`.scratch/physics-fidelity/candidate-13/`.
+That script builds its own smaller renderer (640x360 by default, `--width`/`--height`)
+rather than the 720x1280 one `BaseEnv.render` hardcodes, and drives the clips with the
+repo's scripted `goto_ball_policy`, so the documentation shows a robot doing the task rather
+than a robot twitching at random. `pillow` is a dev-only dependency and nothing in
+`mjsoccer` imports it.

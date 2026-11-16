@@ -14,7 +14,18 @@ _Avoid_: realism, accuracy
 
 **Acceptance criteria**:
 The hardware-derived physics checks the robot must pass (envelope, acceleration, kick speed, ball bounce, possession, arrival at a target pose).
-_Avoid_: validation tests, benchmarks
+_Avoid_: validation tests, benchmarks. "Validation" names only the test marker
+(`-m validation`), suite and sweep script that check the acceptance criteria.
+
+**Possession**:
+A robot holds the ball while its dribbler touches it, kept through a short grace of no contact
+(the bar sticks, slips and re-grips).
+_Avoid_: control, has_ball (the observation entry that reports it)
+
+**Seated ball**:
+A ball rolled into a robot's dribbler and caught by it at reset, rather than placed touching the
+bar.
+_Avoid_: placed ball, attached ball
 
 ### Control
 
@@ -39,13 +50,41 @@ _Avoid_: kick step, substep (a substep is a physics step inside it)
 One policy action, a target pose plus kick, chip and dribble, held for `repeat_action` control steps.
 _Avoid_: step (alone), action repeat
 
+**Horizon**:
+How long a task lasts, in seconds of simulated time, before it is truncated.
+_Avoid_: episode length, max steps (the horizon counted in control steps)
+
+**Observation noise**:
+Gaussian noise added to every observation the policy sees; the physics never sees it. Belongs to
+the task, off by default.
+_Avoid_: sensor noise, DR
+
+**Action latency**:
+Each decision's action applied a fixed number of control steps late. Belongs to the task, off by
+default.
+_Avoid_: delay (alone), DR
+
 ### Simulation
 
 **Backend**:
 The engine that steps the physics of a task: the **CPU backend** (MuJoCo's C library, the reference
 for what the physics should do), **MJX-Warp** (MJX's GPU engine, driven from JAX) or the **mjlab
-backend** (ADR 0003). MJX-JAX, MJX's pure-JAX engine, is not a backend here (ADR 0002).
+backend** (ADR 0003). MJX-JAX, MJX's pure-JAX engine, is not a backend here (ADR 0002, upheld by ADR 0003).
 _Avoid_: simulator (when the engine is meant), wrapper, impl
+
+**Oracle**:
+The CPU backend, as the reference the GPU backends are held to. When they disagree, the CPU is right.
+_Avoid_: ground truth, baseline
+
+**World**:
+One simulated instance in a GPU batch, in its own slot; every world steps together.
+_Avoid_: env (when one instance of a batch is meant), instance, replica
+
+**Per-world failure**:
+A world whose state stops being finite (diverged) or that overflows its contact or constraint
+buffer (overflow) ends alone, and the rest of the batch runs on; a reset that finds no free spot is
+counted with them (reset_overlap).
+_Avoid_: crash, batch abort
 
 **mjlab backend**:
 The six tasks on mjlab's `ManagerBasedRlEnv`, in torch, over MuJoCo Warp on the exact base model,
@@ -75,8 +114,19 @@ Giving each parallel world on a GPU backend its own physical model, a **variant*
 one, sampled once per world for a whole training run. The CPU backend always runs the nominal model.
 _Avoid_: noise (observation noise and action latency belong to the task, not the model), variation
 
+**Variant / Nominal model**:
+A variant is one world slot's DR-sampled model; the nominal model is the unrandomized one every
+backend runs without DR.
+_Avoid_: model variant in ADR 0002's sense (there, a convex-hull model for MJX-JAX, since dropped)
+
+**First state**:
+The cached start state of a world slot, already placed (ball seated where the task needs it), that the world restarts from when it
+ends: Brax's per-slot cache on MJX-Warp, the **pool of first states** on the mjlab backend. Re-drawn
+during training, not at every reset.
+_Avoid_: reset cache, initial-state buffer
+
 **Pool of first states**:
-One placed, ball-seated world per slot of a mjlab batch, built in one batched physics loop and
-copied back into a world when it resets. It stands in for seating the ball at every reset, which
-mjlab cannot do because its step advances every world at once; it is rebuilt each epoch.
+The mjlab backend's first states: one per slot, built in one batched physics loop and rebuilt each
+epoch. It stands in for seating the ball at every reset, which mjlab cannot do because its step
+advances every world at once.
 _Avoid_: reset cache, initial-state buffer

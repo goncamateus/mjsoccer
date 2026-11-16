@@ -1,6 +1,6 @@
 """Roll out a random agent on any mjsoccer task, to sanity-check an install.
 
-    python examples/random.py --env GoToBall-v0
+    uv run python examples/random.py --env GoToBall-v0
 """
 
 from __future__ import annotations

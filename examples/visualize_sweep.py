@@ -5,6 +5,8 @@
 Each <env>.zip gets a <env>.gif beside it: one deterministic episode seen
 from the whole-field `overview` camera. Renders offscreen (EGL), so it runs under screen.
 The algorithm comes from the folder name (sac_* / ppo_*), as sweep.sh names it.
+It replays at repeat_action=1, the agents' default; a sweep trained with --repeat-action N
+plays back wrong. sweep.sh writes the sweep's command, flags included, to <folder>/cmd.txt.
 """
 
 from __future__ import annotations

@@ -1,7 +1,7 @@
 """Train SAC (stable-baselines3) on any mjsoccer task.
 
-uv run --group rl python examples/sac_agent.py --env GoToBall-v0
-uv run --group rl python examples/sac_agent.py --env GoToBall-v0 --play runs/sac_GoToBall-v0.zip
+    uv run --group rl python examples/sac_agent.py --env GoToBall-v0
+    uv run --group rl python examples/sac_agent.py --env GoToBall-v0 --play runs/sac_GoToBall-v0.zip
 """
 
 from __future__ import annotations

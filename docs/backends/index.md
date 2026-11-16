@@ -36,7 +36,7 @@ the CPU side. Two layers hold them to the CPU:
   physics. All of it must match to float32 tolerance. These tests run without a GPU, on
   JAX-CPU (`tests/test_mjx_task_logic.py`) and torch-CPU (`tests/test_mjlab_task_logic.py`).
 - **Physics acceptance and parity** (`-m validation`, `tests/test_validation.py`). Every
-  acceptance criterion in [`docs/index.md`](../index.md) runs on the three backends with
+  acceptance criterion in [`docs/validation.md`](../validation.md) runs on the three backends with
   the same threshold. On top of that, each GPU backend runs the GPU × CPU parity: envelope,
   kick and COR within 2 %, arrival time within 5 %, and the CPU median return and
   possession rate inside the GPU min-max over seeds 0-49.

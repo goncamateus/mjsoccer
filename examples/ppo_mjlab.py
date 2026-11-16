@@ -5,7 +5,7 @@
     uv run --group mjlab examples/ppo_mjlab.py --play runs/ppo_mjlab_ContestedPossession-v0
 
 The sibling of `ppo_mjx.py` (same flags, same PPO defaults) for the mjlab backend; `--env`
-defaults to ContestedPossession, the first task ported to it. Long runs
+defaults to ContestedPossession-v0. Long runs
 belong under `systemd-run --user --scope -p MemoryMax=10G`. Training writes the flags to
 `args.json`, RSL-RL's checkpoint `model_<iteration>.pt` at the end of every epoch (and
 `model_0.pt`, RSL-RL's own save on iteration 0), and the policy in ONNX (`<run dir
@@ -36,7 +36,8 @@ runs on the nominal model unless `--eval-randomize`. `--obs-noise` and `--action
 (both off by default) apply to training and the per-epoch eval; `--eval` and `--play` run
 without them, nominal (as `ppo_mjx`).
 
-`--num-envs` defaults by robot count, measured in long training runs (`NUM_ENVS`).
+`--num-envs` defaults by robot count, measured in long training runs (`NUM_ENVS`); a robot
+count without a measured default takes the next larger measured count's.
 """
 
 from __future__ import annotations
@@ -114,7 +115,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     if args.eval_randomize and not args.randomize:
         ap.error("--eval-randomize needs --randomize")
     if args.num_envs is None:
-        # robot counts without a measured default take the next larger one's (fewer worlds)
+        # robot counts without a measured default take the next larger one's (fewer robots, so less memory than measured)
         n = _n_robots(args.env)
         args.num_envs = NUM_ENVS[min(k for k in NUM_ENVS if k >= n)]
     if args.save is None:

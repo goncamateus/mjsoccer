@@ -12,15 +12,16 @@ If any of these files don't exist, **proceed silently**. Don't flag their absenc
 
 ## File structure
 
-Single-context repo (most repos):
+Single-context repo (this one):
 
 ```
 /
 ├── CONTEXT.md
 ├── docs/adr/
-│   ├── 0001-event-sourced-orders.md
-│   └── 0002-postgres-for-write-model.md
-└── src/
+│   ├── 0001-drop-the-roller-robot.md
+│   ├── 0002-mjx-warp-only.md
+│   └── 0003-mjx-warp-and-mjlab.md
+└── src/mjsoccer/
 ```
 
 Multi-context repo (presence of `CONTEXT-MAP.md` at the root):

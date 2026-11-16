@@ -70,7 +70,8 @@ systemd-run --user --scope -p MemoryMax=10G \
   between two resets gets the PPO iterations one episode takes, so resets do not cut
   episodes short.
 - **`--num-envs`** defaults by robot count (`NUM_ENVS` in the script): the largest batch
-  that trained 30 epochs with >= 2 GB of the GPU free.
+  that trained 30 epochs with >= 2 GB of the GPU free. A robot count without a measured
+  default takes the next larger measured count's.
 - **PPO flags** keep Brax's names (`--learning-rate`, `--entropy-cost`, `--unroll-length`,
   `--num-minibatches`, ...). Their defaults are a baseline, not a tuning. The Brax variants
   (`--learning-rate-schedule ADAPTIVE_KL`, `--distributional-critic`) are off by default.
