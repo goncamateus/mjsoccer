@@ -114,7 +114,9 @@ def parse_args(argv=None) -> argparse.Namespace:
     if args.eval_randomize and not args.randomize:
         ap.error("--eval-randomize needs --randomize")
     if args.num_envs is None:
-        args.num_envs = NUM_ENVS[_n_robots(args.env)]
+        # robot counts without a measured default take the next larger one's (fewer worlds)
+        n = _n_robots(args.env)
+        args.num_envs = NUM_ENVS[min(k for k in NUM_ENVS if k >= n)]
     if args.save is None:
         args.save = f"runs/ppo_mjlab_{args.env}"
     return args

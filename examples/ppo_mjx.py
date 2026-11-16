@@ -133,7 +133,9 @@ def parse_args(argv=None) -> argparse.Namespace:
     if args.distributional_critic and args.clipping_epsilon_value is None:
         ap.error("--distributional-critic needs --clipping-epsilon-value")
     if args.num_envs is None:
-        args.num_envs = NUM_ENVS[_n_robots(args.env)]
+        # robot counts without a measured default take the next larger one's (fewer worlds)
+        n = _n_robots(args.env)
+        args.num_envs = NUM_ENVS[min(k for k in NUM_ENVS if k >= n)]
     if args.batch_size is None:
         args.batch_size = max(1, args.num_envs // 8)
     if args.save is None:

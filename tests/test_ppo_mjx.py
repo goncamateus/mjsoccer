@@ -33,6 +33,8 @@ def _script():
 @pytest.mark.parametrize("env_id, num_envs", [
     ("ContestedPossession-v0", 8192),  # 2 robots
     ("GoToBall-v0", 2048),             # 7 robots
+    ("GoToBallShoot-v0", 8192),        # 1 robot: the 2-robot default
+    ("Dribbling-v0", 2048),            # 5 robots: the 7-robot default
 ])
 def test_num_envs_defaults_to_the_robot_count_rule(env_id, num_envs):
     args = _script().parse_args(["--env", env_id])

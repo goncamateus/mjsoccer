@@ -38,6 +38,9 @@ def test_defaults_are_ppo_mjx_s():
     assert args.num_envs == 8192 and args.num_eval_envs == 128 and args.epochs == 30
     assert args.save == f"runs/ppo_mjlab_{ENV}"
     assert mod.parse_args(["--env", "GoToBall-v0"]).num_envs == 16384  # 7 robots, ticket 11
+    # robot counts without a measured default take the next larger one's
+    assert mod.parse_args(["--env", "GoToBallShoot-v0"]).num_envs == 8192   # 1 robot
+    assert mod.parse_args(["--env", "Dribbling-v0"]).num_envs == 16384      # 5 robots
     cfg = mod.train_cfg(args)
     alg = cfg["algorithm"]
     assert alg["learning_rate"] == 3e-4 and alg["schedule"] == "fixed"
