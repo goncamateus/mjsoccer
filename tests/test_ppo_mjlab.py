@@ -37,6 +37,7 @@ def test_defaults_are_ppo_mjx_s():
     args = mod.parse_args(["--env", ENV])
     assert args.num_envs == 8192 and args.num_eval_envs == 128 and args.epochs == 30
     assert args.save == f"runs/ppo_mjlab_{ENV}"
+    assert mod.parse_args(["--env", "GoToBall-v0"]).num_envs == 16384  # 7 robots, ticket 11
     cfg = mod.train_cfg(args)
     alg = cfg["algorithm"]
     assert alg["learning_rate"] == 3e-4 and alg["schedule"] == "fixed"
@@ -126,6 +127,7 @@ def test_train_eval_play_smoke(tmp_path):
     assert "action latency 2" in out, out[-3000:]
     for k in ("diverged", "overflow", "reset_overlap"):
         assert k in out
+    assert "train failures 0/0/0" in out and " MB " in out, out[-3000:]
     assert json.loads((save / "args.json").read_text())["env"] == ENV
     assert sorted(save.glob("model_*.pt")), list(save.iterdir())
     onnx = list(save.glob("*.onnx"))

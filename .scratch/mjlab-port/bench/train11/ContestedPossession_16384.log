@@ -1,0 +1,12 @@
+ContestedPossession-v0 on cuda:0: 16384 worlds, repeat_action 1, 10 epochs x 10 iterations x 327,680 decisions, DR off, obs noise 0.0, action latency 0 -> <runs>
+epoch   1  decisions     3,276,800  dps   16213  eval return   -0.072 len  355.9  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 2266 MB  t    227s
+epoch   2  decisions     6,553,600  dps   15810  eval return   -0.024 len  215.7  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 1/1/0  device 2263 MB  t    450s
+epoch   3  decisions     9,830,400  dps   15696  eval return    0.123 len  177.4  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 1/1/0  device 2263 MB  t    703s
+epoch   4  decisions    13,107,200  dps   15568  eval return    0.251 len  102.8  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 1/1/0  device 2263 MB  t    934s
+epoch   5  decisions    16,384,000  dps   15565  eval return    0.179 len  104.8  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 1/2/0  device 2263 MB  t   1157s
+epoch   6  decisions    19,660,800  dps   15558  eval return    0.188 len  124.2  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 1/2/0  device 2289 MB  t   1411s
+epoch   7  decisions    22,937,600  dps   15605  eval return    0.195 len  113.4  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 1/3/0  device 2286 MB  t   1665s
+epoch   8  decisions    26,214,400  dps   15591  eval return    0.218 len  105.3  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 1/3/0  device 2266 MB  t   1894s
+epoch   9  decisions    29,491,200  dps   15513  eval return    0.210 len  105.6  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 1/3/0  device 2263 MB  t   2123s
+epoch  10  decisions    32,768,000  dps   15472  eval return    0.251 len  101.5  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 1/3/0  device 2263 MB  t   2381s
+exit 0

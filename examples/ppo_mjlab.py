@@ -26,7 +26,9 @@ An epoch is `refill_pool()` (every world's first state drawn anew; it replaces
 `--num-resets-per-eval`), then PPO iterations, then an eval on `--num-eval-envs` worlds.
 The default budget (`--timesteps` unset) gives an epoch the iterations one episode takes;
 `--timesteps` is split over the epochs. Per epoch the log has the decisions so far,
-decisions/s, the eval return and the eval episodes' rate of the three failure counters.
+decisions/s, the eval return and the eval episodes' rate of the three failure counters,
+the training world-decisions so far with each failure (diverged/overflow/reset_overlap) and
+the device memory in use (the whole GPU's, other processes included).
 
 `--randomize module:sampler` trains under domain randomization: the same sampler as
 `ppo_mjx`'s, each world its own variant for the run, drawn from `--seed`. The per-epoch eval
@@ -34,7 +36,7 @@ runs on the nominal model unless `--eval-randomize`. `--obs-noise` and `--action
 (both off by default) apply to training and the per-epoch eval; `--eval` and `--play` run
 without them, nominal (as `ppo_mjx`).
 
-Not yet here: `--num-envs`'s defaults are ppo_mjx's until ticket 11 measures mjlab's.
+`--num-envs` defaults by robot count, measured in long training runs (`NUM_ENVS`).
 """
 
 from __future__ import annotations
@@ -51,8 +53,12 @@ import json
 import math
 import time
 
-# ponytail: ppo_mjx's measured batch; ticket 11 measures mjlab's own.
-NUM_ENVS = {2: 8192, 7: 2048}
+# Measured in long runs up to 32 768 worlds (ticket 11, .scratch/mjlab-port/research/
+# 06-num-envs.md): flat memory everywhere; 2 robots stays at 8 192 (bigger batches barely add
+# decisions/s and learn less per decision; rare policy-driven overflows, ~4e-7 per
+# world-decision, end only their world), 7 at 16 384 (0 failures, 5.6 GB; 32 768 takes 10.6
+# of the 3060's 12 GB).
+NUM_ENVS = {2: 8192, 7: 16384}
 METRICS = ("diverged", "overflow", "reset_overlap")
 
 
@@ -261,6 +267,16 @@ def train(args) -> int:
     length = math.ceil(env.logic.max_steps / env.logic.repeat_action)
     iters = iterations_per_epoch(args, length)
     per_iter = args.num_envs * args.unroll_length
+    with torch.inference_mode():  # the rollout's tensors are inference ones
+        fails = torch.zeros(len(METRICS), device=env.device)
+    env_step = env.step
+
+    def step(action):  # training worlds with a failure, counted on the device (no sync)
+        out = env_step(action)
+        fails.add_(torch.stack([env.metrics[k] for k in METRICS]).gt(0).sum(1))
+        return out
+
+    env.step = step
     vec = RslRlVecEnvWrapper(env, clip_actions=1.0)
     runner = Runner(vec, train_cfg(args), str(run), device=env.device)
     print(f"{args.env} on {env.device}: {args.num_envs} worlds, repeat_action "
@@ -283,8 +299,11 @@ def train(args) -> int:
         policy = runner.alg.get_policy().as_onnx().eval()  # the graph the ONNX holds
         m = run_episodes(eval_env, policy)
         rates = " ".join(f"{k} {m[k]:.4f}" for k in METRICS)
+        train_fails = "/".join(str(int(v)) for v in fails.tolist())
+        free, total = torch.cuda.mem_get_info(env.device)
         print(f"epoch {epoch:>3}  decisions {decisions:>13,}  dps {dps:7.0f}  eval return "
-              f"{m['return']:8.3f} len {m['length']:6.1f}  {rates}  "
+              f"{m['return']:8.3f} len {m['length']:6.1f}  {rates}  train failures "
+              f"{train_fails}  device {(total - free) // 2**20} MB  "
               f"t {time.perf_counter() - t0:6.0f}s", flush=True)
     print(f"saved {max(run.glob('model_*.pt'), key=lambda p: int(p.stem.split('_')[1]))}, "
           f"{_onnx(run)}")

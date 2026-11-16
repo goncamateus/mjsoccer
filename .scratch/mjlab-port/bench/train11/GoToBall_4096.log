@@ -1,0 +1,10 @@
+GoToBall-v0 on cuda:0: 4096 worlds, repeat_action 1, 8 epochs x 7 iterations x 81,920 decisions, DR off, obs noise 0.0, action latency 0 -> <runs>
+epoch   1  decisions       573,440  dps    2082  eval return    0.000 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1822 MB  t    370s
+epoch   2  decisions     1,146,880  dps    2069  eval return    0.062 len 1160.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1822 MB  t    746s
+epoch   3  decisions     1,720,320  dps    2065  eval return    0.039 len 1161.2  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1799 MB  t   1124s
+epoch   4  decisions     2,293,760  dps    2072  eval return    0.008 len 1191.4  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1833 MB  t   1502s
+epoch   5  decisions     2,867,200  dps    2068  eval return    0.023 len 1175.5  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1825 MB  t   1879s
+epoch   6  decisions     3,440,640  dps    2067  eval return    0.055 len 1151.8  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1822 MB  t   2256s
+epoch   7  decisions     4,014,080  dps    2068  eval return    0.047 len 1150.8  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1799 MB  t   2633s
+epoch   8  decisions     4,587,520  dps    2069  eval return    0.023 len 1173.8  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1799 MB  t   3008s
+exit 0
