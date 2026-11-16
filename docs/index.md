@@ -42,6 +42,9 @@ systemd-run --user --scope -p MemoryMax=10G \
     uv run python scripts/validation_sweep.py --backend mjx --seeds 0-49 --out runs/validation-mjx
 ```
 
+The GPU backends (MJX-Warp and mjlab), their APIs, training, parity and domain
+randomization: [`backends/`](backends/index.md).
+
 PPO on the GPU (Brax `ppo.train` over `mjsoccer.mjx`, one process per run; checkpoints in
 `runs/ppo_mjx_<env>/`, see the script's docstring for the flags):
 

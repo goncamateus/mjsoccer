@@ -37,6 +37,25 @@ plus kick, chip, dribble — whether or not its reward uses it, so one action he
 across all six. The navigation controller (Planning-the-path-with-rl's `go_to_point_new`)
 turns the pose into a chassis velocity every 25 ms control step.
 
+## GPU backends
+
+The same six tasks also run batched on the GPU, with the same ids, observations, actions
+and rewards. The CPU backend stays the physics oracle, and parity tests hold both GPU
+backends to it.
+
+| backend | install | trains with | checkpoint | docs |
+|---|---|---|---|---|
+| MJX-Warp (`mjsoccer.mjx`, JAX) | `uv sync --group gpu` | Brax PPO | Orbax | [`docs/backends/mjx.md`](docs/backends/mjx.md) |
+| mjlab (`mjsoccer.mjlab`, torch) | `uv sync --group mjlab` | RSL-RL PPO | `.pt` + ONNX | [`docs/backends/mjlab.md`](docs/backends/mjlab.md) |
+
+```bash
+uv run --group gpu   examples/ppo_mjx.py   --env GoToBall-v0
+uv run --group mjlab examples/ppo_mjlab.py --env ContestedPossession-v0
+```
+
+Both need a CUDA GPU. [`docs/backends/`](docs/backends/index.md) compares them and covers
+parity, per-world failures and domain randomization.
+
 ## Physics
 
 The robot is an ideal kinematic chassis (ADR 0001) with the envelope derived from the
@@ -63,4 +82,5 @@ uv run python scripts/validation_sweep.py --out runs/validation --seeds 0-4  # t
 the chassis and its envelope, the contact
 parameters and their sources, how possession is measured, the multi-robot `MjSpec` attach, the
 field constants and rendering. Each environment has its own page under
-[`docs/environments/`](docs/environments/).
+[`docs/environments/`](docs/environments/). The GPU backends are documented under
+[`docs/backends/`](docs/backends/index.md).
