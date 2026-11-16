@@ -1,0 +1,33 @@
+ContestedPossession-v0 on cuda:0: 8192 worlds, repeat_action 1, 30 epochs x 4 iterations x 163,840 decisions, DR off, obs noise 0.0, action latency 0 -> /home/mateus/doc/ssl-rl/runs/cmp12/mjlab
+epoch   1  decisions       655,360  dps   16165  eval return    0.010 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1319 MB  t     71s
+epoch   2  decisions     1,310,720  dps   16310  eval return    0.028 len 1156.5  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t    146s
+epoch   3  decisions     1,966,080  dps   16180  eval return    0.031 len  173.3  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t    203s
+epoch   4  decisions     2,621,440  dps   16201  eval return   -0.128 len  156.4  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t    253s
+epoch   5  decisions     3,276,800  dps   15989  eval return   -0.014 len   31.3  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t    298s
+epoch   6  decisions     3,932,160  dps   15627  eval return   -0.119 len  185.4  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t    353s
+epoch   7  decisions     4,587,520  dps   15828  eval return   -0.137 len  212.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t    406s
+epoch   8  decisions     5,242,880  dps   15929  eval return   -0.080 len  120.7  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t    460s
+epoch   9  decisions     5,898,240  dps   15887  eval return   -0.113 len  116.4  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t    511s
+epoch  10  decisions     6,553,600  dps   15787  eval return   -0.104 len  111.9  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t    562s
+epoch  11  decisions     7,208,960  dps   15759  eval return   -0.097 len   98.4  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t    612s
+epoch  12  decisions     7,864,320  dps   15772  eval return   -0.099 len  131.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t    690s
+epoch  13  decisions     8,519,680  dps   16153  eval return   -0.116 len  334.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t    767s
+epoch  14  decisions     9,175,040  dps   16184  eval return   -0.053 len  578.1  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t    843s
+epoch  15  decisions     9,830,400  dps   16223  eval return   -0.020 len  875.5  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t    920s
+epoch  16  decisions    10,485,760  dps   16246  eval return   -0.010 len 1031.3  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t    996s
+epoch  17  decisions    11,141,120  dps   16234  eval return   -0.004 len 1080.1  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t   1072s
+epoch  18  decisions    11,796,480  dps   16235  eval return   -0.007 len 1192.2  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t   1147s
+epoch  19  decisions    12,451,840  dps   16226  eval return   -0.005 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t   1223s
+epoch  20  decisions    13,107,200  dps   16213  eval return   -0.004 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t   1299s
+epoch  21  decisions    13,762,560  dps   16251  eval return   -0.005 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t   1374s
+epoch  22  decisions    14,417,920  dps   16230  eval return   -0.008 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t   1449s
+epoch  23  decisions    15,073,280  dps   16239  eval return   -0.010 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t   1524s
+epoch  24  decisions    15,728,640  dps   16276  eval return   -0.011 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t   1600s
+epoch  25  decisions    16,384,000  dps   16255  eval return   -0.012 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t   1675s
+epoch  26  decisions    17,039,360  dps   16261  eval return   -0.014 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t   1750s
+epoch  27  decisions    17,694,720  dps   16245  eval return   -0.015 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t   1825s
+epoch  28  decisions    18,350,080  dps   16238  eval return   -0.016 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t   1900s
+epoch  29  decisions    19,005,440  dps   16241  eval return   -0.016 len 1197.7  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t   1976s
+epoch  30  decisions    19,660,800  dps   16269  eval return   -0.018 len 1200.0  diverged 0.0000 overflow 0.0000 reset_overlap 0.0000  train failures 0/0/0  device 1321 MB  t   2051s
+saved /home/mateus/doc/ssl-rl/runs/cmp12/mjlab/model_119.pt, /home/mateus/doc/ssl-rl/runs/cmp12/mjlab/mjlab.onnx
+exit 0
