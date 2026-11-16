@@ -88,6 +88,15 @@ examples/sweep.sh sac all 4                                                 # ev
 uv run --group rl python examples/visualize_sweep.py runs/sweep/sac_20261018-231040  # a sweep folder: one GIF per policy
 ```
 
+Sweep on a GPU backend (one run at a time, the default worlds halved on out-of-memory):
+
+```bash
+examples/sweep_gpu.sh mjx all                                               # -> runs/sweep/mjx_YYYYmmdd-HHMMSS/
+examples/sweep_gpu.sh mjlab all --epochs 50                                 # -> runs/sweep/mjlab_YYYYmmdd-HHMMSS/
+uv run --group gpu   python examples/visualize_sweep.py runs/sweep/mjx_20261116-120000
+uv run --group mjlab python examples/visualize_sweep.py runs/sweep/mjlab_20261116-120000
+```
+
 It runs from a checkout: the MJCF and meshes live in `models/`, beside the package, not
 inside it. `mjsoccer.scene` resolves them from the source tree; set `MJSOCCER_MODELS` to
 point at another build.
