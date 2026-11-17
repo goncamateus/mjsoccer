@@ -293,6 +293,10 @@ def train(args) -> int:
             with torch.inference_mode():  # RSL-RL's rollout left the env's tensors inference ones
                 env.refill_pool()
                 vec.reset()
+                # RSL-RL's logger outlives learn(): drop the abandoned episodes' partial sums,
+                # or they are added to the next episodes' Train/mean_reward and length.
+                runner.logger.cur_reward_sum.zero_()
+                runner.logger.cur_episode_length.zero_()
         t = time.perf_counter()
         runner.learn(iters)
         # learn() leaves the counter on its last iteration, which the next call would redo.
