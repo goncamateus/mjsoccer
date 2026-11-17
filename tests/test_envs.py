@@ -400,7 +400,8 @@ def test_goto_ball_is_solvable():
                 break
     env.close()
     assert wins >= 16, f"scripted policy reached the ball {wins}/20 times"
-    assert sum(returns) == wins, f"GoToBall is sparse, +1 on arrival only: {returns}"
+    # +1 per arrival plus the closing term, which a controller driving at the ball collects.
+    assert sum(returns) > wins, f"closing shaping missing: {returns}"
 
 
 def _put(env, i, x, y, theta=0.0):
@@ -416,14 +417,16 @@ def _ball(env, x, y):
 
 
 def test_goto_ball_pays_one_within_20_cm():
-    """rSoccer's GoToBall: +1 and done when the robot centre is under 0.2 m from the ball."""
+    """rSoccer's GoToBall: +1 (plus the closing term) and done when the robot centre is under 0.2 m from the ball."""
     env = gym.make("GoToBall-v0")
     env.reset(seed=0)
     u = env.unwrapped
     b = u.ball.pos(u.data)
     _put(env, 0, b[0] - 0.15, b[1])
+    u._prev = u._to_ball()  # the teleport is no closing: the step pays ~0 shaping
     _, reward, terminated, _, info = env.step(np.zeros(env.action_space.shape, np.float32))
-    assert (reward, terminated, info["is_success"]) == (1.0, True, True)
+    assert (terminated, info["is_success"]) == (True, True)
+    assert reward == pytest.approx(1.0, abs=1e-3)
     env.close()
 
 

@@ -38,7 +38,7 @@ TOL = {"rtol": 1e-5, "atol": 1e-5}
 BASE_STATE = {"grace": "_grace", "steps": "steps", "drive_cmd": "drive_cmd",
               "plunger_lock": "_plunger_lock", "fired": "fired"}
 TASK_STATE = {"ContestedPossession-v0": {"prev": "_prev", "prev_goal": "_prev_goal"},
-              "GoToBall-v0": {},
+              "GoToBall-v0": {"prev": "_prev"},
               "GoToBallShoot-v0": {"prev": "_prev", "prev_goal": "_prev_goal"},
               "StaticDefenders-v0": {"prev": "_prev", "prev_goal": "_prev_goal"},
               "Dribbling-v0": {"count": "_count", "last_ball": "_last_ball"},

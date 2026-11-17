@@ -136,9 +136,14 @@ class GoToBallEnv(_BallTask):
         overlap = self.scatter(qpos, qvel, 0, ball[:, None], u[:, 2:], lo, -lo)
         return qpos, qvel, overlap
 
+    def init_task(self, d):
+        return {"prev": self.to_ball(d)}
+
     def reward_done(self, d, w):
-        arrived = self.to_ball(d) < 0.2
-        return arrived.to(d.qpos.dtype), arrived, w
+        dist = self.to_ball(d)
+        arrived = dist < 0.2
+        shaping = (w["prev"] - dist).clamp(-1, 1) / cpu.BALL_DIST_SCALE
+        return arrived.to(d.qpos.dtype) + shaping, arrived, {**w, "prev": dist}
 
 
 class GoToBallShootEnv(_ShootTask):

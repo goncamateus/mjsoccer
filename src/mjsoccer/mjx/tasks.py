@@ -267,6 +267,11 @@ class GoToBallEnv(_BallTask):
         d = self.place_ball(d, ball[0], ball[1])
         return self.scatter(d, 0, ball[None], u[2:], lo, -lo)
 
+    def init_task(self, d):
+        return {"prev": self.to_ball(d)}
+
     def reward_done(self, d, w):
-        arrived = self.to_ball(d) < 0.2
-        return arrived.astype(jnp.float32), arrived, w
+        dist = self.to_ball(d)
+        arrived = dist < 0.2
+        shaping = jnp.clip(w["prev"] - dist, -1, 1) / cpu.BALL_DIST_SCALE
+        return arrived.astype(jnp.float32) + shaping, arrived, {**w, "prev": dist}

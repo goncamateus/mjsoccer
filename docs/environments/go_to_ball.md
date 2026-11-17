@@ -124,13 +124,16 @@ them, and their velocity entries are zero otherwise.
 
 ## Rewards
 
-rSoccer's, sparse.
+rSoccer's sparse `+1`, plus a dense robot-to-ball closing term (a departure from rSoccer:
+the sparse reward alone left PPO wandering near the field centre).
 
 | term | value |
 |---|---|
+| closing | `clip(prev_dist - dist, -1, 1) / BALL_DIST_SCALE` every step (`BALL_DIST_SCALE = hypot(9, 6) ~ 10.8 m`), the same as `GoToBallShoot`'s robot-to-ball term |
 | reached | `+1.0` on the step the robot-to-ball distance (centre to centre) drops under 0.2 m; ends the episode |
 
-Every other step pays `0`. No shaping, no facing, no energy, no penalties.
+The closing term sums to at most `(d_0 - 0.2) / 10.8 ~ 1.2` over an episode, so arriving still
+pays about as much again. No facing, no energy, no penalties.
 
 ## Starting State
 
@@ -146,7 +149,7 @@ already placed, with yaw uniform over `[0, 2 pi)`. Everything starts at rest.
 
 One condition, plus divergence:
 
-- **Success.** Robot-to-ball distance under 0.2 m: `+1.0`, `info["is_success"]`.
+- **Success.** Robot-to-ball distance under 0.2 m: `+1.0` (plus that step's closing term), `info["is_success"]`.
 - **Diverged simulation.** If `qpos` or `qvel` stops being finite, `step` raises
   `RuntimeError` rather than returning a NaN observation to train on. (GPU backends end that
   world with obs and reward 0, count it in `diverged` and auto-reset; see [the backends](../backends/index.md).)

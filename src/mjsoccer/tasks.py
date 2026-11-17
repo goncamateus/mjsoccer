@@ -82,8 +82,9 @@ class _BallTask(BaseEnv):
 class GoToBallEnv(_BallTask):
     """Get within 0.2 m of the ball, through six parked yellow robots: +1 and done.
 
-    rSoccer's SSLGoToBall-v0 (field_type 2, n_robots_yellow 6). Sparse, no facing, no
-    shaping. The kicker, chipper and dribbler are in the action space but the reward ignores
+    rSoccer's SSLGoToBall-v0 (field_type 2, n_robots_yellow 6) plus `_ShootTask`'s
+    robot->ball closing term, clip(prev - dist, +-1) / BALL_DIST_SCALE, every step: the
+    sparse +1 alone left PPO wandering. No facing. The kicker, chipper and dribbler are in the action space but the reward ignores
     them.
     """
 
@@ -95,10 +96,15 @@ class GoToBallEnv(_BallTask):
         self.ball.place(self.data, bx, by)
         self._scatter(0, [(bx, by)], xs, ys)
 
+    def _reset_task(self) -> None:
+        self._prev = self._to_ball()
+
     def _reward_done(self, action):
         d = self._to_ball()
         arrived = d < 0.2
-        return float(arrived), arrived, {"is_success": arrived, "dist": d}
+        shaping = float(np.clip(self._prev - d, -1, 1)) / BALL_DIST_SCALE
+        self._prev = d
+        return float(arrived) + shaping, arrived, {"is_success": arrived, "dist": d}
 
 
 class _ShootTask(_BallTask):
