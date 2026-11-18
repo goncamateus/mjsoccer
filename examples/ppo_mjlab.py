@@ -111,6 +111,9 @@ def parse_args(argv=None) -> argparse.Namespace:
     hp.add_argument("--num-minibatches", type=int, default=32)
     hp.add_argument("--num-updates-per-batch", type=int, default=4)
     hp.add_argument("--max-grad-norm", type=float, default=0.5)
+    hp.add_argument("--tanh-mean", action="store_true",
+                    help="squash the actor's mean through tanh, so the deterministic action "
+                         "stays in [-1, 1] instead of clipping to bang-bang")
     args = ap.parse_args(argv)
     if args.eval_randomize and not args.randomize:
         ap.error("--eval-randomize needs --randomize")
@@ -121,6 +124,26 @@ def parse_args(argv=None) -> argparse.Namespace:
     if args.save is None:
         args.save = f"runs/ppo_mjlab_{args.env}"
     return args
+
+
+def tanh_gaussian():
+    """RSL-RL's Gaussian with mean tanh(MLP output): the noise is unchanged, but the mean
+    (the deterministic and exported action) cannot leave [-1, 1]. Without it PPO pushes the
+    mean past the clip and the policy evaluates as bang-bang."""
+    import torch
+    from rsl_rl.modules.distribution import GaussianDistribution
+
+    class TanhGaussianDistribution(GaussianDistribution):
+        def update(self, mlp_output):
+            super().update(torch.tanh(mlp_output))
+
+        def deterministic_output(self, mlp_output):
+            return torch.tanh(mlp_output)
+
+        def as_deterministic_output_module(self):
+            return torch.nn.Tanh()
+
+    return TanhGaussianDistribution
 
 
 def train_cfg(args) -> dict:
@@ -138,7 +161,8 @@ def train_cfg(args) -> dict:
         upload_model=False,
         clip_actions=1.0,
         actor=RslRlModelCfg(hidden_dims=(32,) * 4, activation="swish", obs_normalization=True,
-                            distribution_cfg={"class_name": "GaussianDistribution",
+                            distribution_cfg={"class_name": tanh_gaussian() if args.tanh_mean
+                                              else "GaussianDistribution",
                                               "init_std": 1.0, "std_type": "scalar"}),
         critic=RslRlModelCfg(hidden_dims=(256,) * 5, activation="swish", obs_normalization=True),
         algorithm=RslRlPpoAlgorithmCfg(

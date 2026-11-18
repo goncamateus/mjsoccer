@@ -162,3 +162,19 @@ def test_train_eval_play_smoke(tmp_path):
 
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__]))
+
+
+def test_tanh_mean_keeps_the_deterministic_action_in_bounds():
+    import torch
+
+    mod = _script()
+    assert mod.train_cfg(mod.parse_args(["--env", ENV]))["actor"]["distribution_cfg"][
+        "class_name"] == "GaussianDistribution"  # off by default: the measured baselines
+    cls = mod.train_cfg(mod.parse_args(["--env", ENV, "--tanh-mean"]))["actor"][
+        "distribution_cfg"]["class_name"]
+    dist = cls(3)
+    raw = torch.tensor([[-50.0, 0.0, 50.0]])
+    dist.update(raw)
+    assert dist.mean.abs().max() <= 1.0 and dist.std.allclose(torch.ones(3))
+    assert dist.deterministic_output(raw).equal(dist.mean)
+    assert dist.as_deterministic_output_module()(raw).equal(dist.mean)  # what ONNX exports
