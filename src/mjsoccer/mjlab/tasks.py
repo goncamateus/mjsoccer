@@ -142,7 +142,7 @@ class GoToBallEnv(_BallTask):
     def reward_done(self, d, w):
         dist = self.to_ball(d)
         arrived = dist < 0.2
-        shaping = (w["prev"] - dist).clamp(-1, 1) / cpu.BALL_DIST_SCALE
+        shaping = (w["prev"] - dist).clamp(-1, 1) / cpu.GOTO_STEP_SCALE
         return arrived.to(d.qpos.dtype) + shaping, arrived, {**w, "prev": dist}
 
 

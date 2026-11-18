@@ -273,5 +273,5 @@ class GoToBallEnv(_BallTask):
     def reward_done(self, d, w):
         dist = self.to_ball(d)
         arrived = dist < 0.2
-        shaping = jnp.clip(w["prev"] - dist, -1, 1) / cpu.BALL_DIST_SCALE
+        shaping = jnp.clip(w["prev"] - dist, -1, 1) / cpu.GOTO_STEP_SCALE
         return arrived.astype(jnp.float32) + shaping, arrived, {**w, "prev": dist}

@@ -423,10 +423,12 @@ def test_goto_ball_pays_one_within_20_cm():
     u = env.unwrapped
     b = u.ball.pos(u.data)
     _put(env, 0, b[0] - 0.15, b[1])
-    u._prev = u._to_ball()  # the teleport is no closing: the step pays ~0 shaping
+    u._prev = prev = u._to_ball()  # the teleport is no closing
     _, reward, terminated, _, info = env.step(np.zeros(env.action_space.shape, np.float32))
     assert (terminated, info["is_success"]) == (True, True)
-    assert reward == pytest.approx(1.0, abs=1e-3)
+    from mjsoccer.tasks import GOTO_STEP_SCALE
+
+    assert reward == pytest.approx(1.0 + (prev - info["dist"]) / GOTO_STEP_SCALE)
     env.close()
 
 

@@ -21,12 +21,15 @@ from __future__ import annotations
 import numpy as np
 
 from . import scene as S
-from .base import BaseEnv
+from .base import CONTROL_DT, MAX_V, BaseEnv
 
 HALF_X, HALF_Y = S.FIELD_HALF_X, S.FIELD_HALF_Y
 # rSoccer's shaping scales: the largest robot->ball step on the field is 1 after the first,
 # and the ball->goal one is a quarter of the half-field diagonal.
 BALL_DIST_SCALE = float(np.hypot(2 * HALF_Y, HALF_X))
+# GoToBall's closing scale: one control step at full speed (0.0825 m), so driving straight
+# at the ball pays ~1 per step. BALL_DIST_SCALE (10.8 m) left it ~0.002, lost in the critic.
+GOTO_STEP_SCALE = MAX_V * CONTROL_DT
 BALL_GRAD_SCALE = float(np.hypot(HALF_Y, HALF_X)) / 4
 GOAL_REWARD = 5.0
 
@@ -83,8 +86,8 @@ class GoToBallEnv(_BallTask):
     """Get within 0.2 m of the ball, through six parked yellow robots: +1 and done.
 
     rSoccer's SSLGoToBall-v0 (field_type 2, n_robots_yellow 6) plus `_ShootTask`'s
-    robot->ball closing term, clip(prev - dist, +-1) / BALL_DIST_SCALE, every step: the
-    sparse +1 alone left PPO wandering. No facing. The kicker, chipper and dribbler are in the action space but the reward ignores
+    robot->ball closing term, clip(prev - dist, +-1) / GOTO_STEP_SCALE, every step (~1 per step
+    at full speed toward the ball): the sparse +1 alone left PPO wandering. No facing. The kicker, chipper and dribbler are in the action space but the reward ignores
     them.
     """
 
@@ -102,7 +105,7 @@ class GoToBallEnv(_BallTask):
     def _reward_done(self, action):
         d = self._to_ball()
         arrived = d < 0.2
-        shaping = float(np.clip(self._prev - d, -1, 1)) / BALL_DIST_SCALE
+        shaping = float(np.clip(self._prev - d, -1, 1)) / GOTO_STEP_SCALE
         self._prev = d
         return float(arrived) + shaping, arrived, {"is_success": arrived, "dist": d}
 

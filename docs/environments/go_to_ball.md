@@ -129,11 +129,11 @@ the sparse reward alone left PPO wandering near the field centre).
 
 | term | value |
 |---|---|
-| closing | `clip(prev_dist - dist, -1, 1) / BALL_DIST_SCALE` every step (`BALL_DIST_SCALE = hypot(9, 6) ~ 10.8 m`), the same as `GoToBallShoot`'s robot-to-ball term |
+| closing | `clip(prev_dist - dist, -1, 1) / GOTO_STEP_SCALE` every step (`GOTO_STEP_SCALE = MAX_V * CONTROL_DT = 3.3 * 0.025 = 0.0825 m`, one control step at full speed): ~`+1` per step driving straight at the ball, ~`-1` driving straight away |
 | reached | `+1.0` on the step the robot-to-ball distance (centre to centre) drops under 0.2 m; ends the episode |
 
-The closing term sums to at most `(d_0 - 0.2) / 10.8 ~ 1.2` over an episode, so arriving still
-pays about as much again. No facing, no energy, no penalties.
+The closing term sums to `(d_0 - d_final) / 0.0825` over an episode, ~63 for the mean start
+distance of 5.4 m, so it dominates the `+1` of arriving. No facing, no energy, no penalties.
 
 ## Starting State
 
