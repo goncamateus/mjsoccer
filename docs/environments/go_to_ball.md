@@ -124,16 +124,17 @@ them, and their velocity entries are zero otherwise.
 
 ## Rewards
 
-rSoccer's sparse `+1`, plus a dense robot-to-ball closing term (a departure from rSoccer:
+rSoccer's sparse arrival reward, rescaled, plus a dense robot-to-ball closing term (a departure from rSoccer:
 the sparse reward alone left PPO wandering near the field centre).
 
 | term | value |
 |---|---|
 | closing | `clip(prev_dist - dist, -1, 1) / GOTO_STEP_SCALE` every step (`GOTO_STEP_SCALE = MAX_V * CONTROL_DT = 3.3 * 0.025 = 0.0825 m`, one control step at full speed): ~`+1` per step driving straight at the ball, ~`-1` driving straight away |
-| reached | `+1.0` on the step the robot-to-ball distance (centre to centre) drops under 0.2 m; ends the episode |
+| reached | `GOTO_ARRIVAL_BONUS = (5.3 - 0.2) / GOTO_STEP_SCALE ~ 61.8` on the step the robot-to-ball distance (centre to centre) drops under 0.2 m; ends the episode (rSoccer pays `+1`) |
 
-The closing term sums to `(d_0 - d_final) / 0.0825` over an episode, ~63 for the mean start
-distance of 5.4 m, so it dominates the `+1` of arriving. No facing, no energy, no penalties.
+The closing term sums to `(d_0 - d_final) / 0.0825` over an episode, ~62 for the mean start
+distance of 5.3 m (measured over 3000 resets), so the arrival bonus is set to that: on a
+mean episode, closing and arriving weigh about the same. No facing, no energy, no penalties.
 
 ## Starting State
 
@@ -149,7 +150,7 @@ already placed, with yaw uniform over `[0, 2 pi)`. Everything starts at rest.
 
 One condition, plus divergence:
 
-- **Success.** Robot-to-ball distance under 0.2 m: `+1.0` (plus that step's closing term), `info["is_success"]`.
+- **Success.** Robot-to-ball distance under 0.2 m: `GOTO_ARRIVAL_BONUS` (~61.8, plus that step's closing term), `info["is_success"]`.
 - **Diverged simulation.** If `qpos` or `qvel` stops being finite, `step` raises
   `RuntimeError` rather than returning a NaN observation to train on. (GPU backends end that
   world with obs and reward 0, count it in `diverged` and auto-reset; see [the backends](../backends/index.md).)

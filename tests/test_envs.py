@@ -400,8 +400,10 @@ def test_goto_ball_is_solvable():
                 break
     env.close()
     assert wins >= 16, f"scripted policy reached the ball {wins}/20 times"
-    # +1 per arrival plus the closing term, which a controller driving at the ball collects.
-    assert sum(returns) > wins, f"closing shaping missing: {returns}"
+    # The bonus per arrival plus the closing term, which a controller driving at the ball collects.
+    from mjsoccer.tasks import GOTO_ARRIVAL_BONUS
+
+    assert sum(returns) > wins * GOTO_ARRIVAL_BONUS, f"closing shaping missing: {returns}"
 
 
 def _put(env, i, x, y, theta=0.0):
@@ -426,9 +428,9 @@ def test_goto_ball_pays_one_within_20_cm():
     u._prev = prev = u._to_ball()  # the teleport is no closing
     _, reward, terminated, _, info = env.step(np.zeros(env.action_space.shape, np.float32))
     assert (terminated, info["is_success"]) == (True, True)
-    from mjsoccer.tasks import GOTO_STEP_SCALE
+    from mjsoccer.tasks import GOTO_ARRIVAL_BONUS, GOTO_STEP_SCALE
 
-    assert reward == pytest.approx(1.0 + (prev - info["dist"]) / GOTO_STEP_SCALE)
+    assert reward == pytest.approx(GOTO_ARRIVAL_BONUS + (prev - info["dist"]) / GOTO_STEP_SCALE)
     env.close()
 
 

@@ -30,6 +30,9 @@ BALL_DIST_SCALE = float(np.hypot(2 * HALF_Y, HALF_X))
 # GoToBall's closing scale: one control step at full speed (0.0825 m), so driving straight
 # at the ball pays ~1 per step. BALL_DIST_SCALE (10.8 m) left it ~0.002, lost in the critic.
 GOTO_STEP_SCALE = MAX_V * CONTROL_DT
+# GoToBall's arrival bonus: what the closing term pays over a mean episode, so the two weigh
+# about the same. 5.3 m is the mean start distance (measured, 3000 resets; median 5.2).
+GOTO_ARRIVAL_BONUS = (5.3 - 0.2) / GOTO_STEP_SCALE
 BALL_GRAD_SCALE = float(np.hypot(HALF_Y, HALF_X)) / 4
 GOAL_REWARD = 5.0
 
@@ -83,11 +86,12 @@ class _BallTask(BaseEnv):
 
 
 class GoToBallEnv(_BallTask):
-    """Get within 0.2 m of the ball, through six parked yellow robots: +1 and done.
+    """Get within 0.2 m of the ball, through six parked yellow robots: GOTO_ARRIVAL_BONUS and done.
 
     rSoccer's SSLGoToBall-v0 (field_type 2, n_robots_yellow 6) plus `_ShootTask`'s
     robot->ball closing term, clip(prev - dist, +-1) / GOTO_STEP_SCALE, every step (~1 per step
-    at full speed toward the ball): the sparse +1 alone left PPO wandering. No facing. The kicker, chipper and dribbler are in the action space but the reward ignores
+    at full speed toward the ball): the sparse +1 alone left PPO wandering. Arrival pays
+    GOTO_ARRIVAL_BONUS (~62, rSoccer's is 1), what closing pays over a mean episode. No facing. The kicker, chipper and dribbler are in the action space but the reward ignores
     them.
     """
 
@@ -107,7 +111,7 @@ class GoToBallEnv(_BallTask):
         arrived = d < 0.2
         shaping = float(np.clip(self._prev - d, -1, 1)) / GOTO_STEP_SCALE
         self._prev = d
-        return float(arrived) + shaping, arrived, {"is_success": arrived, "dist": d}
+        return GOTO_ARRIVAL_BONUS * arrived + shaping, arrived, {"is_success": arrived, "dist": d}
 
 
 class _ShootTask(_BallTask):

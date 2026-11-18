@@ -274,4 +274,4 @@ class GoToBallEnv(_BallTask):
         dist = self.to_ball(d)
         arrived = dist < 0.2
         shaping = jnp.clip(w["prev"] - dist, -1, 1) / cpu.GOTO_STEP_SCALE
-        return arrived.astype(jnp.float32) + shaping, arrived, {**w, "prev": dist}
+        return cpu.GOTO_ARRIVAL_BONUS * arrived.astype(jnp.float32) + shaping, arrived, {**w, "prev": dist}

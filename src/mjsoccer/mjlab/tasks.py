@@ -143,7 +143,7 @@ class GoToBallEnv(_BallTask):
         dist = self.to_ball(d)
         arrived = dist < 0.2
         shaping = (w["prev"] - dist).clamp(-1, 1) / cpu.GOTO_STEP_SCALE
-        return arrived.to(d.qpos.dtype) + shaping, arrived, {**w, "prev": dist}
+        return cpu.GOTO_ARRIVAL_BONUS * arrived.to(d.qpos.dtype) + shaping, arrived, {**w, "prev": dist}
 
 
 class GoToBallShootEnv(_ShootTask):
