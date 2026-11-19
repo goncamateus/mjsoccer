@@ -129,8 +129,8 @@ the sparse reward alone left PPO wandering near the field centre).
 
 | term | value |
 |---|---|
-| closing | `clip(prev_dist - dist, -1, 1) / GOTO_STEP_SCALE` every step (`GOTO_STEP_SCALE = MAX_V * CONTROL_DT = 3.3 * 0.025 = 0.0825 m`, one control step at full speed): ~`+1` per step driving straight at the ball, ~`-1` driving straight away |
-| reached | `GOTO_ARRIVAL_BONUS = (5.3 - 0.2) / GOTO_STEP_SCALE ~ 61.8` on the step the robot-to-ball distance (centre to centre) drops under 0.2 m; ends the episode (rSoccer pays `+1`) |
+| closing | `clip(prev_dist - dist, -1, 1) / ROBOT_STEP_SCALE` every step (`ROBOT_STEP_SCALE = MAX_V * CONTROL_DT = 3.3 * 0.025 = 0.0825 m`, one control step at full speed): ~`+1` per step driving straight at the ball, ~`-1` driving straight away |
+| reached | `GOTO_ARRIVAL_BONUS = (5.3 - 0.2) / ROBOT_STEP_SCALE ~ 61.8` on the step the robot-to-ball distance (centre to centre) drops under 0.2 m; ends the episode (rSoccer pays `+1`) |
 
 The closing term sums to `(d_0 - d_final) / 0.0825` over an episode, ~62 for the mean start
 distance of 5.3 m (measured over 3000 resets), so the arrival bonus is set to that: on a

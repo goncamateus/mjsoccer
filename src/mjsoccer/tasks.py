@@ -26,13 +26,13 @@ from .base import CONTROL_DT, MAX_V, BaseEnv
 HALF_X, HALF_Y = S.FIELD_HALF_X, S.FIELD_HALF_Y
 # rSoccer's shaping scales: the largest robot->ball step on the field is 1 after the first,
 # and the ball->goal one is a quarter of the half-field diagonal.
-BALL_DIST_SCALE = float(np.hypot(2 * HALF_Y, HALF_X))
-# GoToBall's closing scale: one control step at full speed (0.0825 m), so driving straight
-# at the ball pays ~1 per step. BALL_DIST_SCALE (10.8 m) left it ~0.002, lost in the critic.
-GOTO_STEP_SCALE = MAX_V * CONTROL_DT
+# The robot->ball closing scale (GoToBall and the shooting tasks): one control step at full
+# speed (0.0825 m), so driving straight at the ball pays ~1 per step. rSoccer's hypot(9, 6)
+# = 10.8 m left it ~0.002, lost in the critic.
+ROBOT_STEP_SCALE = MAX_V * CONTROL_DT
 # GoToBall's arrival bonus: what the closing term pays over a mean episode, so the two weigh
 # about the same. 5.3 m is the mean start distance (measured, 3000 resets; median 5.2).
-GOTO_ARRIVAL_BONUS = (5.3 - 0.2) / GOTO_STEP_SCALE
+GOTO_ARRIVAL_BONUS = (5.3 - 0.2) / ROBOT_STEP_SCALE
 BALL_GRAD_SCALE = float(np.hypot(HALF_Y, HALF_X)) / 4
 GOAL_REWARD = 5.0
 
@@ -89,7 +89,7 @@ class GoToBallEnv(_BallTask):
     """Get within 0.2 m of the ball, through six parked yellow robots: GOTO_ARRIVAL_BONUS and done.
 
     rSoccer's SSLGoToBall-v0 (field_type 2, n_robots_yellow 6) plus `_ShootTask`'s
-    robot->ball closing term, clip(prev - dist, +-1) / GOTO_STEP_SCALE, every step (~1 per step
+    robot->ball closing term, clip(prev - dist, +-1) / ROBOT_STEP_SCALE, every step (~1 per step
     at full speed toward the ball): the sparse +1 alone left PPO wandering. Arrival pays
     GOTO_ARRIVAL_BONUS (~62, rSoccer's is 1), what closing pays over a mean episode. No facing. The kicker, chipper and dribbler are in the action space but the reward ignores
     them.
@@ -109,7 +109,7 @@ class GoToBallEnv(_BallTask):
     def _reward_done(self, action):
         d = self._to_ball()
         arrived = d < 0.2
-        shaping = float(np.clip(self._prev - d, -1, 1)) / GOTO_STEP_SCALE
+        shaping = float(np.clip(self._prev - d, -1, 1)) / ROBOT_STEP_SCALE
         self._prev = d
         return GOTO_ARRIVAL_BONUS * arrived + shaping, arrived, {"is_success": arrived, "dist": d}
 
@@ -121,7 +121,7 @@ class _ShootTask(_BallTask):
     Ends when the robot leaves the attacking half (x < -0.2) or the field's width, enters
     the penalty area, the ball leaves the attacking half, or crosses the +x goal line --
     +5 inside the mouth, 0 wide. Every other step pays
-        clip(robot->ball closing, +-1) / BALL_DIST_SCALE
+        clip(robot->ball closing, +-1) / ROBOT_STEP_SCALE
       + clip(ball->goal-centre closing, +-1) / BALL_GRAD_SCALE
       - sum |wheel speed| / (4 * max wheel speed * energy_steps).
     """
@@ -159,7 +159,7 @@ class _ShootTask(_BallTask):
             reward = GOAL_REWARD if info["goal"] else 0.0
         else:
             reward = (
-                np.clip(self._prev - d, -1, 1) / BALL_DIST_SCALE
+                np.clip(self._prev - d, -1, 1) / ROBOT_STEP_SCALE
                 + np.clip(self._prev_goal - g, -1, 1) / BALL_GRAD_SCALE
                 - self._energy(action)
             )

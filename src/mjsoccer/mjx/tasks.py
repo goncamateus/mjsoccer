@@ -95,7 +95,7 @@ class _ShootTask(_BallTask):
         past = bx > HALF_X
         energy = jnp.abs(w["drive_cmd"][0]).mean() / self.cpu_cls.energy_steps
         shaping = (
-            jnp.clip(w["prev"] - dist, -1, 1) / cpu.BALL_DIST_SCALE
+            jnp.clip(w["prev"] - dist, -1, 1) / cpu.ROBOT_STEP_SCALE
             + jnp.clip(w["prev_goal"] - g, -1, 1) / cpu.BALL_GRAD_SCALE
             - energy
         )
@@ -273,5 +273,5 @@ class GoToBallEnv(_BallTask):
     def reward_done(self, d, w):
         dist = self.to_ball(d)
         arrived = dist < 0.2
-        shaping = jnp.clip(w["prev"] - dist, -1, 1) / cpu.GOTO_STEP_SCALE
+        shaping = jnp.clip(w["prev"] - dist, -1, 1) / cpu.ROBOT_STEP_SCALE
         return cpu.GOTO_ARRIVAL_BONUS * arrived.astype(jnp.float32) + shaping, arrived, {**w, "prev": dist}

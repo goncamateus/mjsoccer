@@ -96,7 +96,7 @@ class _ShootTask(_BallTask):
         past = bx > HALF_X
         energy = w["drive_cmd"][:, 0].abs().mean(-1) / self.cpu_cls.energy_steps
         shaping = (
-            (w["prev"] - dist).clamp(-1, 1) / cpu.BALL_DIST_SCALE
+            (w["prev"] - dist).clamp(-1, 1) / cpu.ROBOT_STEP_SCALE
             + (w["prev_goal"] - g).clamp(-1, 1) / cpu.BALL_GRAD_SCALE
             - energy
         )
@@ -142,7 +142,7 @@ class GoToBallEnv(_BallTask):
     def reward_done(self, d, w):
         dist = self.to_ball(d)
         arrived = dist < 0.2
-        shaping = (w["prev"] - dist).clamp(-1, 1) / cpu.GOTO_STEP_SCALE
+        shaping = (w["prev"] - dist).clamp(-1, 1) / cpu.ROBOT_STEP_SCALE
         return cpu.GOTO_ARRIVAL_BONUS * arrived.to(d.qpos.dtype) + shaping, arrived, {**w, "prev": dist}
 
 

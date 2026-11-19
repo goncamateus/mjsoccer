@@ -428,9 +428,9 @@ def test_goto_ball_pays_one_within_20_cm():
     u._prev = prev = u._to_ball()  # the teleport is no closing
     _, reward, terminated, _, info = env.step(np.zeros(env.action_space.shape, np.float32))
     assert (terminated, info["is_success"]) == (True, True)
-    from mjsoccer.tasks import GOTO_ARRIVAL_BONUS, GOTO_STEP_SCALE
+    from mjsoccer.tasks import GOTO_ARRIVAL_BONUS, ROBOT_STEP_SCALE
 
-    assert reward == pytest.approx(GOTO_ARRIVAL_BONUS + (prev - info["dist"]) / GOTO_STEP_SCALE)
+    assert reward == pytest.approx(GOTO_ARRIVAL_BONUS + (prev - info["dist"]) / ROBOT_STEP_SCALE)
     env.close()
 
 

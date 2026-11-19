@@ -83,7 +83,7 @@ for rSoccer's `sum |wheel speed| / (4 * 160 rad/s * 1200)` (the chassis is comma
 
 | term | value |
 |---|---|
-| ball distance | `clip(prev_dist - dist, -1, 1) / BALL_DIST_SCALE`, robot-to-ball closing; `BALL_DIST_SCALE = hypot(9.0, 6.0) = 10.8` |
+| ball distance | `clip(prev_dist - dist, -1, 1) / ROBOT_STEP_SCALE`, robot-to-ball closing; `ROBOT_STEP_SCALE = MAX_V * CONTROL_DT = 0.0825 m`, one control step at full speed, so ~`+1` per step driving straight at the ball (rSoccer divides by `hypot(9, 6) = 10.8`) |
 | ball gradient | `clip(prev - now, -1, 1) / BALL_GRAD_SCALE`, the ball closing on the goal centre `(6.0, 0)`; `BALL_GRAD_SCALE = hypot(4.5, 6.0) / 4 = 1.875` |
 | energy | `-mean(\|drive_cmd\|) / 1200` |
 | goal | `+5.0` on the step the ball crosses `x = 6.0` inside the mouth, `0` wide; ends the episode |
